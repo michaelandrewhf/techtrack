@@ -90,7 +90,7 @@ def create_work_order(
 @transaction.atomic
 def change_work_order_status(*, work_order, status, changed_by=None, comment="", description="", changed_at=None):
     changed_at = changed_at or timezone.now()
-    work_order = WorkOrder.objects.select_for_update().get(pk=work_order.pk)
+    work_order = WorkOrder.objects.select_related("status").select_for_update().get(pk=work_order.pk)
     previous_status = work_order.status
 
     if work_order.is_closed and status != work_order.status:
@@ -134,7 +134,7 @@ def complete_work_order(*, work_order, changed_by=None, comment="", description=
 def register_work_order_service(
     *, work_order, service_type, performed_at=None, performed_by=None, description="", notes="", labor_price=None
 ):
-    work_order = WorkOrder.objects.select_for_update().get(pk=work_order.pk)
+    work_order = WorkOrder.objects.select_related("status").select_for_update().get(pk=work_order.pk)
     if work_order.is_closed:
         raise ValidationError("Closed work orders cannot receive new services through the basic domain service.")
 
@@ -180,16 +180,26 @@ def invalidate_work_order_part(*, part, voided_by=None, void_reason, voided_at=N
 
 def get_last_valid_maintenance(*, equipment, service_type):
     return (
-        WorkOrderService.objects.select_related("work_order", "service_type")
-        .filter(
-            work_order__equipment=equipment,
-            service_type=service_type,
-            work_order__status__kind=WorkOrderStatusKind.COMPLETED,
-            voided_at__isnull=True,
-        )
+        WorkOrderService.objects.for_preventive_history()
+        .for_equipment(equipment)
+        .select_related("work_order", "service_type")
+        .filter(service_type=service_type)
         .order_by("-performed_at", "-created_at")
         .first()
     )
+
+
+def get_latest_valid_maintenances_by_service_type(*, equipment):
+    services = (
+        WorkOrderService.objects.for_preventive_history()
+        .for_equipment(equipment)
+        .select_related("service_type")
+        .order_by("service_type_id", "-performed_at", "-created_at")
+    )
+    latest_by_service_type = {}
+    for service in services:
+        latest_by_service_type.setdefault(service.service_type_id, service)
+    return latest_by_service_type
 
 
 def _add_months(value, months):

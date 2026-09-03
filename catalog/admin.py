@@ -26,6 +26,7 @@ class ServiceTypeAdmin(admin.ModelAdmin):
     )
     search_fields = ("name", "slug", "description")
     list_filter = ("category", "is_recurring", "is_active")
+    list_select_related = ("category",)
     autocomplete_fields = ("category",)
     readonly_fields = ("id", "created_at", "updated_at")
 
@@ -35,6 +36,7 @@ class PartAdmin(admin.ModelAdmin):
     list_display = ("name", "brand", "model", "category", "default_cost", "default_price", "is_active")
     search_fields = ("name", "brand", "model")
     list_filter = ("category", "is_active")
+    list_select_related = ("category",)
     autocomplete_fields = ("category",)
     readonly_fields = ("id", "created_at", "updated_at", "deleted_at")
 

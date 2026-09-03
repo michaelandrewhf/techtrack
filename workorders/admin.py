@@ -70,6 +70,7 @@ class WorkOrderAdmin(admin.ModelAdmin):
     )
     search_fields = ("number", "title", "customer__name", "equipment__serial_number", "equipment__asset_tag")
     list_filter = ("status", "priority", "opened_at", "completed_at")
+    list_select_related = ("customer", "equipment", "equipment__equipment_type", "status", "responsible_user")
     autocomplete_fields = ("customer", "equipment", "status", "responsible_user")
     readonly_fields = ("id", "number", "created_at", "updated_at")
     inlines = (WorkOrderStatusHistoryInline, WorkOrderServiceInline, WorkOrderPartInline)
@@ -104,6 +105,7 @@ class WorkOrderStatusHistoryAdmin(admin.ModelAdmin):
     list_display = ("work_order", "status", "changed_at", "changed_by", "created_at")
     search_fields = ("work_order__number", "work_order__title", "comment", "description")
     list_filter = ("status", "changed_at")
+    list_select_related = ("work_order", "status", "changed_by")
     autocomplete_fields = ("work_order", "changed_by")
     readonly_fields = ("id", "work_order", "status", "changed_at", "changed_by", "comment", "description", "created_at")
 
@@ -122,6 +124,7 @@ class WorkOrderServiceAdmin(admin.ModelAdmin):
     list_display = ("work_order", "service_type", "performed_at", "performed_by", "labor_price", "voided_at")
     search_fields = ("work_order__number", "work_order__title", "service_type__name", "description", "notes")
     list_filter = ("service_type", "performed_at", "voided_at")
+    list_select_related = ("work_order", "service_type", "performed_by", "voided_by")
     autocomplete_fields = ("work_order", "service_type", "performed_by", "voided_by")
     readonly_fields = ("id", "created_at", "updated_at")
 
@@ -145,6 +148,15 @@ class WorkOrderPartAdmin(admin.ModelAdmin):
     )
     search_fields = ("work_order__number", "description", "serial_number", "part__name")
     list_filter = ("warranty_until", "voided_at")
+    list_select_related = (
+        "work_order",
+        "work_order_service",
+        "work_order_service__service_type",
+        "part",
+        "part__category",
+        "installed_component",
+        "voided_by",
+    )
     autocomplete_fields = ("work_order", "work_order_service", "part", "installed_component", "voided_by")
     readonly_fields = ("id", "created_at", "updated_at")
 
@@ -168,6 +180,7 @@ class WorkOrderBillingAdmin(admin.ModelAdmin):
     )
     search_fields = ("work_order__number", "work_order__title", "notes")
     list_filter = ("payment_status", "payment_method", "paid_at")
+    list_select_related = ("work_order", "payment_method")
     autocomplete_fields = ("work_order",)
     readonly_fields = ("id", "created_at", "updated_at")
 

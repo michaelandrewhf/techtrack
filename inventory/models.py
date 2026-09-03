@@ -1,6 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q
+from django.db.models import OuterRef, Prefetch, Q, Subquery
 
 from config.models import SoftDeleteModel, TimeStampedUUIDModel
 from customers.models import Customer
@@ -23,7 +23,6 @@ class EquipmentType(TimeStampedUUIDModel):
 
     class Meta:
         indexes = [
-            models.Index(fields=["slug"], name="equipment_type_slug_idx"),
             models.Index(fields=["is_active"], name="equipment_type_active_idx"),
         ]
         ordering = ["name"]
@@ -40,7 +39,6 @@ class ComponentType(TimeStampedUUIDModel):
 
     class Meta:
         indexes = [
-            models.Index(fields=["slug"], name="component_type_slug_idx"),
             models.Index(fields=["is_active"], name="component_type_active_idx"),
         ]
         ordering = ["name"]
@@ -49,8 +47,54 @@ class ComponentType(TimeStampedUUIDModel):
         return self.name
 
 
+class EquipmentComponentQuerySet(models.QuerySet):
+    def current(self):
+        return self.filter(removed_at__isnull=True)
+
+    def with_list_data(self):
+        return self.select_related("component_type")
+
+
+class EquipmentQuerySet(models.QuerySet):
+    def with_list_data(self):
+        return self.select_related("customer", "equipment_type")
+
+    def with_detail_data(self):
+        from workorders.models import WorkOrder
+
+        return self.with_list_data().prefetch_related(
+            Prefetch(
+                "components",
+                queryset=EquipmentComponent.objects.current()
+                .with_list_data()
+                .order_by("component_type__name", "installed_at"),
+                to_attr="current_components",
+            ),
+            Prefetch(
+                "work_orders",
+                queryset=WorkOrder.objects.with_list_data().order_by("-opened_at", "-number"),
+                to_attr="recent_work_orders",
+            ),
+        )
+
+    def with_latest_service_at(self, service_type):
+        from workorders.models import WorkOrderService, WorkOrderStatusKind
+
+        latest_service = (
+            WorkOrderService.objects.filter(
+                work_order__equipment=OuterRef("pk"),
+                work_order__status__kind=WorkOrderStatusKind.COMPLETED,
+                service_type=service_type,
+                voided_at__isnull=True,
+            )
+            .order_by("-performed_at", "-created_at")
+            .values("performed_at")[:1]
+        )
+        return self.annotate(latest_service_at=Subquery(latest_service))
+
+
 class Equipment(TimeStampedUUIDModel, SoftDeleteModel):
-    customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name="equipment")
+    customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name="equipments")
     equipment_type = models.ForeignKey(EquipmentType, on_delete=models.PROTECT, related_name="equipment")
     manufacturer = models.CharField(max_length=120, blank=True)
     model = models.CharField(max_length=120, blank=True)
@@ -62,6 +106,8 @@ class Equipment(TimeStampedUUIDModel, SoftDeleteModel):
     notes = models.TextField(blank=True)
     status = models.CharField(max_length=30, choices=EquipmentStatus, default=EquipmentStatus.ACTIVE)
 
+    objects = EquipmentQuerySet.as_manager()
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
@@ -71,17 +117,16 @@ class Equipment(TimeStampedUUIDModel, SoftDeleteModel):
             ),
         ]
         indexes = [
-            models.Index(fields=["customer"], name="equipment_customer_idx"),
-            models.Index(fields=["equipment_type"], name="equipment_type_idx"),
             models.Index(fields=["status"], name="equipment_status_idx"),
             models.Index(fields=["serial_number"], name="equipment_serial_idx"),
             models.Index(fields=["asset_tag"], name="equipment_asset_tag_idx"),
+            models.Index(fields=["customer", "status"], name="equipment_customer_status_idx"),
         ]
-        ordering = ["customer__name", "equipment_type__name", "manufacturer", "model"]
+        ordering = ["manufacturer", "model", "asset_tag"]
 
     def __str__(self):
         label = " ".join(part for part in [self.manufacturer, self.model, self.asset_tag] if part)
-        return label or f"{self.equipment_type} - {self.customer}"
+        return label or str(self.id)
 
 
 class EquipmentComponent(TimeStampedUUIDModel):
@@ -103,6 +148,8 @@ class EquipmentComponent(TimeStampedUUIDModel):
     removed_at = models.DateField(null=True, blank=True)
     notes = models.TextField(blank=True)
 
+    objects = EquipmentComponentQuerySet.as_manager()
+
     class Meta:
         constraints = [
             models.CheckConstraint(
@@ -113,11 +160,14 @@ class EquipmentComponent(TimeStampedUUIDModel):
             ),
         ]
         indexes = [
-            models.Index(fields=["equipment"], name="component_equipment_idx"),
-            models.Index(fields=["component_type"], name="component_type_idx"),
             models.Index(fields=["equipment", "component_type", "removed_at"], name="component_current_idx"),
+            models.Index(
+                fields=["equipment", "installed_at"],
+                condition=Q(removed_at__isnull=True),
+                name="component_cur_installed_idx",
+            ),
         ]
-        ordering = ["equipment", "component_type", "installed_at"]
+        ordering = ["equipment_id", "component_type_id", "installed_at"]
 
     def clean(self):
         super().clean()
@@ -127,5 +177,5 @@ class EquipmentComponent(TimeStampedUUIDModel):
             raise ValidationError({"source_work_order": "Source work order must belong to the same equipment."})
 
     def __str__(self):
-        parts = [self.get_component_type_display(), self.manufacturer, self.model, self.capacity]
+        parts = [self.component_type.name, self.manufacturer, self.model, self.capacity]
         return " ".join(part for part in parts if part)

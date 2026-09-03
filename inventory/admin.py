@@ -25,6 +25,7 @@ class EquipmentAdmin(admin.ModelAdmin):
     list_display = ("customer", "equipment_type", "manufacturer", "model", "serial_number", "asset_tag", "status")
     search_fields = ("customer__name", "manufacturer", "model", "serial_number", "asset_tag")
     list_filter = ("equipment_type", "status", "created_at")
+    list_select_related = ("customer", "equipment_type")
     autocomplete_fields = ("customer", "equipment_type")
     readonly_fields = ("id", "created_at", "updated_at", "deleted_at")
     inlines = (EquipmentComponentInline,)
@@ -42,6 +43,7 @@ class EquipmentComponentAdmin(admin.ModelAdmin):
         "capacity",
     )
     list_filter = ("component_type", "installed_at", "removed_at")
+    list_select_related = ("equipment", "equipment__customer", "component_type", "source_work_order")
     autocomplete_fields = ("equipment", "component_type", "source_work_order")
     readonly_fields = ("id", "created_at", "updated_at")
 

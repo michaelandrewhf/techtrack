@@ -227,7 +227,7 @@ def test_register_work_order_service(customer, equipment, service_type):
     )
 
     assert service.work_order == work_order
-    assert service.equipment == equipment
+    assert service.work_order.equipment == equipment
     assert service.labor_price == Decimal("120.00")
 
 

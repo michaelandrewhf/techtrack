@@ -115,6 +115,8 @@ Decisoes importantes:
 
 Veja a documentacao completa em [docs/domain-model.md](docs/domain-model.md).
 
+Para padroes de consulta, indices e prevencao de N+1, veja [docs/query-performance.md](docs/query-performance.md).
+
 ## Requisitos
 
 - Python 3.13+

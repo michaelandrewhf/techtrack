@@ -18,7 +18,6 @@ class ServiceCategory(TimeStampedUUIDModel):
 
     class Meta:
         indexes = [
-            models.Index(fields=["slug"], name="service_category_slug_idx"),
             models.Index(fields=["is_active"], name="service_category_active_idx"),
         ]
         ordering = ["name"]
@@ -36,7 +35,6 @@ class PartCategory(TimeStampedUUIDModel):
 
     class Meta:
         indexes = [
-            models.Index(fields=["slug"], name="part_category_slug_idx"),
             models.Index(fields=["is_active"], name="part_category_active_idx"),
         ]
         ordering = ["name"]
@@ -54,7 +52,6 @@ class PaymentMethod(TimeStampedUUIDModel):
 
     class Meta:
         indexes = [
-            models.Index(fields=["slug"], name="payment_method_slug_idx"),
             models.Index(fields=["is_active"], name="payment_method_active_idx"),
         ]
         ordering = ["name"]
@@ -91,7 +88,6 @@ class ServiceType(TimeStampedUUIDModel):
             ),
         ]
         indexes = [
-            models.Index(fields=["slug"], name="service_type_slug_idx"),
             models.Index(fields=["is_recurring"], name="service_type_recurring_idx"),
         ]
         ordering = ["name"]
@@ -142,7 +138,6 @@ class Part(TimeStampedUUIDModel, SoftDeleteModel):
         ]
         indexes = [
             models.Index(fields=["name"], name="part_name_idx"),
-            models.Index(fields=["category"], name="part_category_idx"),
         ]
         ordering = ["name"]
 

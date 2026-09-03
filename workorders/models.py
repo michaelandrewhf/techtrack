@@ -3,7 +3,7 @@ import uuid
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 
 from catalog.models import Part, PaymentMethod, ServiceType
 from config.models import TimeStampedUUIDModel
@@ -35,7 +35,6 @@ class WorkOrderStatus(TimeStampedUUIDModel):
             ),
         ]
         indexes = [
-            models.Index(fields=["code"], name="wo_status_code_idx"),
             models.Index(fields=["kind"], name="wo_status_kind_idx"),
             models.Index(fields=["is_active"], name="wo_status_active_idx"),
             models.Index(fields=["is_initial"], name="wo_status_initial_idx"),
@@ -87,6 +86,82 @@ class WorkOrderNumberSequence(models.Model):
         return str(self.current_number)
 
 
+class WorkOrderStatusHistoryQuerySet(models.QuerySet):
+    def with_list_data(self):
+        return self.select_related("status", "changed_by")
+
+
+class WorkOrderServiceQuerySet(models.QuerySet):
+    def valid(self):
+        return self.filter(voided_at__isnull=True)
+
+    def with_list_data(self):
+        return self.select_related("work_order", "service_type", "performed_by")
+
+    def for_preventive_history(self):
+        return self.valid().filter(work_order__status__kind=WorkOrderStatusKind.COMPLETED)
+
+    def for_equipment(self, equipment):
+        return self.filter(work_order__equipment=equipment)
+
+
+class WorkOrderPartQuerySet(models.QuerySet):
+    def valid(self):
+        return self.filter(voided_at__isnull=True)
+
+    def with_list_data(self):
+        return self.select_related(
+            "part",
+            "part__category",
+            "work_order_service",
+            "work_order_service__service_type",
+            "installed_component",
+            "installed_component__component_type",
+        )
+
+
+class WorkOrderQuerySet(models.QuerySet):
+    def with_list_data(self):
+        return self.select_related(
+            "customer",
+            "equipment",
+            "equipment__equipment_type",
+            "status",
+            "responsible_user",
+        )
+
+    def with_detail_data(self):
+        return (
+            self.with_list_data()
+            .select_related("billing", "billing__payment_method")
+            .prefetch_related(
+                Prefetch(
+                    "status_history",
+                    queryset=WorkOrderStatusHistory.objects.with_list_data().order_by("changed_at", "created_at"),
+                ),
+                Prefetch(
+                    "services",
+                    queryset=WorkOrderService.objects.valid()
+                    .select_related("service_type", "service_type__category", "performed_by")
+                    .order_by("-performed_at", "-created_at"),
+                ),
+                Prefetch(
+                    "parts",
+                    queryset=WorkOrderPart.objects.valid().with_list_data().order_by("created_at"),
+                ),
+            )
+        )
+
+    def active(self):
+        return self.filter(status__kind=WorkOrderStatusKind.ACTIVE)
+
+    def completed(self):
+        return self.filter(status__kind=WorkOrderStatusKind.COMPLETED)
+
+    def cancelled(self):
+        return self.filter(status__kind=WorkOrderStatusKind.CANCELLED)
+
+
 class WorkOrder(TimeStampedUUIDModel):
     number = models.PositiveBigIntegerField(unique=True, editable=False)
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name="work_orders")
@@ -111,6 +186,8 @@ class WorkOrder(TimeStampedUUIDModel):
         related_name="responsible_work_orders",
     )
 
+    objects = WorkOrderQuerySet.as_manager()
+
     class Meta:
         constraints = [
             models.CheckConstraint(
@@ -127,11 +204,11 @@ class WorkOrder(TimeStampedUUIDModel):
             ),
         ]
         indexes = [
-            models.Index(fields=["customer"], name="work_order_customer_idx"),
-            models.Index(fields=["equipment"], name="work_order_equipment_idx"),
-            models.Index(fields=["status"], name="work_order_status_idx"),
             models.Index(fields=["opened_at"], name="work_order_opened_idx"),
             models.Index(fields=["completed_at"], name="work_order_completed_idx"),
+            models.Index(fields=["status", "opened_at"], name="work_order_status_opened_idx"),
+            models.Index(fields=["customer", "opened_at"], name="work_order_customer_opened_idx"),
+            models.Index(fields=["equipment", "opened_at"], name="work_order_equip_opened_idx"),
         ]
         ordering = ["-opened_at", "-number"]
 
@@ -183,6 +260,8 @@ class WorkOrderStatusHistory(models.Model):
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    objects = WorkOrderStatusHistoryQuerySet.as_manager()
+
     class Meta:
         indexes = [
             models.Index(fields=["work_order", "changed_at"], name="wo_history_work_order_time_idx"),
@@ -218,6 +297,8 @@ class WorkOrderService(TimeStampedUUIDModel):
     )
     void_reason = models.TextField(blank=True)
 
+    objects = WorkOrderServiceQuerySet.as_manager()
+
     class Meta:
         constraints = [
             models.CheckConstraint(
@@ -227,7 +308,16 @@ class WorkOrderService(TimeStampedUUIDModel):
         ]
         indexes = [
             models.Index(fields=["work_order", "service_type", "performed_at"], name="wo_service_lookup_idx"),
-            models.Index(fields=["service_type", "performed_at"], name="wo_service_type_time_idx"),
+            models.Index(
+                fields=["service_type", "performed_at"],
+                condition=Q(voided_at__isnull=True),
+                name="wo_service_valid_type_time_idx",
+            ),
+            models.Index(
+                fields=["work_order", "performed_at"],
+                condition=Q(voided_at__isnull=True),
+                name="wo_service_valid_wo_time_idx",
+            ),
         ]
         ordering = ["-performed_at", "-created_at"]
 
@@ -242,10 +332,6 @@ class WorkOrderService(TimeStampedUUIDModel):
             raise ValidationError({"performed_at": "Service date cannot be before work order opening date."})
         if self.voided_at and not self.void_reason:
             raise ValidationError({"void_reason": "Voided services require a reason."})
-
-    @property
-    def equipment(self):
-        return self.work_order.equipment
 
     def __str__(self):
         return f"{self.work_order.display_number} - {self.service_type}"
@@ -284,6 +370,8 @@ class WorkOrderPart(TimeStampedUUIDModel):
     )
     void_reason = models.TextField(blank=True)
 
+    objects = WorkOrderPartQuerySet.as_manager()
+
     class Meta:
         constraints = [
             models.CheckConstraint(condition=Q(quantity__gt=0), name="work_order_part_quantity_positive"),
@@ -295,8 +383,11 @@ class WorkOrderPart(TimeStampedUUIDModel):
             ),
         ]
         indexes = [
-            models.Index(fields=["work_order"], name="wo_part_work_order_idx"),
-            models.Index(fields=["work_order_service"], name="wo_part_service_idx"),
+            models.Index(
+                fields=["work_order", "created_at"],
+                condition=Q(voided_at__isnull=True),
+                name="wo_part_valid_wo_created_idx",
+            ),
         ]
         ordering = ["created_at"]
 
