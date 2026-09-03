@@ -1,0 +1,32 @@
+[project]
+name = "techtrack"
+version = "0.1.0"
+description = "Sistema Django para gerenciamento de clientes, equipamentos e ordens de servico de TI."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "Django>=5.2,<5.3",
+    "psycopg[binary]>=3.2,<4.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0,<9.0",
+    "pytest-django>=4.8,<5.0",
+    "ruff>=0.8,<1.0",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+testpaths = ["accounts", "customers", "inventory", "catalog", "workorders"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+"*/migrations/*.py" = ["E501"]
