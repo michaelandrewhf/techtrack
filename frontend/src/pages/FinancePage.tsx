@@ -62,6 +62,10 @@ export function FinancePage() {
   const [agreementStart, setAgreementStart] = useState(
     new Date().toISOString().slice(0, 10),
   );
+  const [agreementBillingMode, setAgreementBillingMode] = useState<
+    "receive_now" | "next_month"
+  >("next_month");
+  const [agreementPaymentMethod, setAgreementPaymentMethod] = useState("");
 
   const dashboard = useQuery({
     queryKey: ["finance", "dashboard"],
@@ -137,10 +141,17 @@ export function FinancePage() {
         billing_frequency: "monthly",
         amount: agreementAmount,
         billing_day: Number(agreementDay),
+        first_billing_mode: agreementBillingMode,
+        first_payment_method:
+          agreementBillingMode === "receive_now"
+            ? agreementPaymentMethod
+            : undefined,
       }),
     onSuccess: async () => {
       setAgreementAmount("");
       setAgreementCustomer("");
+      setAgreementBillingMode("next_month");
+      setAgreementPaymentMethod("");
       setAgreementOpen(false);
       await refreshFinance();
     },
@@ -535,6 +546,65 @@ export function FinancePage() {
               onChange={(event) => setAgreementStart(event.target.value)}
             />
           </Field>
+          <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+            <div className="font-medium">Primeira mensalidade</div>
+            <div className="mt-3 space-y-3">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  className="mt-1"
+                  checked={agreementBillingMode === "receive_now"}
+                  type="radio"
+                  onChange={() => setAgreementBillingMode("receive_now")}
+                />
+                <span>
+                  <strong className="block text-sm">Receber agora</strong>
+                  <span className="text-xs text-slate-500">
+                    Gera a primeira mensalidade hoje e registra a baixa como
+                    paga.
+                  </span>
+                </span>
+              </label>
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  className="mt-1"
+                  checked={agreementBillingMode === "next_month"}
+                  type="radio"
+                  onChange={() => setAgreementBillingMode("next_month")}
+                />
+                <span>
+                  <strong className="block text-sm">
+                    Cobrar no proximo mes
+                  </strong>
+                  <span className="text-xs text-slate-500">
+                    Nao gera cobranca agora; o primeiro vencimento usa o dia
+                    cadastrado no proximo mes.
+                  </span>
+                </span>
+              </label>
+            </div>
+          </div>
+          {agreementBillingMode === "receive_now" ? (
+            <Field label="Metodo da primeira mensalidade" required>
+              <Select
+                value={agreementPaymentMethod}
+                onChange={(event) =>
+                  setAgreementPaymentMethod(event.target.value)
+                }
+              >
+                <option value="">Selecione</option>
+                {(paymentMethods.data?.results ?? []).map((method) => (
+                  <option key={method.id} value={method.id}>
+                    {method.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          ) : null}
+          <Notice tone="info">
+            {agreementBillingMode === "receive_now"
+              ? "A primeira mensalidade entra como recebida hoje; o ciclo recorrente passa a seguir o vencimento no proximo mes."
+              : "A primeira mensalidade sera gerada somente no proximo mes."}
+          </Notice>
           {createAgreement.error ? (
             <Notice tone="danger">{errorMessage(createAgreement.error)}</Notice>
           ) : null}
@@ -550,6 +620,8 @@ export function FinancePage() {
               disabled={
                 !agreementCustomer ||
                 !agreementAmount ||
+                (agreementBillingMode === "receive_now" &&
+                  !agreementPaymentMethod) ||
                 createAgreement.isPending
               }
               type="button"

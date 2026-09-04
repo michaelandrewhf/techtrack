@@ -72,6 +72,11 @@ class ServiceAgreement(TimeStampedUUIDModel):
     )
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     billing_day = models.PositiveSmallIntegerField(default=10)
+    first_billing_competence = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Primeiro dia do primeiro mes que pode gerar cobranca recorrente.",
+    )
     notes = models.TextField(blank=True)
 
     objects = ServiceAgreementQuerySet.as_manager()
@@ -107,6 +112,18 @@ class ServiceAgreement(TimeStampedUUIDModel):
         super().clean()
         if self.customer_id and self.customer.deleted_at:
             raise ValidationError({"customer": "Acordos nao podem ser criados para clientes excluidos."})
+        if self.first_billing_competence and self.first_billing_competence.day != 1:
+            raise ValidationError(
+                {"first_billing_competence": "A primeira competencia deve usar o primeiro dia do mes."}
+            )
+        if (
+            self.first_billing_competence
+            and self.starts_on
+            and self.first_billing_competence < self.starts_on.replace(day=1)
+        ):
+            raise ValidationError(
+                {"first_billing_competence": "A primeira competencia nao pode ser anterior ao contrato."}
+            )
 
     def __str__(self):
         return f"{self.customer} - {self.name}"

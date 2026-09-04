@@ -165,6 +165,7 @@ export type ServiceAgreement = {
   billing_frequency: string;
   amount: string;
   billing_day: number;
+  first_billing_competence: string | null;
   notes: string;
   created_at: string;
   updated_at: string;
