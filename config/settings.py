@@ -6,9 +6,9 @@ from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-insecure-secret-key")
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-insecure-secret-key-for-local-development")
 DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() in {"1", "true", "yes", "on"}
-if not DEBUG and SECRET_KEY == "dev-only-insecure-secret-key":
+if not DEBUG and SECRET_KEY == "dev-only-insecure-secret-key-for-local-development":
     raise ImproperlyConfigured("DJANGO_SECRET_KEY must be configured when DJANGO_DEBUG is False.")
 
 ALLOWED_HOSTS = [
@@ -22,6 +22,9 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "rest_framework",
+    "django_filters",
+    "drf_spectacular",
     "accounts",
     "customers",
     "inventory",
@@ -99,3 +102,36 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_FILTER_BACKENDS": [
+        "django_filters.rest_framework.DjangoFilterBackend",
+        "rest_framework.filters.SearchFilter",
+        "rest_framework.filters.OrderingFilter",
+    ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 25,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "TechTrack API",
+    "DESCRIPTION": "API para gerenciamento de clientes, equipamentos e ordens de servico de TI.",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "ENUM_NAME_OVERRIDES": {
+        "CustomerStatusEnum": "customers.models.CustomerStatus",
+        "EquipmentStatusEnum": "inventory.models.EquipmentStatus",
+        "IntervalUnitEnum": "catalog.models.IntervalUnit",
+        "PaymentStatusEnum": "workorders.models.PaymentStatus",
+        "WorkOrderPriorityEnum": "workorders.models.WorkOrderPriority",
+        "WorkOrderStatusKindEnum": "workorders.models.WorkOrderStatusKind",
+    },
+}

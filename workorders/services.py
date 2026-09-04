@@ -7,7 +7,9 @@ from django.utils import timezone
 from catalog.models import IntervalUnit, ServiceType
 
 from .models import (
+    PaymentStatus,
     WorkOrder,
+    WorkOrderBilling,
     WorkOrderNumberSequence,
     WorkOrderPart,
     WorkOrderService,
@@ -58,6 +60,23 @@ def get_completed_work_order_status():
         )
 
 
+def get_cancelled_work_order_status():
+    try:
+        return (
+            WorkOrderStatus.objects.filter(kind=WorkOrderStatusKind.CANCELLED, is_active=True)
+            .order_by("sort_order", "name")
+            .get()
+        )
+    except WorkOrderStatus.DoesNotExist as exc:
+        raise ValidationError("A cancelled work order status must be configured.") from exc
+    except WorkOrderStatus.MultipleObjectsReturned:
+        return (
+            WorkOrderStatus.objects.filter(kind=WorkOrderStatusKind.CANCELLED, is_active=True)
+            .order_by("sort_order", "name")
+            .first()
+        )
+
+
 @transaction.atomic
 def create_work_order(
     *, customer, equipment, title, problem_description, opened_at=None, priority=None, responsible_user=None
@@ -93,6 +112,8 @@ def change_work_order_status(*, work_order, status, changed_by=None, comment="",
     work_order = WorkOrder.objects.select_related("status").select_for_update().get(pk=work_order.pk)
     previous_status = work_order.status
 
+    if not status.is_active:
+        raise ValidationError("Inactive statuses cannot be selected for new transitions.")
     if work_order.is_closed and status != work_order.status:
         raise ValidationError("Closed work orders cannot be reopened by the basic domain service.")
 
@@ -130,6 +151,17 @@ def complete_work_order(*, work_order, changed_by=None, comment="", description=
     )
 
 
+def cancel_work_order(*, work_order, changed_by=None, comment="", description="", cancelled_at=None):
+    return change_work_order_status(
+        work_order=work_order,
+        status=get_cancelled_work_order_status(),
+        changed_by=changed_by,
+        comment=comment,
+        description=description,
+        changed_at=cancelled_at,
+    )
+
+
 @transaction.atomic
 def register_work_order_service(
     *, work_order, service_type, performed_at=None, performed_by=None, description="", notes="", labor_price=None
@@ -137,6 +169,8 @@ def register_work_order_service(
     work_order = WorkOrder.objects.select_related("status").select_for_update().get(pk=work_order.pk)
     if work_order.is_closed:
         raise ValidationError("Closed work orders cannot receive new services through the basic domain service.")
+    if not service_type.is_active:
+        raise ValidationError("Inactive service types cannot be used for new services.")
 
     service = WorkOrderService(
         work_order=work_order,
@@ -150,6 +184,43 @@ def register_work_order_service(
     service.full_clean()
     service.save()
     return service
+
+
+@transaction.atomic
+def add_work_order_part(
+    *,
+    work_order,
+    description,
+    quantity,
+    work_order_service=None,
+    part=None,
+    installed_component=None,
+    unit_cost=None,
+    unit_price=None,
+    serial_number="",
+    warranty_until=None,
+):
+    work_order = WorkOrder.objects.select_related("status").select_for_update().get(pk=work_order.pk)
+    if work_order.is_closed:
+        raise ValidationError("Closed work orders cannot receive new parts through the basic domain service.")
+    if part and (part.is_deleted or not part.is_active):
+        raise ValidationError("Inactive parts cannot be used for new part records.")
+
+    work_order_part = WorkOrderPart(
+        work_order=work_order,
+        work_order_service=work_order_service,
+        part=part,
+        installed_component=installed_component,
+        description=description,
+        quantity=quantity,
+        unit_cost=unit_cost,
+        unit_price=unit_price,
+        serial_number=serial_number,
+        warranty_until=warranty_until,
+    )
+    work_order_part.full_clean()
+    work_order_part.save()
+    return work_order_part
 
 
 @transaction.atomic
@@ -176,6 +247,39 @@ def invalidate_work_order_part(*, part, voided_by=None, void_reason, voided_at=N
     part.full_clean()
     part.save(update_fields=["voided_at", "voided_by", "void_reason", "updated_at"])
     return part
+
+
+@transaction.atomic
+def upsert_work_order_billing(
+    *,
+    work_order,
+    labor_total=None,
+    parts_total=None,
+    discount=None,
+    total_amount=None,
+    payment_status="",
+    payment_method=None,
+    paid_at=None,
+    notes="",
+):
+    work_order = WorkOrder.objects.select_related("status").select_for_update().get(pk=work_order.pk)
+    if payment_method and not payment_method.is_active:
+        raise ValidationError("Inactive payment methods cannot be selected for new billing updates.")
+    if payment_status and payment_status not in PaymentStatus.values:
+        raise ValidationError("Invalid payment status.")
+
+    billing, _created = WorkOrderBilling.objects.select_for_update().get_or_create(work_order=work_order)
+    billing.labor_total = labor_total
+    billing.parts_total = parts_total
+    billing.discount = discount
+    billing.total_amount = total_amount
+    billing.payment_status = payment_status
+    billing.payment_method = payment_method
+    billing.paid_at = paid_at
+    billing.notes = notes
+    billing.full_clean()
+    billing.save()
+    return billing
 
 
 def get_last_valid_maintenance(*, equipment, service_type):

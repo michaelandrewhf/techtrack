@@ -1,8 +1,8 @@
 # TechTrack
 
-TechTrack e uma base Django para gerenciamento de clientes de suporte e manutencao de TI, com foco inicial em modelagem de dominio e banco de dados.
+TechTrack e uma base Django para gerenciamento de clientes de suporte e manutencao de TI, com dominio estruturado e API HTTP versionada.
 
-Esta etapa implementa apenas a base de dominio:
+O projeto inclui:
 
 - clientes;
 - equipamentos;
@@ -12,9 +12,12 @@ Esta etapa implementa apenas a base de dominio:
 - servicos realizados;
 - pecas utilizadas;
 - fechamento financeiro simples;
-- regras de manutencao preventiva calculadas pelo historico.
+- regras de manutencao preventiva calculadas pelo historico;
+- API com Django REST Framework;
+- JWT para autenticacao inicial;
+- schema OpenAPI com drf-spectacular.
 
-Nao ha DRF, frontend, Celery, Redis, IA ou Docker nesta fase.
+Nao ha frontend, Celery, Redis, IA ou Docker nesta fase.
 
 ## Arquitetura dos apps
 
@@ -117,11 +120,14 @@ Veja a documentacao completa em [docs/domain-model.md](docs/domain-model.md).
 
 Para padroes de consulta, indices e prevencao de N+1, veja [docs/query-performance.md](docs/query-performance.md).
 
+Para endpoints, autenticacao, filtros e convencoes da API, veja [docs/api.md](docs/api.md).
+
 ## Requisitos
 
 - Python 3.13+
 - uv 0.10+
 - Django 5.2.x
+- Django REST Framework
 - PostgreSQL para uso real
 - SQLite pode ser usado para desenvolvimento local simples e testes iniciais
 
@@ -198,6 +204,24 @@ uv run python manage.py createsuperuser
 
 ```bash
 uv run python manage.py runserver
+```
+
+## API
+
+```text
+GET  /api/health/
+POST /api/token/
+GET  /api/schema/
+GET  /api/docs/
+GET  /api/v1/customers/
+GET  /api/v1/equipment/
+GET  /api/v1/work-orders/
+```
+
+Endpoints de negocio exigem autenticacao por JWT:
+
+```http
+Authorization: Bearer <access_token>
 ```
 
 ## Testes
