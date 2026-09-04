@@ -140,6 +140,7 @@ export type WorkOrderPart = {
   void_reason: string;
 };
 
+/** Legacy OS financial snapshot. Payments are now represented by Receivable + Payment. */
 export type Billing = {
   id: string;
   labor_total: string | null;
@@ -150,6 +151,118 @@ export type Billing = {
   payment_method: CatalogItem | null;
   paid_at: string | null;
   notes: string;
+};
+
+export type ServiceAgreement = {
+  id: string;
+  customer: string;
+  customer_name: string;
+  name: string;
+  description: string;
+  status: string;
+  starts_on: string;
+  ends_on: string | null;
+  billing_frequency: string;
+  amount: string;
+  billing_day: number;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Payment = {
+  id: string;
+  receivable: string;
+  amount: string;
+  payment_method: string;
+  payment_method_name: string;
+  paid_at: string;
+  reference: string;
+  notes: string;
+  created_by_username?: string | null;
+  voided_at: string | null;
+  void_reason: string;
+};
+
+export type Receivable = {
+  id: string;
+  customer: string;
+  customer_name: string;
+  work_order: string | null;
+  work_order_number: number | null;
+  service_agreement: string | null;
+  agreement_name: string | null;
+  origin: string;
+  description: string;
+  reference: string;
+  competence: string | null;
+  issued_at: string;
+  due_date: string;
+  amount: string;
+  paid_amount: string;
+  balance: string;
+  status: string;
+  is_overdue: boolean;
+  notes: string;
+  payments?: Payment[];
+};
+
+export type FinanceDashboard = {
+  pending_total: string;
+  overdue_total: string;
+  received_this_month: string;
+  upcoming: Receivable[];
+  recent_payments: Payment[];
+};
+
+export type QuoteItem = {
+  id: string;
+  item_type: "service" | "part" | "free";
+  service_type: string | null;
+  service_type_name: string | null;
+  part: string | null;
+  part_name: string | null;
+  description: string;
+  quantity: string;
+  unit_price: string;
+  discount: string;
+  total: string;
+  sort_order: number;
+};
+
+export type GeneratedDocument = {
+  id: string;
+  document_type: string;
+  version: number;
+  checksum: string;
+  generated_at: string;
+  generated_by_username?: string | null;
+};
+
+export type Quote = {
+  id: string;
+  number: number;
+  display_number: string;
+  customer: string;
+  customer_name: string;
+  equipment: string | null;
+  equipment_label: string | null;
+  work_order: string | null;
+  work_order_number: number | null;
+  title: string;
+  description: string;
+  status: string;
+  valid_until: string | null;
+  discount: string;
+  notes: string;
+  sent_at: string | null;
+  approved_at: string | null;
+  items_total: string;
+  total_amount: string;
+  items?: QuoteItem[];
+  documents?: GeneratedDocument[];
+  created_at: string;
+  updated_at: string;
 };
 
 export type MaintenanceItem = {
