@@ -32,6 +32,10 @@ class CustomerListSerializer(serializers.ModelSerializer):
 
 
 class CustomerSerializer(serializers.ModelSerializer):
+    equipment_count = serializers.IntegerField(read_only=True)
+    active_work_order_count = serializers.IntegerField(read_only=True)
+    latest_work_order_at = serializers.DateTimeField(read_only=True)
+
     class Meta:
         model = Customer
         fields = [
@@ -43,8 +47,19 @@ class CustomerSerializer(serializers.ModelSerializer):
             "notes",
             "customer_since",
             "status",
+            "equipment_count",
+            "active_work_order_count",
+            "latest_work_order_at",
             "deleted_at",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "deleted_at", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "equipment_count",
+            "active_work_order_count",
+            "latest_work_order_at",
+            "deleted_at",
+            "created_at",
+            "updated_at",
+        ]
