@@ -5,6 +5,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 
+from accounts.api.views import MeView
 from catalog.api.views import (
     PartCategoryViewSet,
     PartViewSet,
@@ -14,6 +15,7 @@ from catalog.api.views import (
 )
 from customers.api.views import CustomerViewSet
 from inventory.api.views import ComponentTypeViewSet, EquipmentTypeViewSet, EquipmentViewSet
+from workorders.api.dashboard import DashboardView
 from workorders.api.views import WorkOrderStatusViewSet, WorkOrderViewSet
 
 
@@ -49,5 +51,7 @@ urlpatterns = [
     path("token/verify/", TokenVerifyView.as_view(), name="token-verify"),
     path("schema/", PublicSpectacularAPIView.as_view(), name="api-schema"),
     path("docs/", PublicSpectacularSwaggerView.as_view(url_name="api-schema"), name="api-docs"),
+    path("v1/me/", MeView.as_view(), name="api-me"),
+    path("v1/dashboard/", DashboardView.as_view(), name="api-dashboard"),
     path("v1/", include(router.urls)),
 ]

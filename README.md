@@ -1,6 +1,6 @@
 # TechTrack
 
-TechTrack e uma base Django para gerenciamento de clientes de suporte e manutencao de TI, com dominio estruturado e API HTTP versionada.
+TechTrack e uma aplicacao para gerenciamento de clientes de suporte e manutencao de TI, com backend Django/DRF e frontend React.
 
 O projeto inclui:
 
@@ -15,9 +15,10 @@ O projeto inclui:
 - regras de manutencao preventiva calculadas pelo historico;
 - API com Django REST Framework;
 - JWT para autenticacao inicial;
-- schema OpenAPI com drf-spectacular.
+- schema OpenAPI com drf-spectacular;
+- SPA React em `frontend/`.
 
-Nao ha frontend, Celery, Redis, IA ou Docker nesta fase.
+Nao ha Celery, Redis, IA, Docker ou deploy nesta fase.
 
 ## Arquitetura dos apps
 
@@ -122,6 +123,8 @@ Para padroes de consulta, indices e prevencao de N+1, veja [docs/query-performan
 
 Para endpoints, autenticacao, filtros e convencoes da API, veja [docs/api.md](docs/api.md).
 
+Para a aplicacao web React, veja [frontend/README.md](frontend/README.md).
+
 ## Requisitos
 
 - Python 3.13+
@@ -222,6 +225,26 @@ Endpoints de negocio exigem autenticacao por JWT:
 
 ```http
 Authorization: Bearer <access_token>
+```
+
+## Frontend
+
+Na pasta `frontend/`, use pnpm via Corepack:
+
+```bash
+corepack pnpm install
+corepack pnpm dev
+```
+
+O Vite faz proxy de `/api` para o backend local em `http://localhost:8000`.
+
+Comandos de validacao:
+
+```bash
+corepack pnpm lint
+corepack pnpm format:check
+corepack pnpm test
+corepack pnpm build
 ```
 
 ## Testes
