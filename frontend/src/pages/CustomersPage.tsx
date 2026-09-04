@@ -1,22 +1,25 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Plus, Search, Users } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 
 import { customersApi } from "../api/endpoints";
 import { queryKeys } from "../api/queryKeys";
 import type { Customer } from "../api/types";
 import { DataTable } from "../components/DataTable";
+import { Modal } from "../components/Modal";
 import { PageHeader } from "../components/PageHeader";
 import { Pagination } from "../components/Pagination";
 import { ErrorState, PageLoader } from "../components/State";
 import {
+  Badge,
   Button,
   Field,
   Input,
+  Notice,
   Panel,
   Select,
   Textarea,
@@ -29,18 +32,38 @@ const schema = z.object({
   phone: z.string().optional(),
   whatsapp: z.string().optional(),
   email: z.string().email("E-mail invalido.").or(z.literal("")).optional(),
+  customer_since: z.string().optional(),
   notes: z.string().optional(),
   status: z.string().default("active"),
 });
 
 type FormData = z.input<typeof schema>;
 
+function statusTone(status: string) {
+  if (status === "active") return "success" as const;
+  if (status === "blocked") return "danger" as const;
+  if (status === "prospect") return "info" as const;
+  return "neutral" as const;
+}
+
+function statusLabel(status: string) {
+  return {
+    active: "Ativo",
+    inactive: "Inativo",
+    prospect: "Prospect",
+    blocked: "Bloqueado",
+  }[status] ?? status;
+}
+
 export function CustomersPage() {
+  const [params] = useSearchParams();
   const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
-  const [showForm, setShowForm] = useState(false);
-  const filters = { search, page };
+  const [showForm, setShowForm] = useState(params.get("new") === "1");
+  const filters = { search, status, page };
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const query = useQuery({
     queryKey: queryKeys.customers(filters),
     queryFn: () => customersApi.list(filters),
@@ -51,75 +74,59 @@ export function CustomersPage() {
   });
   const mutation = useMutation({
     mutationFn: customersApi.create,
-    onSuccess: async () => {
+    onSuccess: async (created) => {
       form.reset({ status: "active" });
       setShowForm(false);
       await queryClient.invalidateQueries({ queryKey: ["customers"] });
+      navigate(`/customers/${created.id}`);
     },
   });
-
-  const submit = form.handleSubmit((data) => mutation.mutate(data));
 
   return (
     <div>
       <PageHeader
+        eyebrow="Relacionamento"
         action={
-          <Button type="button" onClick={() => setShowForm((value) => !value)}>
+          <Button type="button" onClick={() => setShowForm(true)}>
             <Plus className="h-4 w-4" />
             Novo cliente
           </Button>
         }
         title="Clientes"
-        description="Cadastro e acompanhamento dos clientes."
+        description="Ponto de entrada para cadastro, patrimonio, atendimentos, orcamentos e relacionamento financeiro."
       />
-      {showForm ? (
-        <Panel title="Novo cliente">
-          <form className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
-            <Field label="Nome">
-              <Input {...form.register("name")} />
-            </Field>
-            <Field label="Telefone">
-              <Input {...form.register("phone")} />
-            </Field>
-            <Field label="WhatsApp">
-              <Input {...form.register("whatsapp")} />
-            </Field>
-            <Field label="E-mail">
-              <Input {...form.register("email")} />
-            </Field>
-            <Field label="Status">
-              <Select {...form.register("status")}>
-                <option value="active">Ativo</option>
-                <option value="inactive">Inativo</option>
-                <option value="prospect">Prospect</option>
-                <option value="blocked">Bloqueado</option>
-              </Select>
-            </Field>
-            <div className="md:col-span-2">
-              <Field label="Observacoes">
-                <Textarea {...form.register("notes")} />
-              </Field>
-            </div>
-            {mutation.error ? (
-              <p className="text-sm text-red-600 md:col-span-2">
-                {errorMessage(mutation.error)}
-              </p>
-            ) : null}
-            <div className="md:col-span-2">
-              <Button disabled={mutation.isPending} type="submit">
-                Salvar cliente
-              </Button>
-            </div>
-          </form>
-        </Panel>
-      ) : null}
-      <div className="my-4 max-w-md">
-        <Input
-          placeholder="Buscar por nome, e-mail, telefone ou WhatsApp"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
-      </div>
+
+      <Panel className="mb-5">
+        <div className="grid gap-3 md:grid-cols-[1fr_220px]">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Input
+              className="pl-9"
+              placeholder="Buscar por nome, e-mail, telefone ou WhatsApp"
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
+          <Select
+            aria-label="Filtrar status"
+            value={status}
+            onChange={(event) => {
+              setStatus(event.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">Todos os status</option>
+            <option value="active">Ativos</option>
+            <option value="prospect">Prospects</option>
+            <option value="inactive">Inativos</option>
+            <option value="blocked">Bloqueados</option>
+          </Select>
+        </div>
+      </Panel>
+
       {query.isLoading ? <PageLoader /> : null}
       {query.error ? (
         <ErrorState
@@ -130,41 +137,78 @@ export function CustomersPage() {
       {query.data ? (
         <div className="space-y-4">
           <DataTable<Customer>
-            empty="Nenhum cliente cadastrado."
+            empty="Nenhum cliente encontrado."
+            getRowKey={(row) => row.id}
             rows={query.data.results}
             columns={[
               {
-                header: "Nome",
+                header: "Cliente",
                 cell: (row) => (
                   <Link
-                    className="font-medium text-blue-700 dark:text-blue-300"
+                    className="font-semibold text-blue-700 dark:text-blue-300"
                     to={`/customers/${row.id}`}
                   >
                     {row.name}
                   </Link>
                 ),
               },
-              { header: "Telefone", cell: (row) => row.phone || "-" },
-              { header: "E-mail", cell: (row) => row.email || "-" },
-              { header: "Status", cell: (row) => row.status },
+              { header: "Telefone", cell: (row) => row.whatsapp || row.phone || "-" },
+              { header: "E-mail", cell: (row) => row.email || "-", hideOnMobile: true },
+              {
+                header: "Status",
+                cell: (row) => <Badge tone={statusTone(row.status)}>{statusLabel(row.status)}</Badge>,
+              },
               { header: "Equip.", cell: (row) => row.equipment_count ?? 0 },
-              {
-                header: "OS abertas",
-                cell: (row) => row.active_work_order_count ?? 0,
-              },
-              {
-                header: "Ultima OS",
-                cell: (row) => formatDateTime(row.latest_work_order_at),
-              },
+              { header: "OS abertas", cell: (row) => row.active_work_order_count ?? 0 },
+              { header: "Ultima OS", cell: (row) => formatDateTime(row.latest_work_order_at), hideOnMobile: true },
             ]}
           />
-          <Pagination
-            count={query.data.count}
-            page={page}
-            onPageChange={setPage}
-          />
+          <Pagination count={query.data.count} page={page} onPageChange={setPage} />
         </div>
       ) : null}
+
+      <Modal
+        open={showForm}
+        title="Novo cliente"
+        description="Cadastre o relacionamento uma vez; os proximos passos ficam dentro do proprio cliente."
+        onClose={() => setShowForm(false)}
+      >
+        <form
+          className="grid gap-4 sm:grid-cols-2"
+          onSubmit={form.handleSubmit((data) => mutation.mutate(data))}
+        >
+          <div className="sm:col-span-2">
+            <Field label="Nome" required error={form.formState.errors.name?.message}>
+              <Input aria-invalid={Boolean(form.formState.errors.name)} autoFocus {...form.register("name")} />
+            </Field>
+          </div>
+          <Field label="Telefone"><Input {...form.register("phone")} /></Field>
+          <Field label="WhatsApp"><Input {...form.register("whatsapp")} /></Field>
+          <div className="sm:col-span-2">
+            <Field label="E-mail" error={form.formState.errors.email?.message}>
+              <Input aria-invalid={Boolean(form.formState.errors.email)} {...form.register("email")} />
+            </Field>
+          </div>
+          <Field label="Cliente desde"><Input type="date" {...form.register("customer_since")} /></Field>
+          <Field label="Status">
+            <Select {...form.register("status")}>
+              <option value="active">Ativo</option>
+              <option value="prospect">Prospect</option>
+              <option value="inactive">Inativo</option>
+              <option value="blocked">Bloqueado</option>
+            </Select>
+          </Field>
+          <div className="sm:col-span-2"><Field label="Observacoes"><Textarea {...form.register("notes")} /></Field></div>
+          {mutation.error ? <div className="sm:col-span-2"><Notice tone="danger">{errorMessage(mutation.error)}</Notice></div> : null}
+          <div className="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-800 sm:col-span-2">
+            <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Button>
+            <Button disabled={mutation.isPending} type="submit">
+              <Users className="h-4 w-4" />
+              {mutation.isPending ? "Salvando..." : "Salvar e abrir cliente"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
