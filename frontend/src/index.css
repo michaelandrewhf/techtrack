@@ -10,23 +10,28 @@
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --app-bg: #f6f8fb;
+  --app-fg: #172033;
 }
 
 :root.dark {
   color-scheme: dark;
+  --app-bg: #0b1120;
+  --app-fg: #e8edf7;
+}
+
+html {
+  background: var(--app-bg);
 }
 
 body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
-  background: #f5f7fb;
-  color: #172033;
-}
-
-.dark body {
-  background: #101623;
-  color: #e8edf7;
+  background: var(--app-bg);
+  color: var(--app-fg);
 }
 
 button,
@@ -36,7 +41,34 @@ textarea {
   font: inherit;
 }
 
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: rgb(37 99 235 / 0.2);
+}
+
+* {
+  box-sizing: border-box;
+}
+
 *:focus-visible {
   outline: 2px solid #2563eb;
   outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
