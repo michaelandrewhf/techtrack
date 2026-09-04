@@ -72,7 +72,7 @@ export function QuotesPage() {
         </div>
       </div>
 
-      {query.data ? <div className="mt-4"><Pagination page={page} count={query.data.count} pageSize={25} onChange={setPage} /></div> : null}
+      {query.data ? <div className="mt-4"><Pagination page={page} count={query.data.count} pageSize={25} onPageChange={setPage} /></div> : null}
     </div>
   );
 }
