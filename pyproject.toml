@@ -1,7 +1,7 @@
 [project]
 name = "techtrack"
 version = "0.1.0"
-description = "Sistema Django para gerenciamento de clientes, equipamentos e ordens de servico de TI."
+description = "Sistema Django para gerenciamento de clientes, equipamentos, ordens de servico, orcamentos e financeiro de TI."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -23,7 +23,7 @@ dev = [
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
-testpaths = ["accounts", "customers", "inventory", "catalog", "workorders"]
+testpaths = ["accounts", "customers", "inventory", "catalog", "workorders", "finance", "quotes"]
 
 [tool.ruff]
 line-length = 120
