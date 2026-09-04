@@ -1,14 +1,16 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-import { authApi } from "../api/endpoints";
-import type { User } from "../api/types";
 import { AUTH_EXPIRED_EVENT, tokenStore } from "../api/client";
+import { authApi } from "../api/endpoints";
+import { profileApi, type EditableProfile } from "../api/profile";
+import type { User } from "../api/types";
 
 type AuthContextValue = {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
+  updateProfile: (profile: EditableProfile) => Promise<User>;
   logout: () => void;
 };
 
@@ -46,6 +48,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const tokens = await authApi.login({ username, password });
         tokenStore.set(tokens.access, tokens.refresh);
         setUser(await authApi.me());
+      },
+      updateProfile: async (profile) => {
+        const updated = await profileApi.update(profile);
+        setUser(updated);
+        return updated;
       },
       logout: () => {
         tokenStore.clear();

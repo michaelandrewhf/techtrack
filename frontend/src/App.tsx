@@ -1,9 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
 
 import { AuthProvider } from "./auth/AuthProvider";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { AppLayout } from "./layout/AppLayout";
+import { BusinessProfilePage } from "./pages/BusinessProfilePage";
 import { CatalogPage } from "./pages/CatalogPage";
 import { CustomerDetailPage } from "./pages/CustomerDetailPage";
 import { CustomersPage } from "./pages/CustomersPage";
@@ -12,6 +14,7 @@ import { EquipmentDetailPage } from "./pages/EquipmentDetailPage";
 import { EquipmentPage } from "./pages/EquipmentPage";
 import { FinancePage } from "./pages/FinancePage";
 import { LoginPage } from "./pages/LoginPage";
+import { ProfilePage } from "./pages/ProfilePage";
 import { QuoteCreatePage } from "./pages/QuoteCreatePage";
 import { QuoteDetailPage } from "./pages/QuoteDetailPage";
 import { QuotesPage } from "./pages/QuotesPage";
@@ -39,6 +42,7 @@ function createRouter() {
           element: <AppLayout />,
           children: [
             { path: "/", element: <DashboardPage /> },
+            { path: "/profile", element: <ProfilePage /> },
             { path: "/customers", element: <CustomersPage /> },
             { path: "/customers/:id", element: <CustomerDetailPage /> },
             { path: "/equipment", element: <EquipmentPage /> },
@@ -51,6 +55,10 @@ function createRouter() {
             { path: "/quotes/:id", element: <QuoteDetailPage /> },
             { path: "/finance", element: <FinancePage /> },
             { path: "/settings", element: <SettingsPage /> },
+            {
+              path: "/settings/business-profile",
+              element: <BusinessProfilePage />,
+            },
             { path: "/settings/:resource", element: <CatalogPage /> },
           ],
         },
@@ -60,6 +68,11 @@ function createRouter() {
 }
 
 export function App() {
+  useEffect(() => {
+    const dark = localStorage.getItem("techtrack.theme") === "dark";
+    document.documentElement.classList.toggle("dark", dark);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
