@@ -1,5 +1,6 @@
 from datetime import date
 
+from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
@@ -38,7 +39,7 @@ class Command(BaseCommand):
                     agreement=agreement,
                     competence=competence,
                 )
-            except Exception as exc:  # validation means the cadence/range does not match this competence
+            except ValidationError as exc:
                 skipped_count += 1
                 self.stderr.write(f"Ignorado {agreement}: {exc}")
                 continue
