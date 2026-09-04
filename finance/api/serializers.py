@@ -59,8 +59,9 @@ class ServiceAgreementSerializer(serializers.ModelSerializer):
             )
 
         instance = self.instance or ServiceAgreement()
+        auxiliary_fields = {"first_billing_mode", "first_payment_method"}
         for key, value in attrs.items():
-            if hasattr(instance, key):
+            if key not in auxiliary_fields:
                 setattr(instance, key, value)
         instance.full_clean()
         return attrs
