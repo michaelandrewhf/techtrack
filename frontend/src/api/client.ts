@@ -63,6 +63,13 @@ async function refreshAccessToken() {
   return true;
 }
 
+function authHeaders(headersInit?: HeadersInit) {
+  const headers = new Headers(headersInit);
+  const token = tokenStore.getAccess();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  return headers;
+}
+
 export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {},
@@ -89,6 +96,46 @@ export async function apiRequest<T>(
   const data = await parseResponse(response);
   if (!response.ok) throw new ApiError(response.status, data);
   return data as T;
+}
+
+export async function apiDownload(
+  path: string,
+  options: Omit<RequestOptions, "skipAuth"> = {},
+): Promise<{ blob: Blob; filename: string | null }> {
+  const request = async (retry: boolean): Promise<Response> => {
+    const headers = authHeaders(options.headers);
+    if (options.body !== undefined)
+      headers.set("Content-Type", "application/json");
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers,
+      body:
+        options.body === undefined ? undefined : JSON.stringify(options.body),
+    });
+    if (response.status === 401 && retry) {
+      const refreshed = await refreshAccessToken();
+      if (refreshed) return request(false);
+    }
+    return response;
+  };
+
+  const response = await request(options.retry !== false);
+  if (!response.ok) {
+    const data = await parseResponse(response);
+    throw new ApiError(response.status, data);
+  }
+  const disposition = response.headers.get("content-disposition") ?? "";
+  const match = disposition.match(/filename="?([^";]+)"?/i);
+  return { blob: await response.blob(), filename: match?.[1] ?? null };
+}
+
+export function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
 
 export function toQueryString(
