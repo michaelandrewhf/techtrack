@@ -135,23 +135,27 @@ class PdfDocument:
                 bold=True,
                 color=(0.75, 0.82, 0.92),
             )
-            self._draw_text(
+            self._draw_cell_text(
                 self.document_number,
-                553,
+                537,
                 781,
+                width=190,
                 size=15,
                 bold=True,
                 color=WHITE,
+                align="right",
             )
             self.y = 736
         else:
             self._draw_text(self.brand, MARGIN_X, 807, size=11, bold=True, color=BLUE)
-            self._draw_text(
+            self._draw_cell_text(
                 f"{self.document_label} · {self.document_number}",
                 553,
                 807,
+                width=260,
                 size=8.5,
                 color=MUTED,
+                align="right",
             )
             self._draw_line(MARGIN_X, 798, 553, 798)
             self.y = 780
@@ -203,8 +207,11 @@ class PdfDocument:
         lines = self._wrapped_lines(text or "-", 487, 9.2)
         height = 33 + len(lines) * 13
         self._ensure_space(height)
-        self._draw_text(title.upper(), MARGIN_X, self.y, size=7.5, bold=True, color=MUTED)
-        y = self.y - 17
+        if title:
+            self._draw_text(title.upper(), MARGIN_X, self.y, size=7.5, bold=True, color=MUTED)
+            y = self.y - 17
+        else:
+            y = self.y
         for line in lines:
             self._draw_text(line, MARGIN_X, y, size=9.2)
             y -= 13
@@ -310,7 +317,14 @@ class PdfDocument:
             is_last = highlight_last and index == len(rows) - 1
             if is_last:
                 self._draw_line(x + 10, y + 8, x + box_width - 10, y + 8, color=BORDER)
-            self._draw_text(label, x + 12, y, size=8.5 if not is_last else 9.5, bold=is_last, color=MUTED if not is_last else DARK)
+            self._draw_text(
+                label,
+                x + 12,
+                y,
+                size=8.5 if not is_last else 9.5,
+                bold=is_last,
+                color=MUTED if not is_last else DARK,
+            )
             self._draw_cell_text(
                 value,
                 x + box_width - 12,
@@ -342,14 +356,16 @@ class PdfDocument:
         for index, commands in enumerate(self.pages, start=1):
             commands.append(f"q {_rgb(BORDER)} RG 0.6 w {MARGIN_X} 48 m 553 48 l S Q")
             if self.footer_left:
-                commands.append(
-                    self._text_command(self.footer_left, MARGIN_X, 31, size=7, color=MUTED)
-                )
+                commands.append(self._text_command(self.footer_left, MARGIN_X, 31, size=7, color=MUTED))
             center_text = "Documento comercial · Nao constitui nota fiscal"
-            commands.append(self._text_command(center_text, 297, 31, size=6.8, color=MUTED, center=True))
+            commands.append(
+                self._text_command(center_text, 297, 31, size=6.8, color=MUTED, center=True)
+            )
             revision = f" · {self.revision}" if self.revision else ""
             page_text = f"Pagina {index}/{page_count}{revision}"
-            commands.append(self._text_command(page_text, 553, 31, size=7, color=MUTED, right=True))
+            commands.append(
+                self._text_command(page_text, 553, 31, size=7, color=MUTED, right=True)
+            )
 
         objects: list[bytes] = []
 
