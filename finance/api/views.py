@@ -84,7 +84,11 @@ class ReceivableViewSet(viewsets.ModelViewSet):
         serializer = RegisterPaymentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            payment = register_payment(receivable=self.get_object(), created_by=request.user, **serializer.validated_data)
+            payment = register_payment(
+                receivable=self.get_object(),
+                created_by=request.user,
+                **serializer.validated_data,
+            )
         except DjangoValidationError as exc:
             _raise_api_validation(exc)
         payment = Payment.objects.with_list_data().get(pk=payment.pk)
