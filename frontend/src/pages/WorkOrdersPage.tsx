@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -10,8 +10,23 @@ import { DataTable } from "../components/DataTable";
 import { PageHeader } from "../components/PageHeader";
 import { Pagination } from "../components/Pagination";
 import { ErrorState, PageLoader } from "../components/State";
-import { Badge, Button, Input, Select } from "../components/ui";
+import { Badge, Button, Input, Panel, Select } from "../components/ui";
 import { formatDateTime } from "../utils/format";
+
+function priorityTone(priority: string) {
+  if (priority === "urgent") return "danger" as const;
+  if (priority === "high") return "warning" as const;
+  return "neutral" as const;
+}
+
+function priorityLabel(priority: string) {
+  return {
+    low: "Baixa",
+    normal: "Normal",
+    high: "Alta",
+    urgent: "Urgente",
+  }[priority] ?? priority;
+}
 
 export function WorkOrdersPage() {
   const [search, setSearch] = useState("");
@@ -31,6 +46,7 @@ export function WorkOrdersPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="Operacao"
         action={
           <Link to="/work-orders/new">
             <Button type="button">
@@ -39,86 +55,96 @@ export function WorkOrdersPage() {
             </Button>
           </Link>
         }
-        title="Ordens de Servico"
-        description="Acompanhamento das OSs e seus estados atuais."
+        title="Ordens de servico"
+        description="Fila operacional consolidada. Para um cliente ou equipamento especifico, as mesmas acoes ficam disponiveis no contexto correspondente."
       />
-      <div className="mb-4 grid gap-3 md:grid-cols-3">
-        <Input
-          placeholder="Buscar OS, cliente, equipamento ou problema"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-        />
-        <Select
-          value={status}
-          onChange={(event) => setStatus(event.target.value)}
-        >
-          <option value="">Todos os status</option>
-          {(statuses.data?.results ?? []).map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
-            </option>
-          ))}
-        </Select>
-        <Select
-          value={priority}
-          onChange={(event) => setPriority(event.target.value)}
-        >
-          <option value="">Todas as prioridades</option>
-          <option value="low">Baixa</option>
-          <option value="normal">Normal</option>
-          <option value="high">Alta</option>
-          <option value="urgent">Urgente</option>
-        </Select>
-      </div>
+
+      <Panel className="mb-5">
+        <div className="grid gap-3 md:grid-cols-[1fr_220px_190px]">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Input
+              className="pl-9"
+              placeholder="Buscar OS, cliente, equipamento ou problema"
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
+          <Select
+            aria-label="Filtrar status"
+            value={status}
+            onChange={(event) => {
+              setStatus(event.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">Todos os status</option>
+            {(statuses.data?.results ?? []).map((item) => (
+              <option key={item.id} value={item.id}>{item.name}</option>
+            ))}
+          </Select>
+          <Select
+            aria-label="Filtrar prioridade"
+            value={priority}
+            onChange={(event) => {
+              setPriority(event.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">Todas as prioridades</option>
+            <option value="low">Baixa</option>
+            <option value="normal">Normal</option>
+            <option value="high">Alta</option>
+            <option value="urgent">Urgente</option>
+          </Select>
+        </div>
+      </Panel>
+
       {query.isLoading ? <PageLoader /> : null}
       {query.error ? (
-        <ErrorState
-          message="Nao foi possivel carregar OSs."
-          onRetry={query.refetch}
-        />
+        <ErrorState message="Nao foi possivel carregar OSs." onRetry={query.refetch} />
       ) : null}
       {query.data ? (
         <div className="space-y-4">
           <DataTable<WorkOrder>
-            empty="Nenhuma OS cadastrada."
+            empty="Nenhuma OS encontrada."
+            getRowKey={(row) => row.id}
             rows={query.data.results}
             columns={[
               {
                 header: "OS",
                 cell: (row) => (
-                  <Link
-                    className="font-medium text-blue-700 dark:text-blue-300"
-                    to={`/work-orders/${row.id}`}
-                  >
+                  <Link className="font-semibold text-blue-700 dark:text-blue-300" to={`/work-orders/${row.id}`}>
                     {row.display_number}
                   </Link>
                 ),
               },
-              { header: "Cliente", cell: (row) => row.customer.name },
+              {
+                header: "Cliente",
+                cell: (row) => (
+                  <Link className="text-slate-800 hover:text-blue-600 dark:text-slate-100" to={`/customers/${row.customer.id}?tab=work-orders`}>
+                    {row.customer.name}
+                  </Link>
+                ),
+              },
               {
                 header: "Equipamento",
-                cell: (row) =>
-                  [row.equipment.manufacturer, row.equipment.model]
-                    .filter(Boolean)
-                    .join(" ") || row.equipment.equipment_type.name,
+                cell: (row) => (
+                  <Link className="text-slate-700 hover:text-blue-600 dark:text-slate-200" to={`/equipment/${row.equipment.id}`}>
+                    {[row.equipment.manufacturer, row.equipment.model].filter(Boolean).join(" ") || row.equipment.equipment_type.name}
+                  </Link>
+                ),
               },
               { header: "Titulo", cell: (row) => row.title },
-              {
-                header: "Status",
-                cell: (row) => <Badge>{row.status.name}</Badge>,
-              },
-              { header: "Prioridade", cell: (row) => row.priority },
-              {
-                header: "Abertura",
-                cell: (row) => formatDateTime(row.opened_at),
-              },
+              { header: "Status", cell: (row) => <Badge>{row.status.name}</Badge> },
+              { header: "Prioridade", cell: (row) => <Badge tone={priorityTone(row.priority)}>{priorityLabel(row.priority)}</Badge> },
+              { header: "Abertura", cell: (row) => formatDateTime(row.opened_at), hideOnMobile: true },
             ]}
           />
-          <Pagination
-            count={query.data.count}
-            page={page}
-            onPageChange={setPage}
-          />
+          <Pagination count={query.data.count} page={page} onPageChange={setPage} />
         </div>
       ) : null}
     </div>
