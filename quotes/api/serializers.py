@@ -157,7 +157,9 @@ class QuoteItemCreateSerializer(serializers.Serializer):
     service_type = serializers.PrimaryKeyRelatedField(
         queryset=ServiceType.objects.filter(is_active=True), required=False, allow_null=True
     )
-    part = serializers.PrimaryKeyRelatedField(queryset=Part.objects.filter(is_active=True), required=False, allow_null=True)
+    part = serializers.PrimaryKeyRelatedField(
+        queryset=Part.objects.filter(is_active=True), required=False, allow_null=True
+    )
     description = serializers.CharField(max_length=255)
     quantity = serializers.DecimalField(max_digits=10, decimal_places=2)
     unit_price = serializers.DecimalField(max_digits=12, decimal_places=2)
