@@ -134,7 +134,7 @@ describe("App", () => {
     render(<App />);
 
     expect(
-      await screen.findByRole("heading", { name: "TechTrack" }),
+      await screen.findByRole("heading", { name: "Entrar no sistema" }),
     ).toBeInTheDocument();
   });
 
@@ -143,8 +143,8 @@ describe("App", () => {
     setupFetch();
 
     render(<App />);
-    await userEvent.type(screen.getByLabelText("Usuario"), "tech");
-    await userEvent.type(screen.getByLabelText("Senha"), "secret");
+    await userEvent.type(screen.getByLabelText(/Usuario/), "tech");
+    await userEvent.type(screen.getByLabelText(/Senha/), "secret");
     await userEvent.click(screen.getByRole("button", { name: "Entrar" }));
 
     expect(await screen.findByText("Clientes ativos")).toBeInTheDocument();
@@ -157,7 +157,7 @@ describe("App", () => {
     const fetchMock = setupFetch();
 
     render(<App />);
-    await screen.findByText("OS #000001");
+    await screen.findByRole("heading", { name: "OS #000001" });
     await userEvent.selectOptions(
       screen.getByLabelText("Alterar status"),
       "status-2",
