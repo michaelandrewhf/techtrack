@@ -50,7 +50,10 @@ class ServiceAgreementViewSet(viewsets.ModelViewSet):
             _raise_api_validation(exc)
         queryset = Receivable.objects.with_list_data().prefetch_related("payments__payment_method")
         receivable = queryset.get(pk=receivable.pk)
-        return Response(ReceivableSerializer(receivable).data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+        return Response(
+            ReceivableSerializer(receivable).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
 
 
 class ReceivableViewSet(viewsets.ModelViewSet):
@@ -61,7 +64,11 @@ class ReceivableViewSet(viewsets.ModelViewSet):
     ordering = ["due_date", "created_at"]
 
     def get_queryset(self):
-        return Receivable.objects.with_list_data().prefetch_related("payments__payment_method", "payments__created_by")
+        return Receivable.objects.with_list_data().prefetch_related(
+            "payments__payment_method",
+            "payments__created_by",
+            "payments__voided_by",
+        )
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
@@ -80,6 +87,7 @@ class ReceivableViewSet(viewsets.ModelViewSet):
             payment = register_payment(receivable=self.get_object(), created_by=request.user, **serializer.validated_data)
         except DjangoValidationError as exc:
             _raise_api_validation(exc)
+        payment = Payment.objects.with_list_data().get(pk=payment.pk)
         return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
 
 
@@ -102,6 +110,7 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
             )
         except DjangoValidationError as exc:
             _raise_api_validation(exc)
+        payment = Payment.objects.with_list_data().get(pk=payment.pk)
         return Response(PaymentSerializer(payment).data)
 
 
@@ -111,14 +120,25 @@ class FinanceDashboardView(APIView):
     def get(self, request):
         today = timezone.localdate()
         month_start = today.replace(day=1)
-        open_qs = Receivable.objects.with_amounts().exclude(status=ReceivableStatus.CANCELLED)
-        pending_total = open_qs.exclude(status=ReceivableStatus.PAID).aggregate(total=Sum("balance"))["total"] or Decimal("0.00")
-        overdue_total = open_qs.exclude(status=ReceivableStatus.PAID).filter(due_date__lt=today).aggregate(total=Sum("balance"))["total"] or Decimal("0.00")
-        received_month = Payment.objects.valid().filter(paid_at__date__gte=month_start, paid_at__date__lte=today).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+
+        open_rows = list(
+            Receivable.objects.with_amounts()
+            .exclude(status__in=[ReceivableStatus.PAID, ReceivableStatus.CANCELLED])
+            .only("id", "amount", "status", "due_date")
+        )
+        pending_total = sum((row.balance for row in open_rows), Decimal("0.00"))
+        overdue_total = sum((row.balance for row in open_rows if row.due_date < today), Decimal("0.00"))
+        received_month = (
+            Payment.objects.valid()
+            .filter(paid_at__date__gte=month_start, paid_at__date__lte=today)
+            .aggregate(total=Sum("amount"))["total"]
+            or Decimal("0.00")
+        )
         upcoming = (
             Receivable.objects.with_list_data()
             .exclude(status__in=[ReceivableStatus.PAID, ReceivableStatus.CANCELLED])
             .filter(Q(due_date__gte=today))
+            .prefetch_related("payments__payment_method")
             .order_by("due_date")[:8]
         )
         recent_payments = Payment.objects.valid().with_list_data().order_by("-paid_at")[:8]
