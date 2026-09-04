@@ -14,6 +14,7 @@ from .models import (
     Receivable,
     ReceivableOrigin,
     ReceivableStatus,
+    ServiceAgreement,
 )
 
 
@@ -35,6 +36,12 @@ def _normalize_competence(value):
 def _due_date_for_competence(competence, billing_day):
     last_day = monthrange(competence.year, competence.month)[1]
     return date(competence.year, competence.month, min(billing_day, last_day))
+
+
+def _next_month_competence(value):
+    if value.month == 12:
+        return date(value.year + 1, 1, 1)
+    return date(value.year, value.month + 1, 1)
 
 
 def _valid_paid_amount(receivable):
@@ -61,17 +68,76 @@ def refresh_receivable_status(receivable):
 
 
 @transaction.atomic
+def create_service_agreement(
+    *,
+    attrs,
+    first_billing_mode=None,
+    first_payment_method=None,
+    created_by=None,
+):
+    starts_on = attrs["starts_on"]
+    start_competence = starts_on.replace(day=1)
+    if first_billing_mode == "receive_now":
+        first_billing_competence = start_competence
+    elif first_billing_mode == "next_month":
+        first_billing_competence = _next_month_competence(start_competence)
+    elif first_billing_mode is None:
+        # Backward-compatible API behavior for callers that do not opt into the new flow.
+        first_billing_competence = start_competence
+    else:
+        raise ValidationError("Opcao de primeira mensalidade invalida.")
+
+    if first_billing_mode == "receive_now" and first_payment_method is None:
+        raise ValidationError("Informe o metodo de pagamento da primeira mensalidade.")
+
+    agreement = ServiceAgreement(
+        **attrs,
+        first_billing_competence=first_billing_competence,
+    )
+    agreement.full_clean()
+    agreement.save()
+
+    if first_billing_mode == "receive_now":
+        today = timezone.localdate()
+        receivable = Receivable(
+            customer=agreement.customer,
+            service_agreement=agreement,
+            origin=ReceivableOrigin.AGREEMENT,
+            description=f"{agreement.name} - primeira mensalidade",
+            reference=f"AGR-{str(agreement.pk)[:8]}-{start_competence:%Y%m}",
+            competence=start_competence,
+            issued_at=today,
+            due_date=today,
+            amount=agreement.amount,
+            created_by=created_by,
+        )
+        receivable.full_clean()
+        receivable.save()
+        register_payment(
+            receivable=receivable,
+            amount=agreement.amount,
+            payment_method=first_payment_method,
+            paid_at=timezone.now(),
+            reference="Primeira mensalidade recebida no cadastro",
+            created_by=created_by,
+        )
+
+    return agreement
+
+
+@transaction.atomic
 def generate_service_agreement_receivable(*, agreement, competence, created_by=None):
     agreement = agreement.__class__.objects.select_for_update().get(pk=agreement.pk)
     competence = _normalize_competence(competence)
     if agreement.status != AgreementStatus.ACTIVE:
         raise ValidationError("Somente acordos ativos podem gerar cobrancas.")
-    if competence < agreement.starts_on.replace(day=1):
-        raise ValidationError("A competencia nao pode ser anterior ao inicio do acordo.")
+    billing_start = agreement.first_billing_competence or agreement.starts_on.replace(day=1)
+    if competence < billing_start:
+        raise ValidationError("A competencia e anterior ao primeiro ciclo de cobranca do acordo.")
     if agreement.ends_on and competence > agreement.ends_on.replace(day=1):
         raise ValidationError("A competencia e posterior ao encerramento do acordo.")
 
-    months_from_start = (competence.year - agreement.starts_on.year) * 12 + competence.month - agreement.starts_on.month
+    months_from_start = (competence.year - billing_start.year) * 12 + competence.month - billing_start.month
     if months_from_start % _frequency_months(agreement.billing_frequency) != 0:
         raise ValidationError("A competencia nao corresponde a frequencia de cobranca do acordo.")
 

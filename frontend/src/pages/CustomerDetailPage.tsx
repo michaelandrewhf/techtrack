@@ -73,13 +73,28 @@ const equipmentSchema = z.object({
   status: z.string().default("active"),
 });
 
-const agreementSchema = z.object({
-  name: z.string().min(1, "Informe o nome do contrato."),
-  description: z.string().optional(),
-  amount: z.string().min(1, "Informe o valor mensal."),
-  billing_day: z.string().min(1, "Informe o dia de vencimento."),
-  starts_on: z.string().min(1, "Informe a data de inicio."),
-});
+const agreementSchema = z
+  .object({
+    name: z.string().min(1, "Informe o nome do contrato."),
+    description: z.string().optional(),
+    amount: z.string().min(1, "Informe o valor mensal."),
+    billing_day: z.string().min(1, "Informe o dia de vencimento."),
+    starts_on: z.string().min(1, "Informe a data de inicio."),
+    first_billing_mode: z.enum(["receive_now", "next_month"]),
+    first_payment_method: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (
+      data.first_billing_mode === "receive_now" &&
+      !data.first_payment_method
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["first_payment_method"],
+        message: "Selecione o metodo de pagamento.",
+      });
+    }
+  });
 
 type CustomerForm = z.input<typeof customerSchema>;
 type EquipmentForm = z.input<typeof equipmentSchema>;
@@ -182,7 +197,8 @@ export function CustomerDetailPage() {
     queryKey: ["catalog", "payment-methods", "customer-workspace"],
     queryFn: () =>
       catalogApi("payment-methods").list({ is_active: true, page_size: 100 }),
-    enabled: activeTab === "finance" || modal === "payment",
+    enabled:
+      activeTab === "finance" || modal === "payment" || modal === "agreement",
   });
 
   const customerForm = useForm<CustomerForm>({
@@ -198,8 +214,11 @@ export function CustomerDetailPage() {
       name: "Suporte mensal",
       billing_day: "10",
       starts_on: new Date().toISOString().slice(0, 10),
+      first_billing_mode: "next_month",
+      first_payment_method: "",
     },
   });
+  const firstBillingMode = agreementForm.watch("first_billing_mode");
 
   const invalidateCustomerWorkspace = async () => {
     await Promise.all([
@@ -241,6 +260,11 @@ export function CustomerDetailPage() {
         billing_frequency: "monthly",
         amount: data.amount,
         billing_day: Number(data.billing_day),
+        first_billing_mode: data.first_billing_mode,
+        first_payment_method:
+          data.first_billing_mode === "receive_now"
+            ? data.first_payment_method
+            : undefined,
         notes: "",
       }),
     onSuccess: async () => {
@@ -248,6 +272,8 @@ export function CustomerDetailPage() {
         name: "Suporte mensal",
         billing_day: "10",
         starts_on: new Date().toISOString().slice(0, 10),
+        first_billing_mode: "next_month",
+        first_payment_method: "",
       });
       setModal(null);
       await invalidateCustomerWorkspace();
@@ -1101,6 +1127,68 @@ export function CustomerDetailPage() {
           >
             <Input type="date" {...agreementForm.register("starts_on")} />
           </Field>
+          <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+            <div className="font-medium text-slate-950 dark:text-white">
+              Primeira mensalidade
+            </div>
+            <div className="mt-3 space-y-3">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  className="mt-1"
+                  type="radio"
+                  value="receive_now"
+                  {...agreementForm.register("first_billing_mode")}
+                />
+                <span>
+                  <strong className="block text-sm">Receber agora</strong>
+                  <span className="text-xs text-slate-500">
+                    Cria a primeira mensalidade com vencimento hoje e registra a
+                    baixa como paga.
+                  </span>
+                </span>
+              </label>
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  className="mt-1"
+                  type="radio"
+                  value="next_month"
+                  {...agreementForm.register("first_billing_mode")}
+                />
+                <span>
+                  <strong className="block text-sm">
+                    Cobrar no proximo mes
+                  </strong>
+                  <span className="text-xs text-slate-500">
+                    Nao gera cobranca no mes atual; o primeiro vencimento segue
+                    o dia cadastrado no proximo mes.
+                  </span>
+                </span>
+              </label>
+            </div>
+          </div>
+          {firstBillingMode === "receive_now" ? (
+            <Field
+              label="Metodo de pagamento da primeira mensalidade"
+              required
+              error={
+                agreementForm.formState.errors.first_payment_method?.message
+              }
+            >
+              <Select {...agreementForm.register("first_payment_method")}>
+                <option value="">Selecione</option>
+                {(paymentMethods.data?.results ?? []).map((method) => (
+                  <option key={method.id} value={method.id}>
+                    {method.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          ) : null}
+          <Notice tone="info">
+            {firstBillingMode === "receive_now"
+              ? "A entrada sera registrada como recebida hoje. As proximas mensalidades seguirao o dia de vencimento a partir do proximo mes."
+              : "A primeira cobranca sera gerada somente no proximo mes, usando o dia de vencimento informado."}
+          </Notice>
           {createAgreement.error ? (
             <Notice tone="danger">{errorMessage(createAgreement.error)}</Notice>
           ) : null}

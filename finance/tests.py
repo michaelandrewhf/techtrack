@@ -9,7 +9,7 @@ from rest_framework.test import APIClient
 
 from catalog.models import PaymentMethod
 from customers.models import Customer
-from finance.models import Receivable, ReceivableStatus, ServiceAgreement
+from finance.models import Payment, Receivable, ReceivableStatus, ServiceAgreement
 from finance.services import generate_service_agreement_receivable, register_payment, void_payment
 
 
@@ -102,3 +102,93 @@ def test_finance_dashboard_returns_totals(user, agreement):
     response = client.get("/api/v1/finance/dashboard/")
     assert response.status_code == 200
     assert Decimal(response.data["pending_total"]) == Decimal("500.00")
+
+
+def test_create_agreement_receive_now_creates_paid_first_month(user, customer, payment_method):
+    today = timezone.localdate()
+    client = APIClient()
+    client.force_authenticate(user=user)
+    response = client.post(
+        "/api/v1/service-agreements/",
+        {
+            "customer": str(customer.pk),
+            "name": "Plano recebido na entrada",
+            "status": "active",
+            "starts_on": today.isoformat(),
+            "billing_frequency": "monthly",
+            "amount": "500.00",
+            "billing_day": 10,
+            "first_billing_mode": "receive_now",
+            "first_payment_method": str(payment_method.pk),
+        },
+        format="json",
+    )
+
+    assert response.status_code == 201, response.data
+    agreement = ServiceAgreement.objects.get(pk=response.data["id"])
+    assert agreement.first_billing_competence == today.replace(day=1)
+    receivable = Receivable.objects.get(service_agreement=agreement)
+    assert receivable.competence == today.replace(day=1)
+    assert receivable.due_date == today
+    assert receivable.status == ReceivableStatus.PAID
+    assert Payment.objects.filter(receivable=receivable, voided_at__isnull=True).count() == 1
+
+
+def test_create_agreement_next_month_skips_current_competence(user, customer):
+    today = timezone.localdate()
+    current_competence = today.replace(day=1)
+    if current_competence.month == 12:
+        next_competence = date(current_competence.year + 1, 1, 1)
+    else:
+        next_competence = date(current_competence.year, current_competence.month + 1, 1)
+
+    client = APIClient()
+    client.force_authenticate(user=user)
+    response = client.post(
+        "/api/v1/service-agreements/",
+        {
+            "customer": str(customer.pk),
+            "name": "Plano com primeiro vencimento futuro",
+            "status": "active",
+            "starts_on": today.isoformat(),
+            "billing_frequency": "monthly",
+            "amount": "500.00",
+            "billing_day": 10,
+            "first_billing_mode": "next_month",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 201, response.data
+    agreement = ServiceAgreement.objects.get(pk=response.data["id"])
+    assert agreement.first_billing_competence == next_competence
+    assert not Receivable.objects.filter(service_agreement=agreement).exists()
+    with pytest.raises(ValidationError):
+        generate_service_agreement_receivable(agreement=agreement, competence=current_competence)
+
+    receivable, created = generate_service_agreement_receivable(agreement=agreement, competence=next_competence)
+    assert created is True
+    assert receivable.competence == next_competence
+    assert receivable.due_date.day == 10
+
+
+def test_create_agreement_receive_now_requires_payment_method(user, customer):
+    client = APIClient()
+    client.force_authenticate(user=user)
+    response = client.post(
+        "/api/v1/service-agreements/",
+        {
+            "customer": str(customer.pk),
+            "name": "Plano sem metodo",
+            "status": "active",
+            "starts_on": timezone.localdate().isoformat(),
+            "billing_frequency": "monthly",
+            "amount": "500.00",
+            "billing_day": 10,
+            "first_billing_mode": "receive_now",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert "first_payment_method" in response.data
