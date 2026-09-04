@@ -161,9 +161,7 @@ class Quote(TimeStampedUUIDModel):
             if self.work_order.customer_id != self.customer_id:
                 raise ValidationError({"work_order": "A OS deve pertencer ao cliente do orcamento."})
             if self.equipment_id and self.work_order.equipment_id != self.equipment_id:
-                raise ValidationError(
-                    {"work_order": "A OS deve pertencer ao mesmo equipamento do orcamento."}
-                )
+                raise ValidationError({"work_order": "A OS deve pertencer ao mesmo equipamento do orcamento."})
         if self.status == QuoteStatus.APPROVED and not self.approved_at:
             raise ValidationError({"approved_at": "Orcamentos aprovados exigem data de aprovacao."})
 

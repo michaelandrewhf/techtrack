@@ -38,9 +38,8 @@ def _due_date_for_competence(competence, billing_day):
 
 
 def _valid_paid_amount(receivable):
-    return (
-        Payment.objects.valid().filter(receivable=receivable).aggregate(total=Sum("amount"))["total"]
-        or Decimal("0.00")
+    return Payment.objects.valid().filter(receivable=receivable).aggregate(total=Sum("amount"))["total"] or Decimal(
+        "0.00"
     )
 
 

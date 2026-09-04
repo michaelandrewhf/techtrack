@@ -106,9 +106,7 @@ class ServiceAgreement(TimeStampedUUIDModel):
     def clean(self):
         super().clean()
         if self.customer_id and self.customer.deleted_at:
-            raise ValidationError(
-                {"customer": "Acordos nao podem ser criados para clientes excluidos."}
-            )
+            raise ValidationError({"customer": "Acordos nao podem ser criados para clientes excluidos."})
 
     def __str__(self):
         return f"{self.customer} - {self.name}"
@@ -139,9 +137,7 @@ class ReceivableQuerySet(models.QuerySet):
         ).with_amounts()
 
     def open(self):
-        return self.exclude(
-            status__in=[ReceivableStatus.PAID, ReceivableStatus.CANCELLED]
-        )
+        return self.exclude(status__in=[ReceivableStatus.PAID, ReceivableStatus.CANCELLED])
 
 
 class Receivable(TimeStampedUUIDModel):
@@ -235,31 +231,15 @@ class Receivable(TimeStampedUUIDModel):
     def clean(self):
         super().clean()
         if self.work_order_id and self.work_order.customer_id != self.customer_id:
-            raise ValidationError(
-                {"work_order": "A OS deve pertencer ao mesmo cliente da cobranca."}
-            )
-        if (
-            self.service_agreement_id
-            and self.service_agreement.customer_id != self.customer_id
-        ):
-            raise ValidationError(
-                {"service_agreement": "O acordo deve pertencer ao mesmo cliente da cobranca."}
-            )
+            raise ValidationError({"work_order": "A OS deve pertencer ao mesmo cliente da cobranca."})
+        if self.service_agreement_id and self.service_agreement.customer_id != self.customer_id:
+            raise ValidationError({"service_agreement": "O acordo deve pertencer ao mesmo cliente da cobranca."})
         if self.origin == ReceivableOrigin.WORK_ORDER and not self.work_order_id:
-            raise ValidationError(
-                {"work_order": "Cobrancas de OS exigem uma ordem de servico."}
-            )
-        if (
-            self.origin == ReceivableOrigin.AGREEMENT
-            and not self.service_agreement_id
-        ):
-            raise ValidationError(
-                {"service_agreement": "Cobrancas recorrentes exigem um acordo."}
-            )
+            raise ValidationError({"work_order": "Cobrancas de OS exigem uma ordem de servico."})
+        if self.origin == ReceivableOrigin.AGREEMENT and not self.service_agreement_id:
+            raise ValidationError({"service_agreement": "Cobrancas recorrentes exigem um acordo."})
         if self.competence and self.competence.day != 1:
-            raise ValidationError(
-                {"competence": "A competencia deve usar o primeiro dia do mes."}
-            )
+            raise ValidationError({"competence": "A competencia deve usar o primeiro dia do mes."})
 
     def __str__(self):
         return f"{self.customer} - {self.description} - R$ {self.amount}"
@@ -331,13 +311,9 @@ class Payment(TimeStampedUUIDModel):
     def clean(self):
         super().clean()
         if self.voided_at and not self.void_reason:
-            raise ValidationError(
-                {"void_reason": "Pagamentos invalidados exigem motivo."}
-            )
+            raise ValidationError({"void_reason": "Pagamentos invalidados exigem motivo."})
         if self.payment_method_id and not self.payment_method.is_active:
-            raise ValidationError(
-                {"payment_method": "Metodo de pagamento inativo nao pode ser utilizado."}
-            )
+            raise ValidationError({"payment_method": "Metodo de pagamento inativo nao pode ser utilizado."})
 
     def __str__(self):
         return f"R$ {self.amount} - {self.receivable}"

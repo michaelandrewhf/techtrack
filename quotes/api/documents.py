@@ -36,9 +36,7 @@ class WorkOrderPdfView(APIView):
             suffix = "-preview"
 
         response = HttpResponse(work_order_pdf_from_snapshot(snapshot), content_type="application/pdf")
-        response["Content-Disposition"] = (
-            f'attachment; filename="os-{work_order.number:06d}{suffix}.pdf"'
-        )
+        response["Content-Disposition"] = f'attachment; filename="os-{work_order.number:06d}{suffix}.pdf"'
         return response
 
 
@@ -62,9 +60,7 @@ class WorkOrderIssuePdfView(APIView):
             raise serializers.ValidationError(exc.messages if hasattr(exc, "messages") else str(exc)) from exc
 
         response = HttpResponse(work_order_pdf_from_snapshot(document.snapshot), content_type="application/pdf")
-        response["Content-Disposition"] = (
-            f'attachment; filename="os-{work_order.number:06d}-v{document.version}.pdf"'
-        )
+        response["Content-Disposition"] = f'attachment; filename="os-{work_order.number:06d}-v{document.version}.pdf"'
         response["X-Document-Id"] = str(document.id)
         response["X-Document-Version"] = str(document.version)
         return response

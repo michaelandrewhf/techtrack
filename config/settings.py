@@ -17,9 +17,7 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() in {
     "on",
 }
 if not DEBUG and SECRET_KEY == "dev-only-insecure-secret-key-for-local-development":
-    raise ImproperlyConfigured(
-        "DJANGO_SECRET_KEY must be configured when DJANGO_DEBUG is False."
-    )
+    raise ImproperlyConfigured("DJANGO_SECRET_KEY must be configured when DJANGO_DEBUG is False.")
 
 ALLOWED_HOSTS = [
     host.strip()
@@ -98,9 +96,7 @@ def database_config():
             "PORT": str(parsed.port or ""),
         }
 
-    raise ValueError(
-        "Unsupported DATABASE_URL scheme. Use postgresql:// or omit it for local SQLite."
-    )
+    raise ValueError("Unsupported DATABASE_URL scheme. Use postgresql:// or omit it for local SQLite.")
 
 
 DATABASES = {"default": database_config()}
@@ -143,8 +139,7 @@ REST_FRAMEWORK = {
 SPECTACULAR_SETTINGS = {
     "TITLE": "TechTrack API",
     "DESCRIPTION": (
-        "API para gerenciamento de clientes, equipamentos, ordens de servico, "
-        "orcamentos e financeiro de TI."
+        "API para gerenciamento de clientes, equipamentos, ordens de servico, orcamentos e financeiro de TI."
     ),
     "VERSION": "1.1.0",
     "SERVE_INCLUDE_SCHEMA": False,

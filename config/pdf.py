@@ -79,9 +79,8 @@ def render_text_pdf(title: str, lines: list[str]) -> bytes:
     for offset in offsets[1:]:
         buffer.write(f"{offset:010d} 00000 n \n".encode("ascii"))
     buffer.write(
-        (
-            f"trailer\n<< /Size {len(objects) + 1} /Root {catalog_id} 0 R >>\n"
-            f"startxref\n{xref_offset}\n%%EOF\n"
-        ).encode("ascii")
+        (f"trailer\n<< /Size {len(objects) + 1} /Root {catalog_id} 0 R >>\nstartxref\n{xref_offset}\n%%EOF\n").encode(
+            "ascii"
+        )
     )
     return buffer.getvalue()
