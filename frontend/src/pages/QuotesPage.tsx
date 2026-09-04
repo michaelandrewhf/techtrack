@@ -1,19 +1,32 @@
 import { useQuery } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { quotesApi } from "../api/endpoints";
+import type { Quote } from "../api/types";
+import { DataTable } from "../components/DataTable";
 import { PageHeader } from "../components/PageHeader";
 import { Pagination } from "../components/Pagination";
-import { Badge, Button, Input, Select } from "../components/ui";
+import { ErrorState, PageLoader } from "../components/State";
+import { Badge, Button, Input, Panel, Select } from "../components/ui";
 import { formatDate, formatMoney } from "../utils/format";
 
 function tone(status: string) {
-  if (status === "approved") return "success";
-  if (status === "rejected" || status === "cancelled") return "danger";
-  if (status === "sent") return "warning";
-  return "neutral";
+  if (status === "approved") return "success" as const;
+  if (status === "rejected" || status === "cancelled") return "danger" as const;
+  if (status === "sent") return "warning" as const;
+  return "neutral" as const;
+}
+
+function statusLabel(status: string) {
+  return {
+    draft: "Rascunho",
+    sent: "Enviado",
+    approved: "Aprovado",
+    rejected: "Rejeitado",
+    cancelled: "Cancelado",
+  }[status] ?? status;
 }
 
 export function QuotesPage() {
@@ -22,15 +35,15 @@ export function QuotesPage() {
   const [status, setStatus] = useState("");
   const query = useQuery({
     queryKey: ["quotes", { page, search, status }],
-    queryFn: () =>
-      quotesApi.list({ page, search, status, ordering: "-created_at" }),
+    queryFn: () => quotesApi.list({ page, search, status, ordering: "-created_at" }),
   });
 
   return (
     <div>
       <PageHeader
+        eyebrow="Comercial"
         title="Orcamentos"
-        description="Propostas comerciais independentes da execucao da ordem de servico."
+        description="Visao consolidada das propostas. Criacao e acompanhamento tambem ficam disponiveis dentro do cliente e do equipamento."
         action={
           <Link to="/quotes/new">
             <Button type="button">
@@ -41,88 +54,73 @@ export function QuotesPage() {
         }
       />
 
-      <div className="mb-4 grid gap-3 md:grid-cols-[1fr_220px]">
-        <Input
-          placeholder="Buscar cliente, titulo ou descricao"
-          value={search}
-          onChange={(event) => {
-            setSearch(event.target.value);
-            setPage(1);
-          }}
-        />
-        <Select
-          value={status}
-          onChange={(event) => {
-            setStatus(event.target.value);
-            setPage(1);
-          }}
-        >
-          <option value="">Todos os status</option>
-          <option value="draft">Rascunho</option>
-          <option value="sent">Enviado</option>
-          <option value="approved">Aprovado</option>
-          <option value="rejected">Rejeitado</option>
-          <option value="cancelled">Cancelado</option>
-        </Select>
-      </div>
-
-      <div className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        {query.isLoading ? (
-          <div className="p-5 text-sm text-slate-500">
-            Carregando orcamentos...
+      <Panel className="mb-5">
+        <div className="grid gap-3 md:grid-cols-[1fr_220px]">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Input
+              className="pl-9"
+              placeholder="Buscar cliente, titulo, descricao ou numero"
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
+            />
           </div>
-        ) : null}
-        {query.isError ? (
-          <div className="p-5 text-sm text-red-600">
-            Nao foi possivel carregar os orcamentos.
-          </div>
-        ) : null}
-        <div className="divide-y divide-slate-200 dark:divide-slate-800">
-          {query.data?.results.map((quote) => (
-            <Link
-              key={quote.id}
-              to={`/quotes/${quote.id}`}
-              className="grid gap-3 p-4 hover:bg-slate-50 dark:hover:bg-slate-800 md:grid-cols-[130px_1.5fr_1fr_140px_120px] md:items-center"
-            >
-              <div className="font-semibold text-blue-600">
-                {quote.display_number}
-              </div>
-              <div>
-                <div className="font-medium text-slate-950 dark:text-white">
-                  {quote.customer_name}
-                </div>
-                <div className="text-sm text-slate-500">{quote.title}</div>
-              </div>
-              <div className="text-sm text-slate-500">
-                {quote.equipment_label || "Sem equipamento"}
-              </div>
-              <div>
-                <div className="font-medium">
-                  {formatMoney(quote.total_amount)}
-                </div>
-                <div className="text-xs text-slate-500">
-                  Validade {formatDate(quote.valid_until)}
-                </div>
-              </div>
-              <Badge tone={tone(quote.status)}>{quote.status}</Badge>
-            </Link>
-          ))}
-          {!query.isLoading && query.data?.results.length === 0 ? (
-            <div className="p-6 text-center text-sm text-slate-500">
-              Nenhum orcamento encontrado.
-            </div>
-          ) : null}
+          <Select
+            aria-label="Filtrar status"
+            value={status}
+            onChange={(event) => {
+              setStatus(event.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">Todos os status</option>
+            <option value="draft">Rascunho</option>
+            <option value="sent">Enviado</option>
+            <option value="approved">Aprovado</option>
+            <option value="rejected">Rejeitado</option>
+            <option value="cancelled">Cancelado</option>
+          </Select>
         </div>
-      </div>
+      </Panel>
 
+      {query.isLoading ? <PageLoader label="Carregando orcamentos" /> : null}
+      {query.isError ? (
+        <ErrorState message="Nao foi possivel carregar os orcamentos." onRetry={query.refetch} />
+      ) : null}
       {query.data ? (
-        <div className="mt-4">
-          <Pagination
-            page={page}
-            count={query.data.count}
-            pageSize={25}
-            onPageChange={setPage}
+        <div className="space-y-4">
+          <DataTable<Quote>
+            empty="Nenhum orcamento encontrado."
+            getRowKey={(row) => row.id}
+            rows={query.data.results}
+            columns={[
+              {
+                header: "Orcamento",
+                cell: (row) => (
+                  <Link className="font-semibold text-blue-700 dark:text-blue-300" to={`/quotes/${row.id}`}>
+                    {row.display_number}
+                  </Link>
+                ),
+              },
+              {
+                header: "Cliente",
+                cell: (row) => (
+                  <Link className="text-slate-800 hover:text-blue-600 dark:text-slate-100" to={`/customers/${row.customer}?tab=quotes`}>
+                    {row.customer_name}
+                  </Link>
+                ),
+              },
+              { header: "Titulo", cell: (row) => row.title },
+              { header: "Equipamento", cell: (row) => row.equipment_label || "-", hideOnMobile: true },
+              { header: "Total", cell: (row) => <strong>{formatMoney(row.total_amount)}</strong> },
+              { header: "Validade", cell: (row) => formatDate(row.valid_until), hideOnMobile: true },
+              { header: "Status", cell: (row) => <Badge tone={tone(row.status)}>{statusLabel(row.status)}</Badge> },
+            ]}
           />
+          <Pagination page={page} count={query.data.count} pageSize={25} onPageChange={setPage} />
         </div>
       ) : null}
     </div>
