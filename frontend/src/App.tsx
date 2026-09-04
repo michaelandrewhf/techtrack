@@ -10,7 +10,11 @@ import { CustomersPage } from "./pages/CustomersPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { EquipmentDetailPage } from "./pages/EquipmentDetailPage";
 import { EquipmentPage } from "./pages/EquipmentPage";
+import { FinancePage } from "./pages/FinancePage";
 import { LoginPage } from "./pages/LoginPage";
+import { QuoteCreatePage } from "./pages/QuoteCreatePage";
+import { QuoteDetailPage } from "./pages/QuoteDetailPage";
+import { QuotesPage } from "./pages/QuotesPage";
 import { WorkOrderCreatePage } from "./pages/WorkOrderCreatePage";
 import { WorkOrderDetailPage } from "./pages/WorkOrderDetailPage";
 import { WorkOrdersPage } from "./pages/WorkOrdersPage";
@@ -41,6 +45,10 @@ function createRouter() {
             { path: "/work-orders", element: <WorkOrdersPage /> },
             { path: "/work-orders/new", element: <WorkOrderCreatePage /> },
             { path: "/work-orders/:id", element: <WorkOrderDetailPage /> },
+            { path: "/quotes", element: <QuotesPage /> },
+            { path: "/quotes/new", element: <QuoteCreatePage /> },
+            { path: "/quotes/:id", element: <QuoteDetailPage /> },
+            { path: "/finance", element: <FinancePage /> },
             { path: "/settings/:resource", element: <CatalogPage /> },
           ],
         },
