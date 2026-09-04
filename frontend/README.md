@@ -36,6 +36,10 @@ Principios adotados:
 
 O status avulso/mensalista nao e armazenado em `Customer`: ele e derivado da existencia de contrato ativo. Encerrar um contrato preserva o historico e faz o cliente voltar naturalmente ao contexto avulso.
 
+## Tema
+
+O tema claro/escuro usa a classe `dark` no elemento `html` e a variante customizada do Tailwind v4. A preferencia e persistida em `localStorage` pela chave `techtrack.theme` e reaplicada ao iniciar a aplicacao, inclusive na tela de login.
+
 ## Componentes de interface
 
 A base reutilizavel esta concentrada em `src/components`:
@@ -97,14 +101,32 @@ corepack pnpm dev
 O login usa:
 
 ```text
-POST /api/token/
-POST /api/token/refresh/
-GET  /api/v1/me/
+POST  /api/token/
+POST  /api/token/refresh/
+GET   /api/v1/me/
+PATCH /api/v1/me/
 ```
 
 Tokens JWT sao enviados por `Authorization: Bearer <access>`.
 
+A tela de login permite mostrar/ocultar a senha e lembrar apenas o nome de usuario pela chave `techtrack.rememberedUsername`. A senha nunca e armazenada por essa opcao. O link "Esqueci minha senha" esta reservado na interface, mas o fluxo de recuperacao de senha ainda nao foi implementado.
+
+O usuario autenticado pode editar seu proprio nome de usuario, nome, sobrenome e e-mail em `/profile`. A atualizacao reflete imediatamente no cabecalho da aplicacao.
+
 Nesta etapa, access e refresh ficam no `localStorage` para simplicidade de SPA. Trade-off: isso e mais exposto a XSS do que cookie HttpOnly. A mitigacao atual e manter a aplicacao sem HTML arbitrario de usuario e centralizar chamadas no API client. Uma evolucao futura pode migrar refresh token para cookie HttpOnly.
+
+## Dados da empresa e documentos
+
+`/settings/business-profile` edita o `BusinessProfile` usado como prestador nos PDFs de orcamento e ordem de servico:
+
+- nome / razao social;
+- CPF / CNPJ;
+- telefone;
+- WhatsApp;
+- e-mail;
+- endereco.
+
+Somente administradores podem alterar esses dados. Novas previas e novas emissoes usam o cadastro atualizado. Documentos oficiais ja emitidos continuam usando o snapshot historico salvo na respectiva versao.
 
 ## API client
 
@@ -113,6 +135,8 @@ Chamadas HTTP ficam centralizadas em:
 ```text
 src/api/client.ts
 src/api/endpoints.ts
+src/api/profile.ts
+src/api/businessProfile.ts
 ```
 
 O client:
@@ -151,6 +175,7 @@ src/utils
 ```text
 /login
 /
+/profile
 /customers
 /customers/:id
 /equipment
@@ -163,6 +188,7 @@ src/utils
 /quotes/:id
 /finance
 /settings
+/settings/business-profile
 /settings/:resource
 ```
 
