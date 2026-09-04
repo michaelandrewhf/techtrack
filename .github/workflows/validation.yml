@@ -1,0 +1,116 @@
+name: Validation
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  backend-sqlite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.10"
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: uv sync --frozen
+      - run: uv run python manage.py check
+      - run: uv run python manage.py makemigrations --check --dry-run
+      - run: uv run pytest -q
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run python manage.py spectacular --file /tmp/techtrack-openapi.yaml --validate
+
+  backend-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: techtrack_test
+          POSTGRES_USER: techtrack
+          POSTGRES_PASSWORD: techtrack
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U techtrack -d techtrack_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://techtrack:techtrack@127.0.0.1:5432/techtrack_test
+      DJANGO_SECRET_KEY: ci-only-secret
+      DJANGO_DEBUG: "False"
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.10"
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: uv sync --frozen
+      - run: uv run python manage.py migrate --noinput
+      - run: uv run python manage.py check --database default
+      - run: uv run pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: corepack enable
+      - run: corepack prepare pnpm@11.25.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm test
+      - run: pnpm build
+
+  compose-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Compose config
+        run: docker compose config
+      - name: Build stack
+        run: docker compose build
+      - name: Start stack
+        run: docker compose up -d
+      - name: Wait for backend
+        run: |
+          for i in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:8001/api/health/ >/dev/null; then exit 0; fi
+            sleep 3
+          done
+          docker compose logs
+          exit 1
+      - name: Wait for frontend
+        run: |
+          for i in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 3
+          done
+          docker compose logs
+          exit 1
+      - name: Django check inside Compose
+        run: docker compose exec -T backend uv run --frozen python manage.py check
+      - name: Verify frontend API proxy
+        run: curl --fail --silent http://127.0.0.1:5173/api/health/
+      - name: Show service status
+        run: docker compose ps
+      - if: always()
+        run: docker compose down -v
