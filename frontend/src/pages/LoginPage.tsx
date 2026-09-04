@@ -38,7 +38,8 @@ export function LoginPage() {
   const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [showRecoveryInfo, setShowRecoveryInfo] = useState(false);
-  const rememberedUsername = localStorage.getItem(REMEMBERED_USERNAME_KEY) ?? "";
+  const rememberedUsername =
+    localStorage.getItem(REMEMBERED_USERNAME_KEY) ?? "";
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -170,7 +171,9 @@ export function LoginPage() {
                     {...form.register("password")}
                   />
                   <button
-                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                    aria-label={
+                      showPassword ? "Ocultar senha" : "Mostrar senha"
+                    }
                     className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white"
                     type="button"
                     onClick={() => setShowPassword((value) => !value)}

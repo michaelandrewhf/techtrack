@@ -13,7 +13,14 @@ import { useAuth } from "../auth/AuthProvider";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { PageHeader } from "../components/PageHeader";
 import { ErrorState, PageLoader } from "../components/State";
-import { Button, Field, Input, Notice, Panel, Textarea } from "../components/ui";
+import {
+  Button,
+  Field,
+  Input,
+  Notice,
+  Panel,
+  Textarea,
+} from "../components/ui";
 import { errorMessage } from "../utils/errors";
 
 const businessProfileSchema = z.object({
@@ -21,11 +28,7 @@ const businessProfileSchema = z.object({
   document: z.string().trim().max(40, "Use no maximo 40 caracteres."),
   phone: z.string().trim().max(40, "Use no maximo 40 caracteres."),
   whatsapp: z.string().trim().max(40, "Use no maximo 40 caracteres."),
-  email: z
-    .string()
-    .trim()
-    .email("Informe um e-mail valido.")
-    .or(z.literal("")),
+  email: z.string().trim().email("Informe um e-mail valido.").or(z.literal("")),
   address: z.string().trim(),
 });
 
@@ -76,7 +79,8 @@ export function BusinessProfilePage() {
     mutation.mutate(data);
   });
 
-  if (query.isLoading) return <PageLoader label="Carregando dados da empresa" />;
+  if (query.isLoading)
+    return <PageLoader label="Carregando dados da empresa" />;
   if (query.isError) {
     return (
       <ErrorState
@@ -113,13 +117,15 @@ export function BusinessProfilePage() {
               <Building2 className="h-5 w-5" />
             </div>
             <div className="text-sm text-slate-600 dark:text-slate-300">
-              Estes campos alimentam diretamente a secao <strong>Prestador</strong> dos PDFs.
+              Estes campos alimentam diretamente a secao{" "}
+              <strong>Prestador</strong> dos PDFs.
             </div>
           </div>
 
           {!canEdit ? (
             <Notice tone="warning">
-              Apenas administradores podem alterar os dados exibidos nos documentos.
+              Apenas administradores podem alterar os dados exibidos nos
+              documentos.
             </Notice>
           ) : null}
 
@@ -137,24 +143,46 @@ export function BusinessProfilePage() {
             >
               <Input disabled={!canEdit} {...form.register("document")} />
             </Field>
-            <Field label="Telefone" error={form.formState.errors.phone?.message}>
-              <Input disabled={!canEdit} inputMode="tel" {...form.register("phone")} />
+            <Field
+              label="Telefone"
+              error={form.formState.errors.phone?.message}
+            >
+              <Input
+                disabled={!canEdit}
+                inputMode="tel"
+                {...form.register("phone")}
+              />
             </Field>
-            <Field label="WhatsApp" error={form.formState.errors.whatsapp?.message}>
-              <Input disabled={!canEdit} inputMode="tel" {...form.register("whatsapp")} />
+            <Field
+              label="WhatsApp"
+              error={form.formState.errors.whatsapp?.message}
+            >
+              <Input
+                disabled={!canEdit}
+                inputMode="tel"
+                {...form.register("whatsapp")}
+              />
             </Field>
             <Field label="E-mail" error={form.formState.errors.email?.message}>
-              <Input disabled={!canEdit} type="email" {...form.register("email")} />
+              <Input
+                disabled={!canEdit}
+                type="email"
+                {...form.register("email")}
+              />
             </Field>
           </div>
 
-          <Field label="Endereco" error={form.formState.errors.address?.message}>
+          <Field
+            label="Endereco"
+            error={form.formState.errors.address?.message}
+          >
             <Textarea disabled={!canEdit} {...form.register("address")} />
           </Field>
 
           {saved ? (
             <Notice tone="success">
-              Dados atualizados. As proximas previas e emissoes de PDF ja usarao estas informacoes.
+              Dados atualizados. As proximas previas e emissoes de PDF ja usarao
+              estas informacoes.
             </Notice>
           ) : null}
           {mutation.isError ? (

@@ -169,7 +169,9 @@ describe("App", () => {
     const password = screen.getByLabelText(/Senha/) as HTMLInputElement;
     expect(password.type).toBe("password");
 
-    await userEvent.click(screen.getByRole("button", { name: "Mostrar senha" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Mostrar senha" }),
+    );
     expect(password.type).toBe("text");
 
     await userEvent.type(screen.getByLabelText(/Usuario/), "tech");
@@ -216,7 +218,9 @@ describe("App", () => {
 
     const firstName = screen.getByLabelText("Nome");
     await userEvent.type(firstName, "Michael");
-    await userEvent.click(screen.getByRole("button", { name: "Salvar perfil" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Salvar perfil" }),
+    );
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -224,7 +228,9 @@ describe("App", () => {
         expect.objectContaining({ method: "PATCH" }),
       );
     });
-    expect(await screen.findByText("Perfil atualizado com sucesso.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Perfil atualizado com sucesso."),
+    ).toBeInTheDocument();
   });
 
   it("calls the change-status action from the work order detail screen", async () => {

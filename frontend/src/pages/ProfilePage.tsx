@@ -14,11 +14,7 @@ const profileSchema = z.object({
   username: z.string().trim().min(1, "Informe o usuario."),
   first_name: z.string().trim().max(150, "Use no maximo 150 caracteres."),
   last_name: z.string().trim().max(150, "Use no maximo 150 caracteres."),
-  email: z
-    .string()
-    .trim()
-    .email("Informe um e-mail valido.")
-    .or(z.literal("")),
+  email: z.string().trim().email("Informe um e-mail valido.").or(z.literal("")),
 });
 
 type ProfileForm = z.infer<typeof profileSchema>;
@@ -58,7 +54,9 @@ export function ProfilePage() {
 
   return (
     <div>
-      <Breadcrumbs items={[{ label: "Inicio", to: "/" }, { label: "Meu perfil" }]} />
+      <Breadcrumbs
+        items={[{ label: "Inicio", to: "/" }, { label: "Meu perfil" }]}
+      />
       <PageHeader
         eyebrow="Conta"
         title="Meu perfil"
@@ -94,17 +92,35 @@ export function ProfilePage() {
               <Input autoComplete="username" {...form.register("username")} />
             </Field>
             <Field label="E-mail" error={form.formState.errors.email?.message}>
-              <Input autoComplete="email" type="email" {...form.register("email")} />
+              <Input
+                autoComplete="email"
+                type="email"
+                {...form.register("email")}
+              />
             </Field>
-            <Field label="Nome" error={form.formState.errors.first_name?.message}>
-              <Input autoComplete="given-name" {...form.register("first_name")} />
+            <Field
+              label="Nome"
+              error={form.formState.errors.first_name?.message}
+            >
+              <Input
+                autoComplete="given-name"
+                {...form.register("first_name")}
+              />
             </Field>
-            <Field label="Sobrenome" error={form.formState.errors.last_name?.message}>
-              <Input autoComplete="family-name" {...form.register("last_name")} />
+            <Field
+              label="Sobrenome"
+              error={form.formState.errors.last_name?.message}
+            >
+              <Input
+                autoComplete="family-name"
+                {...form.register("last_name")}
+              />
             </Field>
           </div>
 
-          {saved ? <Notice tone="success">Perfil atualizado com sucesso.</Notice> : null}
+          {saved ? (
+            <Notice tone="success">Perfil atualizado com sucesso.</Notice>
+          ) : null}
           {form.formState.errors.root ? (
             <Notice tone="danger">{form.formState.errors.root.message}</Notice>
           ) : null}

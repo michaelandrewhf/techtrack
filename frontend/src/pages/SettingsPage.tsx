@@ -24,7 +24,8 @@ const accountSettings = [
   {
     to: "/settings/business-profile",
     label: "Dados da empresa",
-    description: "Prestador, documento e contatos usados nos PDFs de OS e orcamento.",
+    description:
+      "Prestador, documento e contatos usados nos PDFs de OS e orcamento.",
     icon: Building2,
   },
 ];
