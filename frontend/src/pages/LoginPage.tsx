@@ -1,10 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  CheckCircle2,
-  ClipboardList,
-  ShieldCheck,
-  Wrench,
-} from "lucide-react";
+import { CheckCircle2, ClipboardList, ShieldCheck, Wrench } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -54,8 +49,12 @@ export function LoginPage() {
             <Wrench className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-lg font-semibold tracking-tight">TechTrack</div>
-            <div className="text-sm text-slate-400">Gestao de suporte e manutencao TI</div>
+            <div className="text-lg font-semibold tracking-tight">
+              TechTrack
+            </div>
+            <div className="text-sm text-slate-400">
+              Gestao de suporte e manutencao TI
+            </div>
           </div>
         </div>
 
@@ -67,19 +66,27 @@ export function LoginPage() {
             Do cliente ao atendimento, sem perder o contexto.
           </h1>
           <p className="mt-5 max-w-lg text-base leading-7 text-slate-300">
-            Clientes, equipamentos, ordens, orcamentos e financeiro reunidos em uma experiencia orientada ao trabalho real.
+            Clientes, equipamentos, ordens, orcamentos e financeiro reunidos em
+            uma experiencia orientada ao trabalho real.
           </p>
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
             {highlights.map((item) => (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4" key={item.label}>
+              <div
+                className="rounded-xl border border-white/10 bg-white/5 p-4"
+                key={item.label}
+              >
                 <item.icon className="h-5 w-5 text-blue-300" />
-                <div className="mt-3 text-sm font-medium text-slate-100">{item.label}</div>
+                <div className="mt-3 text-sm font-medium text-slate-100">
+                  {item.label}
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="relative text-xs text-slate-500">TechTrack · ambiente interno</div>
+        <div className="relative text-xs text-slate-500">
+          TechTrack · ambiente interno
+        </div>
       </section>
 
       <section className="flex min-h-screen items-center justify-center bg-slate-50 p-5 dark:bg-slate-950 sm:p-8">
@@ -90,8 +97,12 @@ export function LoginPage() {
                 <Wrench className="h-5 w-5" />
               </div>
               <div>
-                <div className="font-semibold text-slate-950 dark:text-white">TechTrack</div>
-                <div className="text-xs text-slate-500">Gestao de suporte TI</div>
+                <div className="font-semibold text-slate-950 dark:text-white">
+                  TechTrack
+                </div>
+                <div className="text-xs text-slate-500">
+                  Gestao de suporte TI
+                </div>
               </div>
             </div>
           </div>
@@ -107,7 +118,11 @@ export function LoginPage() {
             </div>
 
             <form className="space-y-4" onSubmit={submit}>
-              <Field label="Usuario" required error={form.formState.errors.username?.message}>
+              <Field
+                label="Usuario"
+                required
+                error={form.formState.errors.username?.message}
+              >
                 <Input
                   aria-invalid={Boolean(form.formState.errors.username)}
                   autoComplete="username"
@@ -115,7 +130,11 @@ export function LoginPage() {
                   {...form.register("username")}
                 />
               </Field>
-              <Field label="Senha" required error={form.formState.errors.password?.message}>
+              <Field
+                label="Senha"
+                required
+                error={form.formState.errors.password?.message}
+              >
                 <Input
                   aria-invalid={Boolean(form.formState.errors.password)}
                   autoComplete="current-password"
@@ -124,7 +143,9 @@ export function LoginPage() {
                 />
               </Field>
               {form.formState.errors.root ? (
-                <Notice tone="danger">{form.formState.errors.root.message}</Notice>
+                <Notice tone="danger">
+                  {form.formState.errors.root.message}
+                </Notice>
               ) : null}
               <Button
                 className="mt-2 w-full"

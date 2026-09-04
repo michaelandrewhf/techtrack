@@ -65,12 +65,14 @@ function maintenanceTone(status: MaintenanceItem["status"]) {
 }
 
 function maintenanceLabel(status: MaintenanceItem["status"]) {
-  return {
-    overdue: "Vencida",
-    upcoming: "Proxima",
-    ok: "Em dia",
-    never_performed: "Nunca realizada",
-  }[status] ?? status;
+  return (
+    {
+      overdue: "Vencida",
+      upcoming: "Proxima",
+      ok: "Em dia",
+      never_performed: "Nunca realizada",
+    }[status] ?? status
+  );
 }
 
 export function EquipmentDetailPage() {
@@ -95,7 +97,9 @@ export function EquipmentDetailPage() {
 
   const invalidate = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: queryKeys.equipmentDetail(id) }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.equipmentDetail(id),
+      }),
       queryClient.invalidateQueries({ queryKey: ["equipment"] }),
       queryClient.invalidateQueries({ queryKey: ["customers"] }),
     ]);
@@ -149,7 +153,10 @@ export function EquipmentDetailPage() {
       <Breadcrumbs
         items={[
           { label: "Clientes", to: "/customers" },
-          { label: item.customer.name, to: `/customers/${item.customer.id}?tab=equipment` },
+          {
+            label: item.customer.name,
+            to: `/customers/${item.customer.id}?tab=equipment`,
+          },
           { label: equipmentName },
         ]}
       />
@@ -157,16 +164,24 @@ export function EquipmentDetailPage() {
         eyebrow={item.equipment_type.name}
         title={equipmentName}
         description={`Patrimonio tecnico de ${item.customer.name}.`}
-        meta={<Badge tone={item.status === "active" ? "success" : "neutral"}>{item.status}</Badge>}
+        meta={
+          <Badge tone={item.status === "active" ? "success" : "neutral"}>
+            {item.status}
+          </Badge>
+        }
         action={
           <>
-            <Link to={`/work-orders/new?customer=${item.customer.id}&equipment=${item.id}`}>
+            <Link
+              to={`/work-orders/new?customer=${item.customer.id}&equipment=${item.id}`}
+            >
               <Button type="button">
                 <ClipboardList className="h-4 w-4" />
                 Abrir OS
               </Button>
             </Link>
-            <Link to={`/quotes/new?customer=${item.customer.id}&equipment=${item.id}`}>
+            <Link
+              to={`/quotes/new?customer=${item.customer.id}&equipment=${item.id}`}
+            >
               <Button type="button" variant="secondary">
                 <FileText className="h-4 w-4" />
                 Orcamento
@@ -184,7 +199,17 @@ export function EquipmentDetailPage() {
         <Panel title="Dados do equipamento">
           <DescriptionList
             items={[
-              { label: "Cliente", value: <Link className="text-blue-600" to={`/customers/${item.customer.id}`}>{item.customer.name}</Link> },
+              {
+                label: "Cliente",
+                value: (
+                  <Link
+                    className="text-blue-600"
+                    to={`/customers/${item.customer.id}`}
+                  >
+                    {item.customer.name}
+                  </Link>
+                ),
+              },
               { label: "Tipo", value: item.equipment_type.name },
               { label: "Serial", value: item.serial_number || "-" },
               { label: "Patrimonio", value: item.asset_tag || "-" },
@@ -215,14 +240,30 @@ export function EquipmentDetailPage() {
                   </Badge>
                 </div>
                 <dl className="mt-3 grid gap-2 text-sm text-slate-500 sm:grid-cols-2">
-                  <div><dt className="text-xs uppercase tracking-wide">Ultima</dt><dd>{formatDateTime(row.last_performed_at)}</dd></div>
-                  <div><dt className="text-xs uppercase tracking-wide">Proxima</dt><dd>{formatDateTime(row.next_due_at)}</dd></div>
-                  <div className="sm:col-span-2"><dt className="text-xs uppercase tracking-wide">Intervalo recomendado</dt><dd>{row.recommended_interval_value ?? "-"} {row.recommended_interval_unit}</dd></div>
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide">Ultima</dt>
+                    <dd>{formatDateTime(row.last_performed_at)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide">Proxima</dt>
+                    <dd>{formatDateTime(row.next_due_at)}</dd>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <dt className="text-xs uppercase tracking-wide">
+                      Intervalo recomendado
+                    </dt>
+                    <dd>
+                      {row.recommended_interval_value ?? "-"}{" "}
+                      {row.recommended_interval_unit}
+                    </dd>
+                  </div>
                 </dl>
               </div>
             ))}
             {!maintenance.isLoading && !maintenance.data?.length ? (
-              <p className="text-sm text-slate-500">Nenhuma regra preventiva aplicavel a este equipamento.</p>
+              <p className="text-sm text-slate-500">
+                Nenhuma regra preventiva aplicavel a este equipamento.
+              </p>
             ) : null}
           </div>
         </Panel>
@@ -233,7 +274,12 @@ export function EquipmentDetailPage() {
           title="Componentes"
           subtitle="Configuracao atual do equipamento, preservando historico de remocoes."
           action={
-            <Button size="sm" type="button" variant="secondary" onClick={() => setShowComponentForm((value) => !value)}>
+            <Button
+              size="sm"
+              type="button"
+              variant="secondary"
+              onClick={() => setShowComponentForm((value) => !value)}
+            >
               <Plus className="h-4 w-4" />
               Adicionar
             </Button>
@@ -242,7 +288,9 @@ export function EquipmentDetailPage() {
           {showComponentForm ? (
             <form
               className="mb-5 grid gap-3 rounded-xl bg-slate-50 p-4 dark:bg-slate-950 sm:grid-cols-2"
-              onSubmit={componentForm.handleSubmit((data) => addComponent.mutate(data))}
+              onSubmit={componentForm.handleSubmit((data) =>
+                addComponent.mutate(data),
+              )}
             >
               <Controller
                 control={componentForm.control}
@@ -256,16 +304,47 @@ export function EquipmentDetailPage() {
                   />
                 )}
               />
-              <Field label="Fabricante"><Input {...componentForm.register("manufacturer")} /></Field>
-              <Field label="Modelo"><Input {...componentForm.register("model")} /></Field>
-              <Field label="Capacidade"><Input {...componentForm.register("capacity")} /></Field>
-              <Field label="Serial"><Input {...componentForm.register("serial_number")} /></Field>
-              <Field label="Instalado em"><Input type="date" {...componentForm.register("installed_at")} /></Field>
-              <div className="sm:col-span-2"><Field label="Notas"><Textarea {...componentForm.register("notes")} /></Field></div>
-              {addComponent.error ? <div className="sm:col-span-2"><Notice tone="danger">{errorMessage(addComponent.error)}</Notice></div> : null}
+              <Field label="Fabricante">
+                <Input {...componentForm.register("manufacturer")} />
+              </Field>
+              <Field label="Modelo">
+                <Input {...componentForm.register("model")} />
+              </Field>
+              <Field label="Capacidade">
+                <Input {...componentForm.register("capacity")} />
+              </Field>
+              <Field label="Serial">
+                <Input {...componentForm.register("serial_number")} />
+              </Field>
+              <Field label="Instalado em">
+                <Input
+                  type="date"
+                  {...componentForm.register("installed_at")}
+                />
+              </Field>
+              <div className="sm:col-span-2">
+                <Field label="Notas">
+                  <Textarea {...componentForm.register("notes")} />
+                </Field>
+              </div>
+              {addComponent.error ? (
+                <div className="sm:col-span-2">
+                  <Notice tone="danger">
+                    {errorMessage(addComponent.error)}
+                  </Notice>
+                </div>
+              ) : null}
               <div className="flex justify-end gap-2 sm:col-span-2">
-                <Button type="button" variant="ghost" onClick={() => setShowComponentForm(false)}>Cancelar</Button>
-                <Button disabled={addComponent.isPending} type="submit">Salvar componente</Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setShowComponentForm(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button disabled={addComponent.isPending} type="submit">
+                  Salvar componente
+                </Button>
               </div>
             </form>
           ) : null}
@@ -277,10 +356,16 @@ export function EquipmentDetailPage() {
               { header: "Tipo", cell: (row) => row.component_type.name },
               {
                 header: "Descricao",
-                cell: (row) => [row.manufacturer, row.model, row.capacity].filter(Boolean).join(" ") || "-",
+                cell: (row) =>
+                  [row.manufacturer, row.model, row.capacity]
+                    .filter(Boolean)
+                    .join(" ") || "-",
               },
               { header: "Serial", cell: (row) => row.serial_number || "-" },
-              { header: "Instalado", cell: (row) => formatDate(row.installed_at) },
+              {
+                header: "Instalado",
+                cell: (row) => formatDate(row.installed_at),
+              },
               {
                 header: "Acao",
                 cell: (row) => (
@@ -290,7 +375,9 @@ export function EquipmentDetailPage() {
                     confirmLabel="Remover"
                     onConfirm={() => removeComponent.mutate(row.id)}
                   >
-                    <Button size="sm" variant="ghost" type="button">Remover</Button>
+                    <Button size="sm" variant="ghost" type="button">
+                      Remover
+                    </Button>
                   </ConfirmDialog>
                 ),
               },
@@ -302,8 +389,13 @@ export function EquipmentDetailPage() {
           title="Ordens de servico"
           subtitle="Atendimentos recentes deste equipamento."
           action={
-            <Link to={`/work-orders/new?customer=${item.customer.id}&equipment=${item.id}`}>
-              <Button size="sm" type="button"><Plus className="h-4 w-4" />Nova OS</Button>
+            <Link
+              to={`/work-orders/new?customer=${item.customer.id}&equipment=${item.id}`}
+            >
+              <Button size="sm" type="button">
+                <Plus className="h-4 w-4" />
+                Nova OS
+              </Button>
             </Link>
           }
         >
@@ -314,23 +406,57 @@ export function EquipmentDetailPage() {
             columns={[
               {
                 header: "OS",
-                cell: (row) => <Link className="font-semibold text-blue-700 dark:text-blue-300" to={`/work-orders/${row.id}`}>{row.display_number}</Link>,
+                cell: (row) => (
+                  <Link
+                    className="font-semibold text-blue-700 dark:text-blue-300"
+                    to={`/work-orders/${row.id}`}
+                  >
+                    {row.display_number}
+                  </Link>
+                ),
               },
               { header: "Titulo", cell: (row) => row.title },
-              { header: "Status", cell: (row) => <Badge>{row.status.name}</Badge> },
-              { header: "Abertura", cell: (row) => formatDateTime(row.opened_at) },
+              {
+                header: "Status",
+                cell: (row) => <Badge>{row.status.name}</Badge>,
+              },
+              {
+                header: "Abertura",
+                cell: (row) => formatDateTime(row.opened_at),
+              },
             ]}
           />
         </Panel>
       </div>
 
-      <Modal open={editOpen} title="Editar equipamento" description="Atualize os dados do patrimonio sem sair do historico tecnico." size="lg" onClose={() => setEditOpen(false)}>
-        <form className="grid gap-4 sm:grid-cols-2" onSubmit={editForm.handleSubmit((data) => updateEquipment.mutate(data))}>
-          <Field label="Fabricante"><Input {...editForm.register("manufacturer")} /></Field>
-          <Field label="Modelo"><Input {...editForm.register("model")} /></Field>
-          <Field label="Serial"><Input {...editForm.register("serial_number")} /></Field>
-          <Field label="Patrimonio"><Input {...editForm.register("asset_tag")} /></Field>
-          <Field label="Sistema operacional"><Input {...editForm.register("operating_system")} /></Field>
+      <Modal
+        open={editOpen}
+        title="Editar equipamento"
+        description="Atualize os dados do patrimonio sem sair do historico tecnico."
+        size="lg"
+        onClose={() => setEditOpen(false)}
+      >
+        <form
+          className="grid gap-4 sm:grid-cols-2"
+          onSubmit={editForm.handleSubmit((data) =>
+            updateEquipment.mutate(data),
+          )}
+        >
+          <Field label="Fabricante">
+            <Input {...editForm.register("manufacturer")} />
+          </Field>
+          <Field label="Modelo">
+            <Input {...editForm.register("model")} />
+          </Field>
+          <Field label="Serial">
+            <Input {...editForm.register("serial_number")} />
+          </Field>
+          <Field label="Patrimonio">
+            <Input {...editForm.register("asset_tag")} />
+          </Field>
+          <Field label="Sistema operacional">
+            <Input {...editForm.register("operating_system")} />
+          </Field>
           <Field label="Status">
             <Select {...editForm.register("status")}>
               <option value="active">Ativo</option>
@@ -339,11 +465,29 @@ export function EquipmentDetailPage() {
               <option value="retired">Baixado</option>
             </Select>
           </Field>
-          <div className="sm:col-span-2"><Field label="Observacoes"><Textarea {...editForm.register("notes")} /></Field></div>
-          {updateEquipment.error ? <div className="sm:col-span-2"><Notice tone="danger">{errorMessage(updateEquipment.error)}</Notice></div> : null}
+          <div className="sm:col-span-2">
+            <Field label="Observacoes">
+              <Textarea {...editForm.register("notes")} />
+            </Field>
+          </div>
+          {updateEquipment.error ? (
+            <div className="sm:col-span-2">
+              <Notice tone="danger">
+                {errorMessage(updateEquipment.error)}
+              </Notice>
+            </div>
+          ) : null}
           <div className="flex justify-end gap-2 sm:col-span-2">
-            <Button type="button" variant="secondary" onClick={() => setEditOpen(false)}>Cancelar</Button>
-            <Button disabled={updateEquipment.isPending} type="submit">Salvar alteracoes</Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setEditOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button disabled={updateEquipment.isPending} type="submit">
+              Salvar alteracoes
+            </Button>
           </div>
         </form>
       </Modal>

@@ -47,12 +47,14 @@ function statusTone(status: string) {
 }
 
 function statusLabel(status: string) {
-  return {
-    active: "Ativo",
-    inactive: "Inativo",
-    prospect: "Prospect",
-    blocked: "Bloqueado",
-  }[status] ?? status;
+  return (
+    {
+      active: "Ativo",
+      inactive: "Inativo",
+      prospect: "Prospect",
+      blocked: "Bloqueado",
+    }[status] ?? status
+  );
 }
 
 export function CustomersPage() {
@@ -152,18 +154,40 @@ export function CustomersPage() {
                   </Link>
                 ),
               },
-              { header: "Telefone", cell: (row) => row.whatsapp || row.phone || "-" },
-              { header: "E-mail", cell: (row) => row.email || "-", hideOnMobile: true },
+              {
+                header: "Telefone",
+                cell: (row) => row.whatsapp || row.phone || "-",
+              },
+              {
+                header: "E-mail",
+                cell: (row) => row.email || "-",
+                hideOnMobile: true,
+              },
               {
                 header: "Status",
-                cell: (row) => <Badge tone={statusTone(row.status)}>{statusLabel(row.status)}</Badge>,
+                cell: (row) => (
+                  <Badge tone={statusTone(row.status)}>
+                    {statusLabel(row.status)}
+                  </Badge>
+                ),
               },
               { header: "Equip.", cell: (row) => row.equipment_count ?? 0 },
-              { header: "OS abertas", cell: (row) => row.active_work_order_count ?? 0 },
-              { header: "Ultima OS", cell: (row) => formatDateTime(row.latest_work_order_at), hideOnMobile: true },
+              {
+                header: "OS abertas",
+                cell: (row) => row.active_work_order_count ?? 0,
+              },
+              {
+                header: "Ultima OS",
+                cell: (row) => formatDateTime(row.latest_work_order_at),
+                hideOnMobile: true,
+              },
             ]}
           />
-          <Pagination count={query.data.count} page={page} onPageChange={setPage} />
+          <Pagination
+            count={query.data.count}
+            page={page}
+            onPageChange={setPage}
+          />
         </div>
       ) : null}
 
@@ -178,18 +202,35 @@ export function CustomersPage() {
           onSubmit={form.handleSubmit((data) => mutation.mutate(data))}
         >
           <div className="sm:col-span-2">
-            <Field label="Nome" required error={form.formState.errors.name?.message}>
-              <Input aria-invalid={Boolean(form.formState.errors.name)} autoFocus {...form.register("name")} />
+            <Field
+              label="Nome"
+              required
+              error={form.formState.errors.name?.message}
+            >
+              <Input
+                aria-invalid={Boolean(form.formState.errors.name)}
+                autoFocus
+                {...form.register("name")}
+              />
             </Field>
           </div>
-          <Field label="Telefone"><Input {...form.register("phone")} /></Field>
-          <Field label="WhatsApp"><Input {...form.register("whatsapp")} /></Field>
+          <Field label="Telefone">
+            <Input {...form.register("phone")} />
+          </Field>
+          <Field label="WhatsApp">
+            <Input {...form.register("whatsapp")} />
+          </Field>
           <div className="sm:col-span-2">
             <Field label="E-mail" error={form.formState.errors.email?.message}>
-              <Input aria-invalid={Boolean(form.formState.errors.email)} {...form.register("email")} />
+              <Input
+                aria-invalid={Boolean(form.formState.errors.email)}
+                {...form.register("email")}
+              />
             </Field>
           </div>
-          <Field label="Cliente desde"><Input type="date" {...form.register("customer_since")} /></Field>
+          <Field label="Cliente desde">
+            <Input type="date" {...form.register("customer_since")} />
+          </Field>
           <Field label="Status">
             <Select {...form.register("status")}>
               <option value="active">Ativo</option>
@@ -198,10 +239,24 @@ export function CustomersPage() {
               <option value="blocked">Bloqueado</option>
             </Select>
           </Field>
-          <div className="sm:col-span-2"><Field label="Observacoes"><Textarea {...form.register("notes")} /></Field></div>
-          {mutation.error ? <div className="sm:col-span-2"><Notice tone="danger">{errorMessage(mutation.error)}</Notice></div> : null}
+          <div className="sm:col-span-2">
+            <Field label="Observacoes">
+              <Textarea {...form.register("notes")} />
+            </Field>
+          </div>
+          {mutation.error ? (
+            <div className="sm:col-span-2">
+              <Notice tone="danger">{errorMessage(mutation.error)}</Notice>
+            </div>
+          ) : null}
           <div className="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-800 sm:col-span-2">
-            <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowForm(false)}
+            >
+              Cancelar
+            </Button>
             <Button disabled={mutation.isPending} type="submit">
               <Users className="h-4 w-4" />
               {mutation.isPending ? "Salvando..." : "Salvar e abrir cliente"}

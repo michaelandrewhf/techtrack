@@ -20,13 +20,15 @@ function tone(status: string) {
 }
 
 function statusLabel(status: string) {
-  return {
-    draft: "Rascunho",
-    sent: "Enviado",
-    approved: "Aprovado",
-    rejected: "Rejeitado",
-    cancelled: "Cancelado",
-  }[status] ?? status;
+  return (
+    {
+      draft: "Rascunho",
+      sent: "Enviado",
+      approved: "Aprovado",
+      rejected: "Rejeitado",
+      cancelled: "Cancelado",
+    }[status] ?? status
+  );
 }
 
 export function QuotesPage() {
@@ -35,7 +37,8 @@ export function QuotesPage() {
   const [status, setStatus] = useState("");
   const query = useQuery({
     queryKey: ["quotes", { page, search, status }],
-    queryFn: () => quotesApi.list({ page, search, status, ordering: "-created_at" }),
+    queryFn: () =>
+      quotesApi.list({ page, search, status, ordering: "-created_at" }),
   });
 
   return (
@@ -88,7 +91,10 @@ export function QuotesPage() {
 
       {query.isLoading ? <PageLoader label="Carregando orcamentos" /> : null}
       {query.isError ? (
-        <ErrorState message="Nao foi possivel carregar os orcamentos." onRetry={query.refetch} />
+        <ErrorState
+          message="Nao foi possivel carregar os orcamentos."
+          onRetry={query.refetch}
+        />
       ) : null}
       {query.data ? (
         <div className="space-y-4">
@@ -100,7 +106,10 @@ export function QuotesPage() {
               {
                 header: "Orcamento",
                 cell: (row) => (
-                  <Link className="font-semibold text-blue-700 dark:text-blue-300" to={`/quotes/${row.id}`}>
+                  <Link
+                    className="font-semibold text-blue-700 dark:text-blue-300"
+                    to={`/quotes/${row.id}`}
+                  >
                     {row.display_number}
                   </Link>
                 ),
@@ -108,19 +117,45 @@ export function QuotesPage() {
               {
                 header: "Cliente",
                 cell: (row) => (
-                  <Link className="text-slate-800 hover:text-blue-600 dark:text-slate-100" to={`/customers/${row.customer}?tab=quotes`}>
+                  <Link
+                    className="text-slate-800 hover:text-blue-600 dark:text-slate-100"
+                    to={`/customers/${row.customer}?tab=quotes`}
+                  >
                     {row.customer_name}
                   </Link>
                 ),
               },
               { header: "Titulo", cell: (row) => row.title },
-              { header: "Equipamento", cell: (row) => row.equipment_label || "-", hideOnMobile: true },
-              { header: "Total", cell: (row) => <strong>{formatMoney(row.total_amount)}</strong> },
-              { header: "Validade", cell: (row) => formatDate(row.valid_until), hideOnMobile: true },
-              { header: "Status", cell: (row) => <Badge tone={tone(row.status)}>{statusLabel(row.status)}</Badge> },
+              {
+                header: "Equipamento",
+                cell: (row) => row.equipment_label || "-",
+                hideOnMobile: true,
+              },
+              {
+                header: "Total",
+                cell: (row) => <strong>{formatMoney(row.total_amount)}</strong>,
+              },
+              {
+                header: "Validade",
+                cell: (row) => formatDate(row.valid_until),
+                hideOnMobile: true,
+              },
+              {
+                header: "Status",
+                cell: (row) => (
+                  <Badge tone={tone(row.status)}>
+                    {statusLabel(row.status)}
+                  </Badge>
+                ),
+              },
             ]}
           />
-          <Pagination page={page} count={query.data.count} pageSize={25} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            count={query.data.count}
+            pageSize={25}
+            onPageChange={setPage}
+          />
         </div>
       ) : null}
     </div>

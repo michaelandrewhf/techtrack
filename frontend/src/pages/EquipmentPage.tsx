@@ -144,7 +144,10 @@ export function EquipmentPage() {
               {
                 header: "Cliente",
                 cell: (row) => (
-                  <Link className="text-blue-700 dark:text-blue-300" to={`/customers/${row.customer.id}?tab=equipment`}>
+                  <Link
+                    className="text-blue-700 dark:text-blue-300"
+                    to={`/customers/${row.customer.id}?tab=equipment`}
+                  >
                     {row.customer.name}
                   </Link>
                 ),
@@ -153,17 +156,34 @@ export function EquipmentPage() {
               {
                 header: "Equipamento",
                 cell: (row) => (
-                  <Link className="font-semibold text-blue-700 dark:text-blue-300" to={`/equipment/${row.id}`}>
-                    {[row.manufacturer, row.model].filter(Boolean).join(" ") || row.equipment_type.name}
+                  <Link
+                    className="font-semibold text-blue-700 dark:text-blue-300"
+                    to={`/equipment/${row.id}`}
+                  >
+                    {[row.manufacturer, row.model].filter(Boolean).join(" ") ||
+                      row.equipment_type.name}
                   </Link>
                 ),
               },
-              { header: "Serial", cell: (row) => row.serial_number || "-", hideOnMobile: true },
+              {
+                header: "Serial",
+                cell: (row) => row.serial_number || "-",
+                hideOnMobile: true,
+              },
               { header: "Patrimonio", cell: (row) => row.asset_tag || "-" },
-              { header: "Status", cell: (row) => <Badge tone={statusTone(row.status)}>{row.status}</Badge> },
+              {
+                header: "Status",
+                cell: (row) => (
+                  <Badge tone={statusTone(row.status)}>{row.status}</Badge>
+                ),
+              },
             ]}
           />
-          <Pagination count={query.data.count} page={page} onPageChange={setPage} />
+          <Pagination
+            count={query.data.count}
+            page={page}
+            onPageChange={setPage}
+          />
         </div>
       ) : null}
 
@@ -174,12 +194,24 @@ export function EquipmentPage() {
         size="lg"
         onClose={() => setShowForm(false)}
       >
-        <form className="grid gap-4 sm:grid-cols-2" onSubmit={form.handleSubmit((data) => mutation.mutate(data))}>
-          <Field label="Cliente" required error={form.formState.errors.customer_id?.message}>
-            <Select aria-invalid={Boolean(form.formState.errors.customer_id)} {...form.register("customer_id")}>
+        <form
+          className="grid gap-4 sm:grid-cols-2"
+          onSubmit={form.handleSubmit((data) => mutation.mutate(data))}
+        >
+          <Field
+            label="Cliente"
+            required
+            error={form.formState.errors.customer_id?.message}
+          >
+            <Select
+              aria-invalid={Boolean(form.formState.errors.customer_id)}
+              {...form.register("customer_id")}
+            >
               <option value="">Selecione</option>
               {(customers.data?.results ?? []).map((customer) => (
-                <option key={customer.id} value={customer.id}>{customer.name}</option>
+                <option key={customer.id} value={customer.id}>
+                  {customer.name}
+                </option>
               ))}
             </Select>
           </Field>
@@ -187,14 +219,29 @@ export function EquipmentPage() {
             control={form.control}
             name="equipment_type_id"
             render={({ field }) => (
-              <CatalogSelect label="Tipo" resource="equipment-types" value={field.value} onChange={field.onChange} />
+              <CatalogSelect
+                label="Tipo"
+                resource="equipment-types"
+                value={field.value}
+                onChange={field.onChange}
+              />
             )}
           />
-          <Field label="Fabricante"><Input {...form.register("manufacturer")} /></Field>
-          <Field label="Modelo"><Input {...form.register("model")} /></Field>
-          <Field label="Serial"><Input {...form.register("serial_number")} /></Field>
-          <Field label="Patrimonio"><Input {...form.register("asset_tag")} /></Field>
-          <Field label="Sistema operacional"><Input {...form.register("operating_system")} /></Field>
+          <Field label="Fabricante">
+            <Input {...form.register("manufacturer")} />
+          </Field>
+          <Field label="Modelo">
+            <Input {...form.register("model")} />
+          </Field>
+          <Field label="Serial">
+            <Input {...form.register("serial_number")} />
+          </Field>
+          <Field label="Patrimonio">
+            <Input {...form.register("asset_tag")} />
+          </Field>
+          <Field label="Sistema operacional">
+            <Input {...form.register("operating_system")} />
+          </Field>
           <Field label="Status">
             <Select {...form.register("status")}>
               <option value="active">Ativo</option>
@@ -203,13 +250,29 @@ export function EquipmentPage() {
               <option value="retired">Baixado</option>
             </Select>
           </Field>
-          <div className="sm:col-span-2"><Field label="Observacoes"><Textarea {...form.register("notes")} /></Field></div>
-          {mutation.error ? <div className="sm:col-span-2"><Notice tone="danger">{errorMessage(mutation.error)}</Notice></div> : null}
+          <div className="sm:col-span-2">
+            <Field label="Observacoes">
+              <Textarea {...form.register("notes")} />
+            </Field>
+          </div>
+          {mutation.error ? (
+            <div className="sm:col-span-2">
+              <Notice tone="danger">{errorMessage(mutation.error)}</Notice>
+            </div>
+          ) : null}
           <div className="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-800 sm:col-span-2">
-            <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowForm(false)}
+            >
+              Cancelar
+            </Button>
             <Button disabled={mutation.isPending} type="submit">
               <Laptop className="h-4 w-4" />
-              {mutation.isPending ? "Salvando..." : "Salvar e abrir equipamento"}
+              {mutation.isPending
+                ? "Salvando..."
+                : "Salvar e abrir equipamento"}
             </Button>
           </div>
         </form>

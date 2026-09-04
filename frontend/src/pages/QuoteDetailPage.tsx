@@ -55,13 +55,15 @@ function statusTone(status: string) {
 }
 
 function statusLabel(status: string) {
-  return {
-    draft: "Rascunho",
-    sent: "Enviado",
-    approved: "Aprovado",
-    rejected: "Rejeitado",
-    cancelled: "Cancelado",
-  }[status] ?? status;
+  return (
+    {
+      draft: "Rascunho",
+      sent: "Enviado",
+      approved: "Aprovado",
+      rejected: "Rejeitado",
+      cancelled: "Cancelado",
+    }[status] ?? status
+  );
 }
 
 export function QuoteDetailPage() {
@@ -167,7 +169,9 @@ export function QuoteDetailPage() {
 
   if (quote.isLoading) return <PageLoader label="Carregando orcamento" />;
   if (quote.isError || !quote.data)
-    return <ErrorState message="Orcamento nao encontrado." onRetry={quote.refetch} />;
+    return (
+      <ErrorState message="Orcamento nao encontrado." onRetry={quote.refetch} />
+    );
 
   const data = quote.data;
   const editable = data.status === "draft" || data.status === "sent";
@@ -189,7 +193,10 @@ export function QuoteDetailPage() {
       <Breadcrumbs
         items={[
           { label: "Clientes", to: "/customers" },
-          { label: data.customer_name, to: `/customers/${data.customer}?tab=quotes` },
+          {
+            label: data.customer_name,
+            to: `/customers/${data.customer}?tab=quotes`,
+          },
           { label: data.display_number },
         ]}
       />
@@ -197,14 +204,26 @@ export function QuoteDetailPage() {
         eyebrow="Orcamento"
         title={data.display_number}
         description={data.title}
-        meta={<Badge tone={statusTone(data.status)}>{statusLabel(data.status)}</Badge>}
+        meta={
+          <Badge tone={statusTone(data.status)}>
+            {statusLabel(data.status)}
+          </Badge>
+        }
         action={
           <>
-            <Button type="button" variant="secondary" onClick={() => downloadPdf(false)}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => downloadPdf(false)}
+            >
               <Download className="h-4 w-4" />
               Preview
             </Button>
-            <Button type="button" variant="secondary" onClick={() => downloadPdf(true)}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => downloadPdf(true)}
+            >
               <FileCheck2 className="h-4 w-4" />
               Emitir PDF
             </Button>
@@ -225,7 +244,11 @@ export function QuoteDetailPage() {
       >
         <div className="flex flex-wrap items-center gap-2">
           {data.status === "draft" ? (
-            <Button disabled={actionMutation.isPending} type="button" onClick={() => actionMutation.mutate("sent")}>
+            <Button
+              disabled={actionMutation.isPending}
+              type="button"
+              onClick={() => actionMutation.mutate("sent")}
+            >
               <FileText className="h-4 w-4" />
               Marcar como enviado
             </Button>
@@ -263,30 +286,61 @@ export function QuoteDetailPage() {
               confirmLabel="Cancelar"
               onConfirm={() => actionMutation.mutate("cancel")}
             >
-              <Button type="button" variant="ghost">Cancelar proposta</Button>
+              <Button type="button" variant="ghost">
+                Cancelar proposta
+              </Button>
             </ConfirmDialog>
           ) : null}
           {canCreateWorkOrder ? (
-            <Button disabled={actionMutation.isPending} type="button" onClick={() => actionMutation.mutate("work-order")}>
+            <Button
+              disabled={actionMutation.isPending}
+              type="button"
+              onClick={() => actionMutation.mutate("work-order")}
+            >
               <ClipboardIcon />
               {data.work_order ? "Abrir OS vinculada" : "Criar OS"}
             </Button>
           ) : null}
           {!editable && !canCreateWorkOrder ? (
-            <span className="text-sm text-slate-600 dark:text-slate-300">Este orcamento esta encerrado no workflow.</span>
+            <span className="text-sm text-slate-600 dark:text-slate-300">
+              Este orcamento esta encerrado no workflow.
+            </span>
           ) : null}
         </div>
-        {actionMutation.error ? <div className="mt-3"><Notice tone="danger">{errorMessage(actionMutation.error)}</Notice></div> : null}
+        {actionMutation.error ? (
+          <div className="mt-3">
+            <Notice tone="danger">{errorMessage(actionMutation.error)}</Notice>
+          </div>
+        ) : null}
       </Panel>
 
       <div className="mb-5 grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
         <Panel title="Contexto da proposta">
           <DescriptionList
             items={[
-              { label: "Cliente", value: <Link className="text-blue-600" to={`/customers/${data.customer}`}>{data.customer_name}</Link> },
+              {
+                label: "Cliente",
+                value: (
+                  <Link
+                    className="text-blue-600"
+                    to={`/customers/${data.customer}`}
+                  >
+                    {data.customer_name}
+                  </Link>
+                ),
+              },
               {
                 label: "Equipamento",
-                value: data.equipment ? <Link className="text-blue-600" to={`/equipment/${data.equipment}`}>{data.equipment_label || "Abrir equipamento"}</Link> : "Nao definido",
+                value: data.equipment ? (
+                  <Link
+                    className="text-blue-600"
+                    to={`/equipment/${data.equipment}`}
+                  >
+                    {data.equipment_label || "Abrir equipamento"}
+                  </Link>
+                ) : (
+                  "Nao definido"
+                ),
               },
               { label: "Criado em", value: formatDateTime(data.created_at) },
               { label: "Validade", value: formatDate(data.valid_until) },
@@ -297,35 +351,68 @@ export function QuoteDetailPage() {
         </Panel>
         <Panel title="Valores">
           <div className="space-y-3">
-            <div className="flex justify-between text-sm"><span className="text-slate-500">Subtotal dos itens</span><strong>{formatMoney(data.items_total)}</strong></div>
-            <div className="flex justify-between text-sm"><span className="text-slate-500">Desconto geral</span><strong>{formatMoney(data.discount)}</strong></div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-500">Subtotal dos itens</span>
+              <strong>{formatMoney(data.items_total)}</strong>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-500">Desconto geral</span>
+              <strong>{formatMoney(data.discount)}</strong>
+            </div>
             <div className="flex items-end justify-between border-t border-slate-200 pt-4 dark:border-slate-800">
               <span className="font-medium">Total final</span>
-              <strong className="text-2xl text-slate-950 dark:text-white">{formatMoney(data.total_amount)}</strong>
+              <strong className="text-2xl text-slate-950 dark:text-white">
+                {formatMoney(data.total_amount)}
+              </strong>
             </div>
           </div>
         </Panel>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[1.45fr_0.75fr]">
-        <Panel title="Itens do orcamento" subtitle="Servicos, pecas e itens livres apresentados como composicao comercial.">
+        <Panel
+          title="Itens do orcamento"
+          subtitle="Servicos, pecas e itens livres apresentados como composicao comercial."
+        >
           <DataTable<QuoteItem>
             empty="Nenhum item adicionado."
             getRowKey={(row) => row.id}
             rows={data.items ?? []}
             columns={[
-              { header: "Descricao", cell: (row) => <span className="font-medium">{row.description}</span> },
+              {
+                header: "Descricao",
+                cell: (row) => (
+                  <span className="font-medium">{row.description}</span>
+                ),
+              },
               { header: "Tipo", cell: (row) => row.item_type },
               { header: "Qtd.", cell: (row) => row.quantity },
-              { header: "Valor unit.", cell: (row) => formatMoney(row.unit_price) },
+              {
+                header: "Valor unit.",
+                cell: (row) => formatMoney(row.unit_price),
+              },
               { header: "Desconto", cell: (row) => formatMoney(row.discount) },
-              { header: "Total", cell: (row) => <strong>{formatMoney(row.total)}</strong> },
+              {
+                header: "Total",
+                cell: (row) => <strong>{formatMoney(row.total)}</strong>,
+              },
             ]}
           />
         </Panel>
 
-        <Panel title="Adicionar item" subtitle={editable ? "Inclua um item sem sair do documento." : "Documento fechado para alteracoes."}>
-          {!editable ? <Notice tone="warning">Itens nao podem ser alterados no estado atual.</Notice> : null}
+        <Panel
+          title="Adicionar item"
+          subtitle={
+            editable
+              ? "Inclua um item sem sair do documento."
+              : "Documento fechado para alteracoes."
+          }
+        >
+          {!editable ? (
+            <Notice tone="warning">
+              Itens nao podem ser alterados no estado atual.
+            </Notice>
+          ) : null}
           <div className="mt-3 space-y-3">
             <Field label="Tipo">
               <Select
@@ -351,8 +438,13 @@ export function QuoteDetailPage() {
                   onChange={(event) => {
                     const value = event.target.value;
                     setCatalogId(value);
-                    const source = itemType === "service" ? serviceTypes.data?.results : parts.data?.results;
-                    const selected = source?.find((entry) => entry.id === value);
+                    const source =
+                      itemType === "service"
+                        ? serviceTypes.data?.results
+                        : parts.data?.results;
+                    const selected = source?.find(
+                      (entry) => entry.id === value,
+                    );
                     if (selected) {
                       setDescription(selected.name);
                       setUnitPrice(String(selected.default_price ?? ""));
@@ -360,23 +452,63 @@ export function QuoteDetailPage() {
                   }}
                 >
                   <option value="">Selecione</option>
-                  {(itemType === "service" ? serviceTypes.data?.results : parts.data?.results)?.map((entry) => (
-                    <option key={entry.id} value={entry.id}>{entry.name}</option>
+                  {(itemType === "service"
+                    ? serviceTypes.data?.results
+                    : parts.data?.results
+                  )?.map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                      {entry.name}
+                    </option>
                   ))}
                 </Select>
               </Field>
             ) : null}
-            <Field label="Descricao"><Input disabled={!editable} value={description} onChange={(event) => setDescription(event.target.value)} /></Field>
+            <Field label="Descricao">
+              <Input
+                disabled={!editable}
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+              />
+            </Field>
             <div className="grid grid-cols-3 gap-2">
-              <Field label="Qtd"><Input disabled={!editable} inputMode="decimal" value={quantity} onChange={(event) => setQuantity(event.target.value)} /></Field>
-              <Field label="Valor"><Input disabled={!editable} inputMode="decimal" value={unitPrice} onChange={(event) => setUnitPrice(event.target.value)} /></Field>
-              <Field label="Desconto"><Input disabled={!editable} inputMode="decimal" value={discount} onChange={(event) => setDiscount(event.target.value)} /></Field>
+              <Field label="Qtd">
+                <Input
+                  disabled={!editable}
+                  inputMode="decimal"
+                  value={quantity}
+                  onChange={(event) => setQuantity(event.target.value)}
+                />
+              </Field>
+              <Field label="Valor">
+                <Input
+                  disabled={!editable}
+                  inputMode="decimal"
+                  value={unitPrice}
+                  onChange={(event) => setUnitPrice(event.target.value)}
+                />
+              </Field>
+              <Field label="Desconto">
+                <Input
+                  disabled={!editable}
+                  inputMode="decimal"
+                  value={discount}
+                  onChange={(event) => setDiscount(event.target.value)}
+                />
+              </Field>
             </div>
-            {addItem.error ? <Notice tone="danger">{errorMessage(addItem.error)}</Notice> : null}
+            {addItem.error ? (
+              <Notice tone="danger">{errorMessage(addItem.error)}</Notice>
+            ) : null}
             <Button
               className="w-full"
               type="button"
-              disabled={!editable || !description || !unitPrice || (itemType !== "free" && !catalogId) || addItem.isPending}
+              disabled={
+                !editable ||
+                !description ||
+                !unitPrice ||
+                (itemType !== "free" && !catalogId) ||
+                addItem.isPending
+              }
               onClick={() => addItem.mutate()}
             >
               <Plus className="h-4 w-4" />
@@ -389,38 +521,115 @@ export function QuoteDetailPage() {
       <div className="mt-5 grid gap-5 xl:grid-cols-2">
         <Panel title="Descricao e observacoes">
           <div className="space-y-4 text-sm">
-            <div><div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Descricao</div><p className="whitespace-pre-wrap leading-6">{data.description || "-"}</p></div>
-            <div className="border-t border-slate-200 pt-4 dark:border-slate-800"><div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Observacoes</div><p className="whitespace-pre-wrap leading-6">{data.notes || "-"}</p></div>
+            <div>
+              <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Descricao
+              </div>
+              <p className="whitespace-pre-wrap leading-6">
+                {data.description || "-"}
+              </p>
+            </div>
+            <div className="border-t border-slate-200 pt-4 dark:border-slate-800">
+              <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Observacoes
+              </div>
+              <p className="whitespace-pre-wrap leading-6">
+                {data.notes || "-"}
+              </p>
+            </div>
           </div>
         </Panel>
-        <Panel title="Documentos emitidos" subtitle="Cada emissao oficial preserva snapshot, versao e checksum.">
+        <Panel
+          title="Documentos emitidos"
+          subtitle="Cada emissao oficial preserva snapshot, versao e checksum."
+        >
           <div className="space-y-2">
             {(data.documents ?? []).map((document) => (
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800" key={document.id}>
+              <div
+                className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800"
+                key={document.id}
+              >
                 <div>
                   <div className="font-medium">Versao {document.version}</div>
-                  <div className="mt-1 text-xs text-slate-500">{formatDateTime(document.generated_at)}</div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    {formatDateTime(document.generated_at)}
+                  </div>
                 </div>
-                <Button size="sm" type="button" variant="secondary" onClick={() => downloadPdf(false, document.version)}>
+                <Button
+                  size="sm"
+                  type="button"
+                  variant="secondary"
+                  onClick={() => downloadPdf(false, document.version)}
+                >
                   <Download className="h-4 w-4" />
                   Baixar
                 </Button>
               </div>
             ))}
-            {!data.documents?.length ? <p className="text-sm text-slate-500">Nenhuma revisao oficial emitida.</p> : null}
+            {!data.documents?.length ? (
+              <p className="text-sm text-slate-500">
+                Nenhuma revisao oficial emitida.
+              </p>
+            ) : null}
           </div>
         </Panel>
       </div>
 
-      <Modal open={editOpen} title="Editar orcamento" description="Altere os dados comerciais enquanto o workflow permitir edicao." size="lg" onClose={() => setEditOpen(false)}>
-        <form className="grid gap-4 sm:grid-cols-2" onSubmit={editForm.handleSubmit((formData) => updateQuote.mutate(formData))}>
-          <div className="sm:col-span-2"><Field label="Titulo" required error={editForm.formState.errors.title?.message}><Input {...editForm.register("title")} /></Field></div>
-          <div className="sm:col-span-2"><Field label="Descricao"><Textarea rows={5} {...editForm.register("description")} /></Field></div>
-          <Field label="Validade"><Input type="date" {...editForm.register("valid_until")} /></Field>
-          <Field label="Desconto geral"><Input inputMode="decimal" {...editForm.register("discount")} /></Field>
-          <div className="sm:col-span-2"><Field label="Observacoes"><Textarea rows={4} {...editForm.register("notes")} /></Field></div>
-          {updateQuote.error ? <div className="sm:col-span-2"><Notice tone="danger">{errorMessage(updateQuote.error)}</Notice></div> : null}
-          <div className="flex justify-end gap-2 sm:col-span-2"><Button type="button" variant="secondary" onClick={() => setEditOpen(false)}>Cancelar</Button><Button disabled={updateQuote.isPending} type="submit">Salvar alteracoes</Button></div>
+      <Modal
+        open={editOpen}
+        title="Editar orcamento"
+        description="Altere os dados comerciais enquanto o workflow permitir edicao."
+        size="lg"
+        onClose={() => setEditOpen(false)}
+      >
+        <form
+          className="grid gap-4 sm:grid-cols-2"
+          onSubmit={editForm.handleSubmit((formData) =>
+            updateQuote.mutate(formData),
+          )}
+        >
+          <div className="sm:col-span-2">
+            <Field
+              label="Titulo"
+              required
+              error={editForm.formState.errors.title?.message}
+            >
+              <Input {...editForm.register("title")} />
+            </Field>
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Descricao">
+              <Textarea rows={5} {...editForm.register("description")} />
+            </Field>
+          </div>
+          <Field label="Validade">
+            <Input type="date" {...editForm.register("valid_until")} />
+          </Field>
+          <Field label="Desconto geral">
+            <Input inputMode="decimal" {...editForm.register("discount")} />
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Observacoes">
+              <Textarea rows={4} {...editForm.register("notes")} />
+            </Field>
+          </div>
+          {updateQuote.error ? (
+            <div className="sm:col-span-2">
+              <Notice tone="danger">{errorMessage(updateQuote.error)}</Notice>
+            </div>
+          ) : null}
+          <div className="flex justify-end gap-2 sm:col-span-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setEditOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button disabled={updateQuote.isPending} type="submit">
+              Salvar alteracoes
+            </Button>
+          </div>
         </form>
       </Modal>
     </div>

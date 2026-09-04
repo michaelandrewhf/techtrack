@@ -20,12 +20,14 @@ function priorityTone(priority: string) {
 }
 
 function priorityLabel(priority: string) {
-  return {
-    low: "Baixa",
-    normal: "Normal",
-    high: "Alta",
-    urgent: "Urgente",
-  }[priority] ?? priority;
+  return (
+    {
+      low: "Baixa",
+      normal: "Normal",
+      high: "Alta",
+      urgent: "Urgente",
+    }[priority] ?? priority
+  );
 }
 
 export function WorkOrdersPage() {
@@ -83,7 +85,9 @@ export function WorkOrdersPage() {
           >
             <option value="">Todos os status</option>
             {(statuses.data?.results ?? []).map((item) => (
-              <option key={item.id} value={item.id}>{item.name}</option>
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
             ))}
           </Select>
           <Select
@@ -105,7 +109,10 @@ export function WorkOrdersPage() {
 
       {query.isLoading ? <PageLoader /> : null}
       {query.error ? (
-        <ErrorState message="Nao foi possivel carregar OSs." onRetry={query.refetch} />
+        <ErrorState
+          message="Nao foi possivel carregar OSs."
+          onRetry={query.refetch}
+        />
       ) : null}
       {query.data ? (
         <div className="space-y-4">
@@ -117,7 +124,10 @@ export function WorkOrdersPage() {
               {
                 header: "OS",
                 cell: (row) => (
-                  <Link className="font-semibold text-blue-700 dark:text-blue-300" to={`/work-orders/${row.id}`}>
+                  <Link
+                    className="font-semibold text-blue-700 dark:text-blue-300"
+                    to={`/work-orders/${row.id}`}
+                  >
                     {row.display_number}
                   </Link>
                 ),
@@ -125,7 +135,10 @@ export function WorkOrdersPage() {
               {
                 header: "Cliente",
                 cell: (row) => (
-                  <Link className="text-slate-800 hover:text-blue-600 dark:text-slate-100" to={`/customers/${row.customer.id}?tab=work-orders`}>
+                  <Link
+                    className="text-slate-800 hover:text-blue-600 dark:text-slate-100"
+                    to={`/customers/${row.customer.id}?tab=work-orders`}
+                  >
                     {row.customer.name}
                   </Link>
                 ),
@@ -133,18 +146,41 @@ export function WorkOrdersPage() {
               {
                 header: "Equipamento",
                 cell: (row) => (
-                  <Link className="text-slate-700 hover:text-blue-600 dark:text-slate-200" to={`/equipment/${row.equipment.id}`}>
-                    {[row.equipment.manufacturer, row.equipment.model].filter(Boolean).join(" ") || row.equipment.equipment_type.name}
+                  <Link
+                    className="text-slate-700 hover:text-blue-600 dark:text-slate-200"
+                    to={`/equipment/${row.equipment.id}`}
+                  >
+                    {[row.equipment.manufacturer, row.equipment.model]
+                      .filter(Boolean)
+                      .join(" ") || row.equipment.equipment_type.name}
                   </Link>
                 ),
               },
               { header: "Titulo", cell: (row) => row.title },
-              { header: "Status", cell: (row) => <Badge>{row.status.name}</Badge> },
-              { header: "Prioridade", cell: (row) => <Badge tone={priorityTone(row.priority)}>{priorityLabel(row.priority)}</Badge> },
-              { header: "Abertura", cell: (row) => formatDateTime(row.opened_at), hideOnMobile: true },
+              {
+                header: "Status",
+                cell: (row) => <Badge>{row.status.name}</Badge>,
+              },
+              {
+                header: "Prioridade",
+                cell: (row) => (
+                  <Badge tone={priorityTone(row.priority)}>
+                    {priorityLabel(row.priority)}
+                  </Badge>
+                ),
+              },
+              {
+                header: "Abertura",
+                cell: (row) => formatDateTime(row.opened_at),
+                hideOnMobile: true,
+              },
             ]}
           />
-          <Pagination count={query.data.count} page={page} onPageChange={setPage} />
+          <Pagination
+            count={query.data.count}
+            page={page}
+            onPageChange={setPage}
+          />
         </div>
       ) : null}
     </div>

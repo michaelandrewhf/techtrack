@@ -116,7 +116,10 @@ export function AppLayout() {
           </Button>
         </div>
 
-        <nav className="flex-1 space-y-5 overflow-y-auto p-3" aria-label="Principal">
+        <nav
+          className="flex-1 space-y-5 overflow-y-auto p-3"
+          aria-label="Principal"
+        >
           {groups.map((group, groupIndex) => (
             <div key={group.label ?? groupIndex}>
               {group.label ? (
@@ -178,7 +181,10 @@ export function AppLayout() {
               <Menu className="h-5 w-5" />
             </Button>
             <div className="relative">
-              <Button type="button" onClick={() => setCreateOpen((value) => !value)}>
+              <Button
+                type="button"
+                onClick={() => setCreateOpen((value) => !value)}
+              >
                 <Plus className="h-4 w-4" />
                 Novo
                 <ChevronDown className="h-3.5 w-3.5" />
@@ -208,7 +214,11 @@ export function AppLayout() {
               variant="ghost"
               onClick={() => setDark((value) => !value)}
             >
-              {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {dark ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
             </Button>
             <div className="hidden border-l border-slate-200 pl-3 text-right dark:border-slate-800 sm:block">
               <div className="text-sm font-medium text-slate-800 dark:text-slate-100">
@@ -216,7 +226,13 @@ export function AppLayout() {
               </div>
               <div className="text-xs text-slate-500">Usuario autenticado</div>
             </div>
-            <Button aria-label="Sair" size="sm" type="button" variant="ghost" onClick={logout}>
+            <Button
+              aria-label="Sair"
+              size="sm"
+              type="button"
+              variant="ghost"
+              onClick={logout}
+            >
               <LogOut className="h-4 w-4" />
               <span className="hidden sm:inline">Sair</span>
             </Button>

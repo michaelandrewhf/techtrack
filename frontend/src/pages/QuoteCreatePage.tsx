@@ -80,7 +80,10 @@ export function QuoteCreatePage() {
           { label: "Orcamentos", to: "/quotes" },
           ...(selectedCustomer
             ? [
-                { label: selectedCustomer.name, to: `/customers/${selectedCustomer.id}?tab=quotes` },
+                {
+                  label: selectedCustomer.name,
+                  to: `/customers/${selectedCustomer.id}?tab=quotes`,
+                },
               ]
             : []),
           { label: "Novo" },
@@ -106,7 +109,9 @@ export function QuoteCreatePage() {
               aria-invalid={Boolean(form.formState.errors.customer)}
               value={customerId}
               onChange={(event) => {
-                form.setValue("customer", event.target.value, { shouldValidate: true });
+                form.setValue("customer", event.target.value, {
+                  shouldValidate: true,
+                });
                 form.setValue("equipment", "");
               }}
             >
@@ -119,11 +124,11 @@ export function QuoteCreatePage() {
             </Select>
           </Field>
 
-          <Field label="Equipamento" hint="Opcional enquanto a proposta ainda nao estiver ligada a um equipamento especifico.">
-            <Select
-              disabled={!customerId}
-              {...form.register("equipment")}
-            >
+          <Field
+            label="Equipamento"
+            hint="Opcional enquanto a proposta ainda nao estiver ligada a um equipamento especifico."
+          >
+            <Select disabled={!customerId} {...form.register("equipment")}>
               <option value="">Sem equipamento definido</option>
               {(equipment.data?.results ?? []).map((item) => (
                 <option key={item.id} value={item.id}>
@@ -141,7 +146,11 @@ export function QuoteCreatePage() {
           </Field>
 
           <div className="md:col-span-2">
-            <Field label="Titulo" required error={form.formState.errors.title?.message}>
+            <Field
+              label="Titulo"
+              required
+              error={form.formState.errors.title?.message}
+            >
               <Input
                 aria-invalid={Boolean(form.formState.errors.title)}
                 placeholder="Ex.: Upgrade de memoria e manutencao preventiva"
@@ -151,7 +160,10 @@ export function QuoteCreatePage() {
           </div>
 
           <div className="md:col-span-2">
-            <Field label="Descricao" hint="Contexto ou escopo comercial que aparecera na proposta.">
+            <Field
+              label="Descricao"
+              hint="Contexto ou escopo comercial que aparecera na proposta."
+            >
               <Textarea rows={5} {...form.register("description")} />
             </Field>
           </div>
@@ -161,7 +173,10 @@ export function QuoteCreatePage() {
           </Field>
 
           <div className="md:col-span-2">
-            <Field label="Observacoes" hint="Condicoes, ressalvas ou orientacoes destinadas ao cliente.">
+            <Field
+              label="Observacoes"
+              hint="Condicoes, ressalvas ou orientacoes destinadas ao cliente."
+            >
               <Textarea rows={3} {...form.register("notes")} />
             </Field>
           </div>
@@ -173,7 +188,11 @@ export function QuoteCreatePage() {
           ) : null}
 
           <div className="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-800 md:col-span-2">
-            <Button type="button" variant="secondary" onClick={() => navigate(-1)}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => navigate(-1)}
+            >
               Cancelar
             </Button>
             <Button disabled={create.isPending} type="submit">

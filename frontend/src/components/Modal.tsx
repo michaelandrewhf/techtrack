@@ -60,7 +60,13 @@ export function Modal({
               </p>
             ) : null}
           </div>
-          <Button aria-label="Fechar" size="sm" type="button" variant="ghost" onClick={onClose}>
+          <Button
+            aria-label="Fechar"
+            size="sm"
+            type="button"
+            variant="ghost"
+            onClick={onClose}
+          >
             <X className="h-4 w-4" />
           </Button>
         </div>

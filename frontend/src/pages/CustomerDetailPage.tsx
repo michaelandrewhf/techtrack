@@ -95,21 +95,25 @@ const tabs = [
 ];
 
 function customerStatusLabel(status: string) {
-  return {
-    active: "Ativo",
-    inactive: "Inativo",
-    prospect: "Prospect",
-    blocked: "Bloqueado",
-  }[status] ?? status;
+  return (
+    {
+      active: "Ativo",
+      inactive: "Inativo",
+      prospect: "Prospect",
+      blocked: "Bloqueado",
+    }[status] ?? status
+  );
 }
 
 function agreementStatusLabel(status: string) {
-  return {
-    active: "Ativo",
-    paused: "Pausado",
-    ended: "Encerrado",
-    cancelled: "Cancelado",
-  }[status] ?? status;
+  return (
+    {
+      active: "Ativo",
+      paused: "Pausado",
+      ended: "Encerrado",
+      cancelled: "Cancelado",
+    }[status] ?? status
+  );
 }
 
 function receivableTone(receivable: Receivable) {
@@ -153,19 +157,31 @@ export function CustomerDetailPage() {
   });
   const quotes = useQuery({
     queryKey: ["quotes", "customer", id],
-    queryFn: () => quotesApi.list({ customer: id, ordering: "-created_at", page_size: 100 }),
+    queryFn: () =>
+      quotesApi.list({ customer: id, ordering: "-created_at", page_size: 100 }),
   });
   const agreements = useQuery({
     queryKey: ["finance", "customer", id, "agreements"],
-    queryFn: () => financeApi.agreements({ customer: id, ordering: "-starts_on", page_size: 100 }),
+    queryFn: () =>
+      financeApi.agreements({
+        customer: id,
+        ordering: "-starts_on",
+        page_size: 100,
+      }),
   });
   const receivables = useQuery({
     queryKey: ["finance", "customer", id, "receivables"],
-    queryFn: () => financeApi.receivables({ customer: id, ordering: "-due_date", page_size: 100 }),
+    queryFn: () =>
+      financeApi.receivables({
+        customer: id,
+        ordering: "-due_date",
+        page_size: 100,
+      }),
   });
   const paymentMethods = useQuery({
     queryKey: ["catalog", "payment-methods", "customer-workspace"],
-    queryFn: () => catalogApi("payment-methods").list({ is_active: true, page_size: 100 }),
+    queryFn: () =>
+      catalogApi("payment-methods").list({ is_active: true, page_size: 100 }),
     enabled: activeTab === "finance" || modal === "payment",
   });
 
@@ -204,7 +220,8 @@ export function CustomerDetailPage() {
   });
 
   const addEquipment = useMutation({
-    mutationFn: (data: EquipmentForm) => equipmentApi.create({ ...data, customer_id: id }),
+    mutationFn: (data: EquipmentForm) =>
+      equipmentApi.create({ ...data, customer_id: id }),
     onSuccess: async () => {
       equipmentForm.reset({ status: "active" });
       setModal(null);
@@ -262,7 +279,10 @@ export function CustomerDetailPage() {
   });
 
   const activeAgreement = useMemo(
-    () => agreements.data?.results.find((agreement) => agreement.status === "active"),
+    () =>
+      agreements.data?.results.find(
+        (agreement) => agreement.status === "active",
+      ),
     [agreements.data?.results],
   );
   const openReceivables = useMemo(
@@ -272,7 +292,10 @@ export function CustomerDetailPage() {
       ) ?? [],
     [receivables.data?.results],
   );
-  const pending = openReceivables.reduce((total, row) => total + Number(row.balance), 0);
+  const pending = openReceivables.reduce(
+    (total, row) => total + Number(row.balance),
+    0,
+  );
   const overdue = openReceivables.reduce(
     (total, row) => total + (row.is_overdue ? Number(row.balance) : 0),
     0,
@@ -317,7 +340,9 @@ export function CustomerDetailPage() {
 
   return (
     <div>
-      <Breadcrumbs items={[{ label: "Clientes", to: "/customers" }, { label: item.name }]} />
+      <Breadcrumbs
+        items={[{ label: "Clientes", to: "/customers" }, { label: item.name }]}
+      />
       <PageHeader
         eyebrow={activeAgreement ? "Cliente mensalista" : "Cliente avulso"}
         title={item.name}
@@ -346,7 +371,11 @@ export function CustomerDetailPage() {
                 Novo orcamento
               </Button>
             </Link>
-            <Button type="button" variant="secondary" onClick={() => setModal("equipment")}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setModal("equipment")}
+            >
               <Plus className="h-4 w-4" />
               Equipamento
             </Button>
@@ -384,16 +413,26 @@ export function CustomerDetailPage() {
               <MetricCard
                 icon={<ClipboardList className="h-5 w-5" />}
                 label="OS abertas"
-                tone={(item.active_work_order_count ?? 0) > 0 ? "warning" : "neutral"}
+                tone={
+                  (item.active_work_order_count ?? 0) > 0
+                    ? "warning"
+                    : "neutral"
+                }
                 value={item.active_work_order_count ?? 0}
                 hint={`Ultima OS: ${formatDateTime(item.latest_work_order_at)}`}
               />
               <MetricCard
                 icon={<WalletCards className="h-5 w-5" />}
                 label="Saldo pendente"
-                tone={overdue > 0 ? "danger" : pending > 0 ? "warning" : "success"}
+                tone={
+                  overdue > 0 ? "danger" : pending > 0 ? "warning" : "success"
+                }
                 value={formatMoney(pending)}
-                hint={overdue > 0 ? `${formatMoney(overdue)} em atraso` : "Sem atraso identificado"}
+                hint={
+                  overdue > 0
+                    ? `${formatMoney(overdue)} em atraso`
+                    : "Sem atraso identificado"
+                }
               />
             </div>
 
@@ -401,7 +440,12 @@ export function CustomerDetailPage() {
               <Panel
                 title="Cadastro e contato"
                 action={
-                  <Button size="sm" type="button" variant="ghost" onClick={openEdit}>
+                  <Button
+                    size="sm"
+                    type="button"
+                    variant="ghost"
+                    onClick={openEdit}
+                  >
                     <Pencil className="h-4 w-4" />
                     Editar
                   </Button>
@@ -412,9 +456,18 @@ export function CustomerDetailPage() {
                     { label: "Telefone", value: item.phone || "-" },
                     { label: "WhatsApp", value: item.whatsapp || "-" },
                     { label: "E-mail", value: item.email || "-" },
-                    { label: "Cliente desde", value: formatDate(item.customer_since) },
-                    { label: "Status", value: customerStatusLabel(item.status) },
-                    { label: "Observacoes", value: item.notes || "Sem observacoes." },
+                    {
+                      label: "Cliente desde",
+                      value: formatDate(item.customer_since),
+                    },
+                    {
+                      label: "Status",
+                      value: customerStatusLabel(item.status),
+                    },
+                    {
+                      label: "Observacoes",
+                      value: item.notes || "Sem observacoes.",
+                    },
                   ]}
                 />
               </Panel>
@@ -424,7 +477,11 @@ export function CustomerDetailPage() {
                 subtitle="O perfil avulso ou mensalista e derivado do contrato vigente, sem duplicar estado no cadastro."
                 action={
                   !activeAgreement ? (
-                    <Button size="sm" type="button" onClick={() => setModal("agreement")}>
+                    <Button
+                      size="sm"
+                      type="button"
+                      onClick={() => setModal("agreement")}
+                    >
                       <Plus className="h-4 w-4" />
                       Tornar mensalista
                     </Button>
@@ -440,7 +497,9 @@ export function CustomerDetailPage() {
                             {activeAgreement.name}
                           </div>
                           <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                            Desde {formatDate(activeAgreement.starts_on)} · {formatMoney(activeAgreement.amount)} por mes · vencimento dia {activeAgreement.billing_day}
+                            Desde {formatDate(activeAgreement.starts_on)} ·{" "}
+                            {formatMoney(activeAgreement.amount)} por mes ·
+                            vencimento dia {activeAgreement.billing_day}
                           </div>
                         </div>
                         <Badge tone="success">Ativo</Badge>
@@ -460,9 +519,14 @@ export function CustomerDetailPage() {
                 ) : (
                   <div className="rounded-xl border border-dashed border-slate-300 p-5 text-center dark:border-slate-700">
                     <p className="text-sm text-slate-500">
-                      Este cliente e atendido como avulso. O historico de contratos anteriores continua preservado.
+                      Este cliente e atendido como avulso. O historico de
+                      contratos anteriores continua preservado.
                     </p>
-                    <Button className="mt-4" type="button" onClick={() => setModal("agreement")}>
+                    <Button
+                      className="mt-4"
+                      type="button"
+                      onClick={() => setModal("agreement")}
+                    >
                       Tornar mensalista
                     </Button>
                   </div>
@@ -474,7 +538,11 @@ export function CustomerDetailPage() {
               <Panel
                 title="Atendimentos recentes"
                 action={
-                  <button className="text-sm font-medium text-blue-600" type="button" onClick={() => selectTab("work-orders")}>
+                  <button
+                    className="text-sm font-medium text-blue-600"
+                    type="button"
+                    onClick={() => selectTab("work-orders")}
+                  >
                     Ver todas
                   </button>
                 }
@@ -498,7 +566,9 @@ export function CustomerDetailPage() {
                     </Link>
                   ))}
                   {!workOrders.data?.results.length ? (
-                    <p className="text-sm text-slate-500">Nenhuma OS para este cliente.</p>
+                    <p className="text-sm text-slate-500">
+                      Nenhuma OS para este cliente.
+                    </p>
                   ) : null}
                 </div>
               </Panel>
@@ -506,7 +576,11 @@ export function CustomerDetailPage() {
               <Panel
                 title="Orcamentos recentes"
                 action={
-                  <button className="text-sm font-medium text-blue-600" type="button" onClick={() => selectTab("quotes")}>
+                  <button
+                    className="text-sm font-medium text-blue-600"
+                    type="button"
+                    onClick={() => selectTab("quotes")}
+                  >
                     Ver todos
                   </button>
                 }
@@ -530,7 +604,9 @@ export function CustomerDetailPage() {
                     </Link>
                   ))}
                   {!quotes.data?.results.length ? (
-                    <p className="text-sm text-slate-500">Nenhum orcamento para este cliente.</p>
+                    <p className="text-sm text-slate-500">
+                      Nenhum orcamento para este cliente.
+                    </p>
                   ) : null}
                 </div>
               </Panel>
@@ -543,7 +619,11 @@ export function CustomerDetailPage() {
             title="Equipamentos"
             subtitle="Patrimonio tecnico vinculado ao cliente."
             action={
-              <Button size="sm" type="button" onClick={() => setModal("equipment")}>
+              <Button
+                size="sm"
+                type="button"
+                onClick={() => setModal("equipment")}
+              >
                 <Plus className="h-4 w-4" />
                 Adicionar
               </Button>
@@ -558,19 +638,31 @@ export function CustomerDetailPage() {
                 {
                   header: "Equipamento",
                   cell: (row) => (
-                    <Link className="font-medium text-blue-700 dark:text-blue-300" to={`/equipment/${row.id}`}>
-                      {[row.manufacturer, row.model].filter(Boolean).join(" ") || row.equipment_type.name}
+                    <Link
+                      className="font-medium text-blue-700 dark:text-blue-300"
+                      to={`/equipment/${row.id}`}
+                    >
+                      {[row.manufacturer, row.model]
+                        .filter(Boolean)
+                        .join(" ") || row.equipment_type.name}
                     </Link>
                   ),
                 },
                 { header: "Serial", cell: (row) => row.serial_number || "-" },
                 { header: "Patrimonio", cell: (row) => row.asset_tag || "-" },
-                { header: "Status", cell: (row) => <Badge>{row.status}</Badge> },
+                {
+                  header: "Status",
+                  cell: (row) => <Badge>{row.status}</Badge>,
+                },
                 {
                   header: "Acao",
                   cell: (row) => (
-                    <Link to={`/work-orders/new?customer=${id}&equipment=${row.id}`}>
-                      <Button size="sm" type="button" variant="secondary">Abrir OS</Button>
+                    <Link
+                      to={`/work-orders/new?customer=${id}&equipment=${row.id}`}
+                    >
+                      <Button size="sm" type="button" variant="secondary">
+                        Abrir OS
+                      </Button>
                     </Link>
                   ),
                 },
@@ -600,7 +692,10 @@ export function CustomerDetailPage() {
                 {
                   header: "OS",
                   cell: (row) => (
-                    <Link className="font-semibold text-blue-700 dark:text-blue-300" to={`/work-orders/${row.id}`}>
+                    <Link
+                      className="font-semibold text-blue-700 dark:text-blue-300"
+                      to={`/work-orders/${row.id}`}
+                    >
                       {row.display_number}
                     </Link>
                   ),
@@ -608,10 +703,19 @@ export function CustomerDetailPage() {
                 { header: "Titulo", cell: (row) => row.title },
                 {
                   header: "Equipamento",
-                  cell: (row) => [row.equipment.manufacturer, row.equipment.model].filter(Boolean).join(" ") || row.equipment.equipment_type.name,
+                  cell: (row) =>
+                    [row.equipment.manufacturer, row.equipment.model]
+                      .filter(Boolean)
+                      .join(" ") || row.equipment.equipment_type.name,
                 },
-                { header: "Status", cell: (row) => <Badge>{row.status.name}</Badge> },
-                { header: "Abertura", cell: (row) => formatDateTime(row.opened_at) },
+                {
+                  header: "Status",
+                  cell: (row) => <Badge>{row.status.name}</Badge>,
+                },
+                {
+                  header: "Abertura",
+                  cell: (row) => formatDateTime(row.opened_at),
+                },
               ]}
             />
           </Panel>
@@ -638,16 +742,33 @@ export function CustomerDetailPage() {
                 {
                   header: "Orcamento",
                   cell: (row) => (
-                    <Link className="font-semibold text-blue-700 dark:text-blue-300" to={`/quotes/${row.id}`}>
+                    <Link
+                      className="font-semibold text-blue-700 dark:text-blue-300"
+                      to={`/quotes/${row.id}`}
+                    >
                       {row.display_number}
                     </Link>
                   ),
                 },
                 { header: "Titulo", cell: (row) => row.title },
-                { header: "Equipamento", cell: (row) => row.equipment_label || "-" },
-                { header: "Total", cell: (row) => formatMoney(row.total_amount) },
-                { header: "Status", cell: (row) => <Badge tone={quoteTone(row.status)}>{row.status}</Badge> },
-                { header: "Validade", cell: (row) => formatDate(row.valid_until) },
+                {
+                  header: "Equipamento",
+                  cell: (row) => row.equipment_label || "-",
+                },
+                {
+                  header: "Total",
+                  cell: (row) => formatMoney(row.total_amount),
+                },
+                {
+                  header: "Status",
+                  cell: (row) => (
+                    <Badge tone={quoteTone(row.status)}>{row.status}</Badge>
+                  ),
+                },
+                {
+                  header: "Validade",
+                  cell: (row) => formatDate(row.valid_until),
+                },
               ]}
             />
           </Panel>
@@ -656,9 +777,21 @@ export function CustomerDetailPage() {
         {activeTab === "finance" ? (
           <div className="space-y-5">
             <div className="grid gap-3 sm:grid-cols-3">
-              <MetricCard label="Saldo pendente" value={formatMoney(pending)} tone={pending > 0 ? "warning" : "success"} />
-              <MetricCard label="Em atraso" value={formatMoney(overdue)} tone={overdue > 0 ? "danger" : "success"} />
-              <MetricCard label="Relacionamento" value={activeAgreement ? "Mensalista" : "Avulso"} tone={activeAgreement ? "info" : "neutral"} />
+              <MetricCard
+                label="Saldo pendente"
+                value={formatMoney(pending)}
+                tone={pending > 0 ? "warning" : "success"}
+              />
+              <MetricCard
+                label="Em atraso"
+                value={formatMoney(overdue)}
+                tone={overdue > 0 ? "danger" : "success"}
+              />
+              <MetricCard
+                label="Relacionamento"
+                value={activeAgreement ? "Mensalista" : "Avulso"}
+                tone={activeAgreement ? "info" : "neutral"}
+              />
             </div>
 
             <div className="grid gap-5 xl:grid-cols-[1.35fr_1fr]">
@@ -667,7 +800,11 @@ export function CustomerDetailPage() {
                 subtitle="Cobrancas avulsas, de OS e mensalidades do cliente."
                 action={
                   openReceivables.length ? (
-                    <Button size="sm" type="button" onClick={() => setModal("payment")}>
+                    <Button
+                      size="sm"
+                      type="button"
+                      onClick={() => setModal("payment")}
+                    >
                       <CircleDollarSign className="h-4 w-4" />
                       Registrar pagamento
                     </Button>
@@ -680,9 +817,15 @@ export function CustomerDetailPage() {
                   rows={receivables.data?.results ?? []}
                   columns={[
                     { header: "Descricao", cell: (row) => row.description },
-                    { header: "Vencimento", cell: (row) => formatDate(row.due_date) },
+                    {
+                      header: "Vencimento",
+                      cell: (row) => formatDate(row.due_date),
+                    },
                     { header: "Valor", cell: (row) => formatMoney(row.amount) },
-                    { header: "Saldo", cell: (row) => formatMoney(row.balance) },
+                    {
+                      header: "Saldo",
+                      cell: (row) => formatMoney(row.balance),
+                    },
                     {
                       header: "Status",
                       cell: (row) => (
@@ -699,7 +842,11 @@ export function CustomerDetailPage() {
                 title="Historico de contratos"
                 action={
                   !activeAgreement ? (
-                    <Button size="sm" type="button" onClick={() => setModal("agreement")}>
+                    <Button
+                      size="sm"
+                      type="button"
+                      onClick={() => setModal("agreement")}
+                    >
                       <Plus className="h-4 w-4" />
                       Criar contrato
                     </Button>
@@ -708,25 +855,42 @@ export function CustomerDetailPage() {
               >
                 <div className="space-y-3">
                   {(agreements.data?.results ?? []).map((agreement) => (
-                    <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-800" key={agreement.id}>
+                    <div
+                      className="rounded-xl border border-slate-200 p-4 dark:border-slate-800"
+                      key={agreement.id}
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <div className="font-medium text-slate-950 dark:text-white">{agreement.name}</div>
+                          <div className="font-medium text-slate-950 dark:text-white">
+                            {agreement.name}
+                          </div>
                           <div className="mt-1 text-xs text-slate-500">
-                            {formatDate(agreement.starts_on)} → {agreement.ends_on ? formatDate(agreement.ends_on) : "atual"}
+                            {formatDate(agreement.starts_on)} →{" "}
+                            {agreement.ends_on
+                              ? formatDate(agreement.ends_on)
+                              : "atual"}
                           </div>
                         </div>
-                        <Badge tone={agreement.status === "active" ? "success" : "neutral"}>
+                        <Badge
+                          tone={
+                            agreement.status === "active"
+                              ? "success"
+                              : "neutral"
+                          }
+                        >
                           {agreementStatusLabel(agreement.status)}
                         </Badge>
                       </div>
                       <div className="mt-3 text-sm">
-                        {formatMoney(agreement.amount)} · vencimento dia {agreement.billing_day}
+                        {formatMoney(agreement.amount)} · vencimento dia{" "}
+                        {agreement.billing_day}
                       </div>
                     </div>
                   ))}
                   {!agreements.data?.results.length ? (
-                    <p className="text-sm text-slate-500">Nenhum contrato registrado.</p>
+                    <p className="text-sm text-slate-500">
+                      Nenhum contrato registrado.
+                    </p>
                   ) : null}
                 </div>
               </Panel>
@@ -735,10 +899,27 @@ export function CustomerDetailPage() {
         ) : null}
       </div>
 
-      <Modal open={modal === "edit"} title="Editar cliente" description="Atualize os dados sem sair do contexto do cliente." onClose={() => setModal(null)}>
-        <form className="grid gap-4 sm:grid-cols-2" onSubmit={customerForm.handleSubmit((data) => updateCustomer.mutate(data))}>
-          <Field label="Nome" required error={customerForm.formState.errors.name?.message}>
-            <Input aria-invalid={Boolean(customerForm.formState.errors.name)} {...customerForm.register("name")} />
+      <Modal
+        open={modal === "edit"}
+        title="Editar cliente"
+        description="Atualize os dados sem sair do contexto do cliente."
+        onClose={() => setModal(null)}
+      >
+        <form
+          className="grid gap-4 sm:grid-cols-2"
+          onSubmit={customerForm.handleSubmit((data) =>
+            updateCustomer.mutate(data),
+          )}
+        >
+          <Field
+            label="Nome"
+            required
+            error={customerForm.formState.errors.name?.message}
+          >
+            <Input
+              aria-invalid={Boolean(customerForm.formState.errors.name)}
+              {...customerForm.register("name")}
+            />
           </Field>
           <Field label="Status">
             <Select {...customerForm.register("status")}>
@@ -748,29 +929,73 @@ export function CustomerDetailPage() {
               <option value="blocked">Bloqueado</option>
             </Select>
           </Field>
-          <Field label="Telefone"><Input {...customerForm.register("phone")} /></Field>
-          <Field label="WhatsApp"><Input {...customerForm.register("whatsapp")} /></Field>
+          <Field label="Telefone">
+            <Input {...customerForm.register("phone")} />
+          </Field>
+          <Field label="WhatsApp">
+            <Input {...customerForm.register("whatsapp")} />
+          </Field>
           <div className="sm:col-span-2">
-            <Field label="E-mail" error={customerForm.formState.errors.email?.message}>
-              <Input aria-invalid={Boolean(customerForm.formState.errors.email)} {...customerForm.register("email")} />
+            <Field
+              label="E-mail"
+              error={customerForm.formState.errors.email?.message}
+            >
+              <Input
+                aria-invalid={Boolean(customerForm.formState.errors.email)}
+                {...customerForm.register("email")}
+              />
             </Field>
           </div>
-          <div className="sm:col-span-2"><Field label="Observacoes"><Textarea {...customerForm.register("notes")} /></Field></div>
-          {updateCustomer.error ? <div className="sm:col-span-2"><Notice tone="danger">{errorMessage(updateCustomer.error)}</Notice></div> : null}
+          <div className="sm:col-span-2">
+            <Field label="Observacoes">
+              <Textarea {...customerForm.register("notes")} />
+            </Field>
+          </div>
+          {updateCustomer.error ? (
+            <div className="sm:col-span-2">
+              <Notice tone="danger">
+                {errorMessage(updateCustomer.error)}
+              </Notice>
+            </div>
+          ) : null}
           <div className="flex justify-end gap-2 sm:col-span-2">
-            <Button type="button" variant="secondary" onClick={() => setModal(null)}>Cancelar</Button>
-            <Button disabled={updateCustomer.isPending} type="submit">Salvar alteracoes</Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setModal(null)}
+            >
+              Cancelar
+            </Button>
+            <Button disabled={updateCustomer.isPending} type="submit">
+              Salvar alteracoes
+            </Button>
           </div>
         </form>
       </Modal>
 
-      <Modal open={modal === "equipment"} title="Adicionar equipamento" description={`Novo patrimonio para ${item.name}.`} size="lg" onClose={() => setModal(null)}>
-        <form className="grid gap-4 sm:grid-cols-2" onSubmit={equipmentForm.handleSubmit((data) => addEquipment.mutate(data))}>
+      <Modal
+        open={modal === "equipment"}
+        title="Adicionar equipamento"
+        description={`Novo patrimonio para ${item.name}.`}
+        size="lg"
+        onClose={() => setModal(null)}
+      >
+        <form
+          className="grid gap-4 sm:grid-cols-2"
+          onSubmit={equipmentForm.handleSubmit((data) =>
+            addEquipment.mutate(data),
+          )}
+        >
           <Controller
             control={equipmentForm.control}
             name="equipment_type_id"
             render={({ field }) => (
-              <CatalogSelect label="Tipo" resource="equipment-types" value={field.value} onChange={field.onChange} />
+              <CatalogSelect
+                label="Tipo"
+                resource="equipment-types"
+                value={field.value}
+                onChange={field.onChange}
+              />
             )}
           />
           <Field label="Status">
@@ -781,71 +1006,189 @@ export function CustomerDetailPage() {
               <option value="retired">Baixado</option>
             </Select>
           </Field>
-          <Field label="Fabricante"><Input {...equipmentForm.register("manufacturer")} /></Field>
-          <Field label="Modelo"><Input {...equipmentForm.register("model")} /></Field>
-          <Field label="Serial"><Input {...equipmentForm.register("serial_number")} /></Field>
-          <Field label="Patrimonio"><Input {...equipmentForm.register("asset_tag")} /></Field>
-          <div className="sm:col-span-2"><Field label="Sistema operacional"><Input {...equipmentForm.register("operating_system")} /></Field></div>
-          <div className="sm:col-span-2"><Field label="Observacoes"><Textarea {...equipmentForm.register("notes")} /></Field></div>
-          {addEquipment.error ? <div className="sm:col-span-2"><Notice tone="danger">{errorMessage(addEquipment.error)}</Notice></div> : null}
+          <Field label="Fabricante">
+            <Input {...equipmentForm.register("manufacturer")} />
+          </Field>
+          <Field label="Modelo">
+            <Input {...equipmentForm.register("model")} />
+          </Field>
+          <Field label="Serial">
+            <Input {...equipmentForm.register("serial_number")} />
+          </Field>
+          <Field label="Patrimonio">
+            <Input {...equipmentForm.register("asset_tag")} />
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Sistema operacional">
+              <Input {...equipmentForm.register("operating_system")} />
+            </Field>
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Observacoes">
+              <Textarea {...equipmentForm.register("notes")} />
+            </Field>
+          </div>
+          {addEquipment.error ? (
+            <div className="sm:col-span-2">
+              <Notice tone="danger">{errorMessage(addEquipment.error)}</Notice>
+            </div>
+          ) : null}
           <div className="flex justify-end gap-2 sm:col-span-2">
-            <Button type="button" variant="secondary" onClick={() => setModal(null)}>Cancelar</Button>
-            <Button disabled={addEquipment.isPending} type="submit">Salvar equipamento</Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setModal(null)}
+            >
+              Cancelar
+            </Button>
+            <Button disabled={addEquipment.isPending} type="submit">
+              Salvar equipamento
+            </Button>
           </div>
         </form>
       </Modal>
 
-      <Modal open={modal === "agreement"} title="Tornar cliente mensalista" description="Crie um contrato recorrente sem alterar o cadastro base do cliente." onClose={() => setModal(null)}>
-        <form className="space-y-4" onSubmit={agreementForm.handleSubmit((data) => createAgreement.mutate(data))}>
-          <Field label="Nome do contrato" required error={agreementForm.formState.errors.name?.message}>
+      <Modal
+        open={modal === "agreement"}
+        title="Tornar cliente mensalista"
+        description="Crie um contrato recorrente sem alterar o cadastro base do cliente."
+        onClose={() => setModal(null)}
+      >
+        <form
+          className="space-y-4"
+          onSubmit={agreementForm.handleSubmit((data) =>
+            createAgreement.mutate(data),
+          )}
+        >
+          <Field
+            label="Nome do contrato"
+            required
+            error={agreementForm.formState.errors.name?.message}
+          >
             <Input {...agreementForm.register("name")} />
           </Field>
-          <Field label="Descricao"><Textarea {...agreementForm.register("description")} /></Field>
+          <Field label="Descricao">
+            <Textarea {...agreementForm.register("description")} />
+          </Field>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Valor mensal" required error={agreementForm.formState.errors.amount?.message}>
-              <Input inputMode="decimal" {...agreementForm.register("amount")} />
+            <Field
+              label="Valor mensal"
+              required
+              error={agreementForm.formState.errors.amount?.message}
+            >
+              <Input
+                inputMode="decimal"
+                {...agreementForm.register("amount")}
+              />
             </Field>
-            <Field label="Dia de vencimento" required error={agreementForm.formState.errors.billing_day?.message}>
-              <Input max={31} min={1} type="number" {...agreementForm.register("billing_day")} />
+            <Field
+              label="Dia de vencimento"
+              required
+              error={agreementForm.formState.errors.billing_day?.message}
+            >
+              <Input
+                max={31}
+                min={1}
+                type="number"
+                {...agreementForm.register("billing_day")}
+              />
             </Field>
           </div>
-          <Field label="Inicio" required error={agreementForm.formState.errors.starts_on?.message}>
+          <Field
+            label="Inicio"
+            required
+            error={agreementForm.formState.errors.starts_on?.message}
+          >
             <Input type="date" {...agreementForm.register("starts_on")} />
           </Field>
-          {createAgreement.error ? <Notice tone="danger">{errorMessage(createAgreement.error)}</Notice> : null}
+          {createAgreement.error ? (
+            <Notice tone="danger">{errorMessage(createAgreement.error)}</Notice>
+          ) : null}
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={() => setModal(null)}>Cancelar</Button>
-            <Button disabled={createAgreement.isPending} type="submit">Criar contrato</Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setModal(null)}
+            >
+              Cancelar
+            </Button>
+            <Button disabled={createAgreement.isPending} type="submit">
+              Criar contrato
+            </Button>
           </div>
         </form>
       </Modal>
 
-      <Modal open={modal === "payment"} title="Registrar pagamento" description="Baixa contextual sem precisar abrir o Financeiro consolidado." onClose={() => setModal(null)}>
+      <Modal
+        open={modal === "payment"}
+        title="Registrar pagamento"
+        description="Baixa contextual sem precisar abrir o Financeiro consolidado."
+        onClose={() => setModal(null)}
+      >
         <div className="space-y-4">
           <Field label="Conta a receber" required>
-            <Select value={selectedReceivable} onChange={(event) => {
-              const value = event.target.value;
-              setSelectedReceivable(value);
-              const row = openReceivables.find((candidate) => candidate.id === value);
-              setPaymentAmount(row?.balance ?? "");
-            }}>
+            <Select
+              value={selectedReceivable}
+              onChange={(event) => {
+                const value = event.target.value;
+                setSelectedReceivable(value);
+                const row = openReceivables.find(
+                  (candidate) => candidate.id === value,
+                );
+                setPaymentAmount(row?.balance ?? "");
+              }}
+            >
               <option value="">Selecione</option>
               {openReceivables.map((row) => (
-                <option key={row.id} value={row.id}>{row.description} · {formatMoney(row.balance)}</option>
+                <option key={row.id} value={row.id}>
+                  {row.description} · {formatMoney(row.balance)}
+                </option>
               ))}
             </Select>
           </Field>
-          <Field label="Valor" required><Input inputMode="decimal" value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} /></Field>
+          <Field label="Valor" required>
+            <Input
+              inputMode="decimal"
+              value={paymentAmount}
+              onChange={(event) => setPaymentAmount(event.target.value)}
+            />
+          </Field>
           <Field label="Metodo de pagamento" required>
-            <Select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)}>
+            <Select
+              value={paymentMethod}
+              onChange={(event) => setPaymentMethod(event.target.value)}
+            >
               <option value="">Selecione</option>
-              {(paymentMethods.data?.results ?? []).map((method) => <option key={method.id} value={method.id}>{method.name}</option>)}
+              {(paymentMethods.data?.results ?? []).map((method) => (
+                <option key={method.id} value={method.id}>
+                  {method.name}
+                </option>
+              ))}
             </Select>
           </Field>
-          {addPayment.error ? <Notice tone="danger">{errorMessage(addPayment.error)}</Notice> : null}
+          {addPayment.error ? (
+            <Notice tone="danger">{errorMessage(addPayment.error)}</Notice>
+          ) : null}
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={() => setModal(null)}>Cancelar</Button>
-            <Button disabled={!selectedReceivable || !paymentAmount || !paymentMethod || addPayment.isPending} type="button" onClick={() => addPayment.mutate()}>Registrar pagamento</Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setModal(null)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              disabled={
+                !selectedReceivable ||
+                !paymentAmount ||
+                !paymentMethod ||
+                addPayment.isPending
+              }
+              type="button"
+              onClick={() => addPayment.mutate()}
+            >
+              Registrar pagamento
+            </Button>
           </div>
         </div>
       </Modal>

@@ -34,7 +34,10 @@ export function Button({
 const controlClass =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 aria-[invalid=true]:border-red-500 aria-[invalid=true]:ring-red-500/15 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500";
 
-export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
+export function Input({
+  className,
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input className={clsx(controlClass, className)} {...props} />;
 }
 
@@ -49,7 +52,12 @@ export function Textarea({
   className,
   ...props
 }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea className={clsx(controlClass, "min-h-24 resize-y", className)} {...props} />;
+  return (
+    <textarea
+      className={clsx(controlClass, "min-h-24 resize-y", className)}
+      {...props}
+    />
+  );
 }
 
 export function Field({
@@ -241,7 +249,9 @@ export function DescriptionList({
           <dt className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
             {item.label}
           </dt>
-          <dd className="mt-1 text-slate-800 dark:text-slate-100">{item.value}</dd>
+          <dd className="mt-1 text-slate-800 dark:text-slate-100">
+            {item.value}
+          </dd>
         </div>
       ))}
     </dl>

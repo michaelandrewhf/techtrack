@@ -81,12 +81,14 @@ function priorityTone(priority: string) {
 }
 
 function priorityLabel(priority: string) {
-  return {
-    low: "Baixa",
-    normal: "Normal",
-    high: "Alta",
-    urgent: "Urgente",
-  }[priority] ?? priority;
+  return (
+    {
+      low: "Baixa",
+      normal: "Normal",
+      high: "Alta",
+      urgent: "Urgente",
+    }[priority] ?? priority
+  );
 }
 
 export function WorkOrderDetailPage() {
@@ -105,12 +107,19 @@ export function WorkOrderDetailPage() {
   const statuses = useQuery({
     queryKey: queryKeys.catalog("work-order-statuses", { is_active: true }),
     queryFn: () =>
-      catalogApi("work-order-statuses").list({ is_active: true, page_size: 100 }),
+      catalogApi("work-order-statuses").list({
+        is_active: true,
+        page_size: 100,
+      }),
   });
   const receivables = useQuery({
     queryKey: ["finance", "work-order", id],
     queryFn: () =>
-      financeApi.receivables({ work_order: id, ordering: "due_date", page_size: 100 }),
+      financeApi.receivables({
+        work_order: id,
+        ordering: "due_date",
+        page_size: 100,
+      }),
     enabled: Boolean(id),
   });
   const serviceForm = useForm<ServiceForm>({
@@ -213,13 +222,18 @@ export function WorkOrderDetailPage() {
     );
   }
 
-  if (workOrder.isLoading) return <PageLoader label="Carregando ordem de servico" />;
+  if (workOrder.isLoading)
+    return <PageLoader label="Carregando ordem de servico" />;
   if (workOrder.error || !workOrder.data)
-    return <ErrorState message="OS nao encontrada." onRetry={workOrder.refetch} />;
+    return (
+      <ErrorState message="OS nao encontrada." onRetry={workOrder.refetch} />
+    );
 
   const item = workOrder.data;
   const isClosed = item.status.kind !== "active";
-  const activeServices = (item.services ?? []).filter((service) => !service.voided_at);
+  const activeServices = (item.services ?? []).filter(
+    (service) => !service.voided_at,
+  );
   const activeParts = (item.parts ?? []).filter((part) => !part.voided_at);
   const laborTotal = activeServices.reduce(
     (total, service) => total + Number(service.labor_price ?? 0),
@@ -276,7 +290,9 @@ export function WorkOrderDetailPage() {
         description={item.title}
         meta={
           <div className="flex flex-wrap gap-2">
-            <Badge tone={isClosed ? "neutral" : "info"}>{item.status.name}</Badge>
+            <Badge tone={isClosed ? "neutral" : "info"}>
+              {item.status.name}
+            </Badge>
             <Badge tone={priorityTone(item.priority)}>
               {priorityLabel(item.priority)}
             </Badge>
@@ -284,11 +300,19 @@ export function WorkOrderDetailPage() {
         }
         action={
           <>
-            <Button type="button" variant="secondary" onClick={() => downloadPdf(false)}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => downloadPdf(false)}
+            >
               <Download className="h-4 w-4" />
               Preview
             </Button>
-            <Button type="button" variant="secondary" onClick={() => downloadPdf(true)}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => downloadPdf(true)}
+            >
               <FileCheck2 className="h-4 w-4" />
               Emitir PDF
             </Button>
@@ -333,7 +357,11 @@ export function WorkOrderDetailPage() {
             confirmLabel="Cancelar OS"
             onConfirm={() => cancel.mutate()}
           >
-            <Button disabled={isClosed || cancel.isPending} variant="danger" type="button">
+            <Button
+              disabled={isClosed || cancel.isPending}
+              variant="danger"
+              type="button"
+            >
               <CircleX className="h-4 w-4" />
               Cancelar
             </Button>
@@ -349,7 +377,11 @@ export function WorkOrderDetailPage() {
       <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Mao de obra" value={formatMoney(laborTotal)} />
         <MetricCard label="Pecas" value={formatMoney(partsTotal)} />
-        <MetricCard label="Valor tecnico" value={formatMoney(technicalTotal)} tone="info" />
+        <MetricCard
+          label="Valor tecnico"
+          value={formatMoney(technicalTotal)}
+          tone="info"
+        />
         <MetricCard
           label="Saldo financeiro"
           value={formatMoney(openBalance)}
@@ -364,7 +396,10 @@ export function WorkOrderDetailPage() {
               {
                 label: "Cliente",
                 value: (
-                  <Link className="text-blue-600" to={`/customers/${item.customer.id}`}>
+                  <Link
+                    className="text-blue-600"
+                    to={`/customers/${item.customer.id}`}
+                  >
                     {item.customer.name}
                   </Link>
                 ),
@@ -372,7 +407,10 @@ export function WorkOrderDetailPage() {
               {
                 label: "Equipamento",
                 value: (
-                  <Link className="text-blue-600" to={`/equipment/${item.equipment.id}`}>
+                  <Link
+                    className="text-blue-600"
+                    to={`/equipment/${item.equipment.id}`}
+                  >
                     {equipmentName}
                   </Link>
                 ),
@@ -393,7 +431,12 @@ export function WorkOrderDetailPage() {
           subtitle="Problema relatado, diagnostico, execucao e solucao."
           action={
             !isClosed ? (
-              <Button size="sm" type="button" variant="ghost" onClick={openTechnicalEdit}>
+              <Button
+                size="sm"
+                type="button"
+                variant="ghost"
+                onClick={openTechnicalEdit}
+              >
                 <Pencil className="h-4 w-4" />
                 Editar
               </Button>
@@ -454,7 +497,11 @@ export function WorkOrderDetailPage() {
           subtitle="Lancamentos tecnicos que alimentam historico e manutencao preventiva."
           action={
             !isClosed ? (
-              <Button size="sm" type="button" onClick={() => setServiceFormOpen((value) => !value)}>
+              <Button
+                size="sm"
+                type="button"
+                onClick={() => setServiceFormOpen((value) => !value)}
+              >
                 <Plus className="h-4 w-4" />
                 Adicionar
               </Button>
@@ -464,7 +511,9 @@ export function WorkOrderDetailPage() {
           {serviceFormOpen ? (
             <form
               className="mb-5 grid gap-3 rounded-xl bg-slate-50 p-4 dark:bg-slate-950 md:grid-cols-2"
-              onSubmit={serviceForm.handleSubmit((data) => addService.mutate(data))}
+              onSubmit={serviceForm.handleSubmit((data) =>
+                addService.mutate(data),
+              )}
             >
               <Controller
                 control={serviceForm.control}
@@ -479,7 +528,10 @@ export function WorkOrderDetailPage() {
                 )}
               />
               <Field label="Valor">
-                <Input inputMode="decimal" {...serviceForm.register("labor_price")} />
+                <Input
+                  inputMode="decimal"
+                  {...serviceForm.register("labor_price")}
+                />
               </Field>
               <div className="md:col-span-2">
                 <Field label="Descricao">
@@ -488,11 +540,17 @@ export function WorkOrderDetailPage() {
               </div>
               {addService.error ? (
                 <div className="md:col-span-2">
-                  <Notice tone="danger">{errorMessage(addService.error)}</Notice>
+                  <Notice tone="danger">
+                    {errorMessage(addService.error)}
+                  </Notice>
                 </div>
               ) : null}
               <div className="flex justify-end gap-2 md:col-span-2">
-                <Button type="button" variant="ghost" onClick={() => setServiceFormOpen(false)}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setServiceFormOpen(false)}
+                >
                   Cancelar
                 </Button>
                 <Button disabled={addService.isPending} type="submit">
@@ -507,7 +565,10 @@ export function WorkOrderDetailPage() {
             rows={item.services ?? []}
             columns={[
               { header: "Servico", cell: (row) => row.service_type.name },
-              { header: "Data", cell: (row) => formatDateTime(row.performed_at) },
+              {
+                header: "Data",
+                cell: (row) => formatDateTime(row.performed_at),
+              },
               { header: "Valor", cell: (row) => formatMoney(row.labor_price) },
               {
                 header: "Situacao",
@@ -543,7 +604,11 @@ export function WorkOrderDetailPage() {
           subtitle="Materiais e componentes consumidos no atendimento."
           action={
             !isClosed ? (
-              <Button size="sm" type="button" onClick={() => setPartFormOpen((value) => !value)}>
+              <Button
+                size="sm"
+                type="button"
+                onClick={() => setPartFormOpen((value) => !value)}
+              >
                 <Plus className="h-4 w-4" />
                 Adicionar
               </Button>
@@ -555,17 +620,26 @@ export function WorkOrderDetailPage() {
               className="mb-5 grid gap-3 rounded-xl bg-slate-50 p-4 dark:bg-slate-950 md:grid-cols-2"
               onSubmit={partForm.handleSubmit((data) => addPart.mutate(data))}
             >
-              <Field label="Descricao" error={partForm.formState.errors.description?.message}>
+              <Field
+                label="Descricao"
+                error={partForm.formState.errors.description?.message}
+              >
                 <Input {...partForm.register("description")} />
               </Field>
               <Field label="Quantidade">
                 <Input inputMode="decimal" {...partForm.register("quantity")} />
               </Field>
               <Field label="Custo">
-                <Input inputMode="decimal" {...partForm.register("unit_cost")} />
+                <Input
+                  inputMode="decimal"
+                  {...partForm.register("unit_cost")}
+                />
               </Field>
               <Field label="Preco">
-                <Input inputMode="decimal" {...partForm.register("unit_price")} />
+                <Input
+                  inputMode="decimal"
+                  {...partForm.register("unit_price")}
+                />
               </Field>
               <Field label="Serial">
                 <Input {...partForm.register("serial_number")} />
@@ -579,7 +653,11 @@ export function WorkOrderDetailPage() {
                 </div>
               ) : null}
               <div className="flex justify-end gap-2 md:col-span-2">
-                <Button type="button" variant="ghost" onClick={() => setPartFormOpen(false)}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setPartFormOpen(false)}
+                >
                   Cancelar
                 </Button>
                 <Button disabled={addPart.isPending} type="submit">
@@ -627,7 +705,10 @@ export function WorkOrderDetailPage() {
       </div>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-        <Panel title="Financeiro da OS" subtitle="Resumo comercial do atendimento e cobrancas relacionadas.">
+        <Panel
+          title="Financeiro da OS"
+          subtitle="Resumo comercial do atendimento e cobrancas relacionadas."
+        >
           <div className="space-y-3">
             {(receivables.data?.results ?? []).map((receivable) => (
               <Link
@@ -638,11 +719,14 @@ export function WorkOrderDetailPage() {
                 <div>
                   <div className="font-medium">{receivable.description}</div>
                   <div className="mt-1 text-xs text-slate-500">
-                    Vence {formatDate(receivable.due_date)} · {receivable.status}
+                    Vence {formatDate(receivable.due_date)} ·{" "}
+                    {receivable.status}
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-medium">{formatMoney(receivable.amount)}</div>
+                  <div className="font-medium">
+                    {formatMoney(receivable.amount)}
+                  </div>
                   <div className="mt-1 text-xs text-slate-500">
                     Saldo {formatMoney(receivable.balance)}
                   </div>
@@ -650,7 +734,9 @@ export function WorkOrderDetailPage() {
               </Link>
             ))}
             {!receivables.data?.results.length ? (
-              <p className="text-sm text-slate-500">Nenhuma cobranca vinculada a esta OS.</p>
+              <p className="text-sm text-slate-500">
+                Nenhuma cobranca vinculada a esta OS.
+              </p>
             ) : null}
           </div>
           {!isClosed ? (
@@ -672,7 +758,9 @@ export function WorkOrderDetailPage() {
               </Field>
               <div className="self-end">
                 <Button
-                  disabled={!chargeAmount || !dueDate || createReceivable.isPending}
+                  disabled={
+                    !chargeAmount || !dueDate || createReceivable.isPending
+                  }
                   type="button"
                   onClick={() => createReceivable.mutate()}
                 >
@@ -683,20 +771,29 @@ export function WorkOrderDetailPage() {
           ) : null}
           {createReceivable.error ? (
             <div className="mt-3">
-              <Notice tone="danger">{errorMessage(createReceivable.error)}</Notice>
+              <Notice tone="danger">
+                {errorMessage(createReceivable.error)}
+              </Notice>
             </div>
           ) : null}
         </Panel>
 
-        <Panel title="Historico de status" subtitle="Linha do tempo imutavel das transicoes da OS.">
+        <Panel
+          title="Historico de status"
+          subtitle="Linha do tempo imutavel das transicoes da OS."
+        >
           <div className="space-y-4">
             {(item.status_history ?? []).map((event: WorkOrderTimeline) => (
-              <div className="relative border-l-2 border-blue-500 pl-4" key={event.id}>
+              <div
+                className="relative border-l-2 border-blue-500 pl-4"
+                key={event.id}
+              >
                 <div className="font-medium text-slate-950 dark:text-white">
                   {event.status.name}
                 </div>
                 <div className="mt-1 text-xs text-slate-500">
-                  {formatDateTime(event.changed_at)} · {event.changed_by?.username ?? "-"}
+                  {formatDateTime(event.changed_at)} ·{" "}
+                  {event.changed_by?.username ?? "-"}
                 </div>
                 {event.comment || event.description ? (
                   <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
@@ -718,10 +815,16 @@ export function WorkOrderDetailPage() {
       >
         <form
           className="grid gap-4 md:grid-cols-2"
-          onSubmit={technicalForm.handleSubmit((data) => updateTechnical.mutate(data))}
+          onSubmit={technicalForm.handleSubmit((data) =>
+            updateTechnical.mutate(data),
+          )}
         >
           <div className="md:col-span-2">
-            <Field label="Titulo" required error={technicalForm.formState.errors.title?.message}>
+            <Field
+              label="Titulo"
+              required
+              error={technicalForm.formState.errors.title?.message}
+            >
               <Input {...technicalForm.register("title")} />
             </Field>
           </div>
@@ -737,16 +840,24 @@ export function WorkOrderDetailPage() {
             <Field
               label="Problema relatado"
               required
-              error={technicalForm.formState.errors.problem_description?.message}
+              error={
+                technicalForm.formState.errors.problem_description?.message
+              }
             >
-              <Textarea rows={4} {...technicalForm.register("problem_description")} />
+              <Textarea
+                rows={4}
+                {...technicalForm.register("problem_description")}
+              />
             </Field>
           </div>
           <Field label="Diagnostico">
             <Textarea rows={5} {...technicalForm.register("diagnosis")} />
           </Field>
           <Field label="Servico / execucao">
-            <Textarea rows={5} {...technicalForm.register("service_description")} />
+            <Textarea
+              rows={5}
+              {...technicalForm.register("service_description")}
+            />
           </Field>
           <div className="md:col-span-2">
             <Field label="Solucao">
@@ -754,17 +865,29 @@ export function WorkOrderDetailPage() {
             </Field>
           </div>
           <div className="md:col-span-2">
-            <Field label="Notas internas" hint="Uso interno. Este campo nao entra no PDF da OS.">
-              <Textarea rows={4} {...technicalForm.register("internal_notes")} />
+            <Field
+              label="Notas internas"
+              hint="Uso interno. Este campo nao entra no PDF da OS."
+            >
+              <Textarea
+                rows={4}
+                {...technicalForm.register("internal_notes")}
+              />
             </Field>
           </div>
           {updateTechnical.error ? (
             <div className="md:col-span-2">
-              <Notice tone="danger">{errorMessage(updateTechnical.error)}</Notice>
+              <Notice tone="danger">
+                {errorMessage(updateTechnical.error)}
+              </Notice>
             </div>
           ) : null}
           <div className="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-800 md:col-span-2">
-            <Button type="button" variant="secondary" onClick={() => setTechnicalOpen(false)}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setTechnicalOpen(false)}
+            >
               Cancelar
             </Button>
             <Button disabled={updateTechnical.isPending} type="submit">

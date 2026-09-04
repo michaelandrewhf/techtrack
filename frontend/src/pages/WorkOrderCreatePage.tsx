@@ -138,7 +138,11 @@ export function WorkOrderCreatePage() {
               ))}
             </Select>
           </Field>
-          <Field label="Titulo" required error={form.formState.errors.title?.message}>
+          <Field
+            label="Titulo"
+            required
+            error={form.formState.errors.title?.message}
+          >
             <Input
               aria-invalid={Boolean(form.formState.errors.title)}
               placeholder="Resumo objetivo do atendimento"
@@ -161,7 +165,9 @@ export function WorkOrderCreatePage() {
               hint="Registre o relato inicial do cliente; diagnostico e solucao serao tratados dentro da OS."
             >
               <Textarea
-                aria-invalid={Boolean(form.formState.errors.problem_description)}
+                aria-invalid={Boolean(
+                  form.formState.errors.problem_description,
+                )}
                 rows={5}
                 {...form.register("problem_description")}
               />
@@ -173,7 +179,11 @@ export function WorkOrderCreatePage() {
             </div>
           ) : null}
           <div className="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-800 md:col-span-2">
-            <Button type="button" variant="secondary" onClick={() => navigate(-1)}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => navigate(-1)}
+            >
               Cancelar
             </Button>
             <Button disabled={mutation.isPending} type="submit">

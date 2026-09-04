@@ -10,10 +10,18 @@ export function Breadcrumbs({
     <nav aria-label="Breadcrumb" className="mb-3 overflow-x-auto">
       <ol className="flex min-w-max items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
         {items.map((item, index) => (
-          <li className="flex items-center gap-1" key={`${item.label}-${index}`}>
-            {index ? <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" /> : null}
+          <li
+            className="flex items-center gap-1"
+            key={`${item.label}-${index}`}
+          >
+            {index ? (
+              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+            ) : null}
             {item.to ? (
-              <Link className="hover:text-slate-900 dark:hover:text-white" to={item.to}>
+              <Link
+                className="hover:text-slate-900 dark:hover:text-white"
+                to={item.to}
+              >
                 {item.label}
               </Link>
             ) : (

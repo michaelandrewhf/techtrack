@@ -71,9 +71,7 @@ class PdfDocument:
     ) -> None:
         safe = _escape_pdf_text(_clean(text))
         font = "F2" if bold else "F1"
-        self._append(
-            f"BT /{font} {size:.1f} Tf {_rgb(color)} rg {x:.1f} {y:.1f} Td ({safe}) Tj ET"
-        )
+        self._append(f"BT /{font} {size:.1f} Tf {_rgb(color)} rg {x:.1f} {y:.1f} Td ({safe}) Tj ET")
 
     def _draw_rect(
         self,
@@ -105,9 +103,7 @@ class PdfDocument:
         color: tuple[float, float, float] = BORDER,
         width: float = 0.7,
     ) -> None:
-        self._append(
-            f"q {_rgb(color)} RG {width:.1f} w {x1:.1f} {y1:.1f} m {x2:.1f} {y2:.1f} l S Q"
-        )
+        self._append(f"q {_rgb(color)} RG {width:.1f} w {x1:.1f} {y1:.1f} m {x2:.1f} {y2:.1f} l S Q")
 
     def _wrapped_lines(self, text: str, width: float, size: float) -> list[str]:
         cleaned = _clean(text)
@@ -255,10 +251,7 @@ class PdfDocument:
 
         draw_header()
         for row_index, row in enumerate(rows):
-            cell_lines = [
-                self._wrapped_lines(value, widths[index] - 14, 8.4)
-                for index, value in enumerate(row)
-            ]
+            cell_lines = [self._wrapped_lines(value, widths[index] - 14, 8.4) for index, value in enumerate(row)]
             row_height = max(30, max(len(lines) for lines in cell_lines) * 12 + 12)
             if self.y - row_height < CONTENT_BOTTOM:
                 self.pages.append([])
@@ -358,14 +351,10 @@ class PdfDocument:
             if self.footer_left:
                 commands.append(self._text_command(self.footer_left, MARGIN_X, 31, size=7, color=MUTED))
             center_text = "Documento comercial · Nao constitui nota fiscal"
-            commands.append(
-                self._text_command(center_text, 297, 31, size=6.8, color=MUTED, center=True)
-            )
+            commands.append(self._text_command(center_text, 297, 31, size=6.8, color=MUTED, center=True))
             revision = f" · {self.revision}" if self.revision else ""
             page_text = f"Pagina {index}/{page_count}{revision}"
-            commands.append(
-                self._text_command(page_text, 553, 31, size=7, color=MUTED, right=True)
-            )
+            commands.append(self._text_command(page_text, 553, 31, size=7, color=MUTED, right=True))
 
         objects: list[bytes] = []
 
@@ -373,9 +362,7 @@ class PdfDocument:
             objects.append(payload)
             return len(objects)
 
-        font_regular = add_object(
-            b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"
-        )
+        font_regular = add_object(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")
         font_bold = add_object(
             b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>"
         )
@@ -384,9 +371,7 @@ class PdfDocument:
 
         for commands in self.pages:
             stream = "\n".join(commands).encode("cp1252", errors="replace")
-            content_id = add_object(
-                b"<< /Length %d >>\nstream\n" % len(stream) + stream + b"\nendstream"
-            )
+            content_id = add_object(b"<< /Length %d >>\nstream\n" % len(stream) + stream + b"\nendstream")
             page_id = add_object(
                 (
                     f"<< /Type /Page /Parent {pages_id} 0 R "
@@ -398,9 +383,7 @@ class PdfDocument:
             page_ids.append(page_id)
 
         kids = " ".join(f"{page_id} 0 R" for page_id in page_ids)
-        objects[pages_id - 1] = (
-            f"<< /Type /Pages /Kids [{kids}] /Count {len(page_ids)} >>"
-        ).encode("ascii")
+        objects[pages_id - 1] = (f"<< /Type /Pages /Kids [{kids}] /Count {len(page_ids)} >>").encode("ascii")
         catalog_id = add_object(f"<< /Type /Catalog /Pages {pages_id} 0 R >>".encode("ascii"))
 
         buffer = BytesIO()
@@ -419,8 +402,7 @@ class PdfDocument:
             buffer.write(f"{offset:010d} 00000 n \n".encode("ascii"))
         buffer.write(
             (
-                f"trailer\n<< /Size {len(objects) + 1} /Root {catalog_id} 0 R >>\n"
-                f"startxref\n{xref_offset}\n%%EOF\n"
+                f"trailer\n<< /Size {len(objects) + 1} /Root {catalog_id} 0 R >>\nstartxref\n{xref_offset}\n%%EOF\n"
             ).encode("ascii")
         )
         return buffer.getvalue()

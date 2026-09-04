@@ -450,7 +450,10 @@ def quote_pdf_from_snapshot(snapshot, revision=""):
         document.info_box(
             [
                 ("Tipo", equipment.get("type") or "-"),
-                ("Marca / modelo", " ".join(filter(None, [equipment.get("manufacturer"), equipment.get("model")])) or "-"),
+                (
+                    "Marca / modelo",
+                    " ".join(filter(None, [equipment.get("manufacturer"), equipment.get("model")])) or "-",
+                ),
                 ("Identificacao", equipment.get("asset_tag") or "-"),
                 ("Serial", equipment.get("serial_number") or "-"),
             ]

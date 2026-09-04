@@ -16,7 +16,8 @@ const resources = [
   {
     resource: "equipment-types",
     label: "Tipos de equipamento",
-    description: "Notebook, desktop, impressora e demais classes de equipamento.",
+    description:
+      "Notebook, desktop, impressora e demais classes de equipamento.",
     icon: Boxes,
   },
   {
@@ -96,7 +97,8 @@ export function SettingsPage() {
       </div>
       <div className="mt-6 flex items-center gap-2 text-xs text-slate-500">
         <Settings2 className="h-4 w-4" />
-        Alteracoes nestes catalogos afetam os formularios e fluxos que os utilizam.
+        Alteracoes nestes catalogos afetam os formularios e fluxos que os
+        utilizam.
       </div>
     </div>
   );
