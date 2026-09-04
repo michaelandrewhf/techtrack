@@ -15,6 +15,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { QuoteCreatePage } from "./pages/QuoteCreatePage";
 import { QuoteDetailPage } from "./pages/QuoteDetailPage";
 import { QuotesPage } from "./pages/QuotesPage";
+import { SettingsPage } from "./pages/SettingsPage";
 import { WorkOrderCreatePage } from "./pages/WorkOrderCreatePage";
 import { WorkOrderDetailPage } from "./pages/WorkOrderDetailPage";
 import { WorkOrdersPage } from "./pages/WorkOrdersPage";
@@ -49,6 +50,7 @@ function createRouter() {
             { path: "/quotes/new", element: <QuoteCreatePage /> },
             { path: "/quotes/:id", element: <QuoteDetailPage /> },
             { path: "/finance", element: <FinancePage /> },
+            { path: "/settings", element: <SettingsPage /> },
             { path: "/settings/:resource", element: <CatalogPage /> },
           ],
         },

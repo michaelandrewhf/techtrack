@@ -1,25 +1,39 @@
 export function PageHeader({
   title,
   description,
+  eyebrow,
+  meta,
   action,
 }: {
   title: string;
   description?: string;
+  eyebrow?: string;
+  meta?: React.ReactNode;
   action?: React.ReactNode;
 }) {
   return (
-    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-950 dark:text-white">
-          {title}
-        </h1>
+    <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="min-w-0">
+        {eyebrow ? (
+          <div className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-blue-600 dark:text-blue-400">
+            {eyebrow}
+          </div>
+        ) : null}
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="truncate text-2xl font-semibold tracking-tight text-slate-950 dark:text-white sm:text-3xl">
+            {title}
+          </h1>
+          {meta}
+        </div>
         {description ? (
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          <p className="mt-1.5 max-w-3xl text-sm leading-6 text-slate-500 dark:text-slate-400">
             {description}
           </p>
         ) : null}
       </div>
-      {action}
+      {action ? (
+        <div className="flex shrink-0 flex-wrap gap-2">{action}</div>
+      ) : null}
     </div>
   );
 }

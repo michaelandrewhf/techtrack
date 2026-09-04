@@ -8,7 +8,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Max
 from django.utils import timezone
 
-from config.pdf import render_text_pdf
+from config.pdf import PdfDocument
 from finance.models import BusinessProfile
 from workorders.services import create_work_order
 
@@ -141,7 +141,7 @@ def work_order_snapshot(work_order):
             "performed_at": service.performed_at.isoformat(),
             "labor_price": str(service.labor_price or Decimal("0.00")),
         }
-        for service in work_order.services.all()
+        for service in work_order.services.filter(voided_at__isnull=True)
     ]
     parts = [
         {
@@ -151,7 +151,7 @@ def work_order_snapshot(work_order):
             "serial_number": part.serial_number,
             "warranty_until": part.warranty_until.isoformat() if part.warranty_until else None,
         }
-        for part in work_order.parts.all()
+        for part in work_order.parts.filter(voided_at__isnull=True)
     ]
     labor_total = sum((Decimal(item["labor_price"]) for item in services), Decimal("0.00"))
     parts_total = sum(
@@ -187,6 +187,7 @@ def work_order_snapshot(work_order):
             "title": work_order.title,
             "problem_description": work_order.problem_description,
             "diagnosis": work_order.diagnosis,
+            "service_description": work_order.service_description,
             "solution": work_order.solution,
             "opened_at": work_order.opened_at.isoformat(),
             "completed_at": work_order.completed_at.isoformat() if work_order.completed_at else None,
@@ -388,107 +389,212 @@ def issue_document(*, document_type, generated_by=None, quote=None, work_order=N
     return document
 
 
-def quote_pdf_from_snapshot(snapshot):
+def _business_footer(business):
+    values = [
+        business.get("document"),
+        business.get("phone") or business.get("whatsapp"),
+        business.get("email"),
+    ]
+    return " · ".join(value for value in values if value)
+
+
+def _quote_status_label(status):
+    return {
+        "draft": "Rascunho",
+        "sent": "Enviado",
+        "approved": "Aprovado",
+        "rejected": "Rejeitado",
+        "cancelled": "Cancelado",
+    }.get(status, status or "-")
+
+
+def quote_pdf_from_snapshot(snapshot, revision=""):
     business = snapshot["business"]
     quote = snapshot["quote"]
     customer = snapshot["customer"]
     equipment = snapshot.get("equipment")
-    lines = [
-        business.get("name") or "TechTrack",
-        business.get("document") or "",
-        business.get("phone") or business.get("whatsapp") or "",
-        business.get("email") or "",
-        business.get("address") or "",
-        "",
-        quote["display_number"],
-        f"Cliente: {customer['name']}",
-        f"Contato: {customer.get('whatsapp') or customer.get('phone') or customer.get('email') or '-'}",
-    ]
+    document = PdfDocument(
+        brand=business.get("name") or "TechTrack",
+        document_label="Orcamento",
+        document_number=quote["display_number"],
+        footer_left=_business_footer(business),
+        revision=revision,
+    )
+    document.metadata_row(
+        [
+            ("Data", _pt_date(quote.get("created_at"))),
+            ("Validade", _pt_date(quote.get("valid_until"))),
+            ("Status", _quote_status_label(quote.get("status"))),
+        ]
+    )
+    document.section_title("Prestador")
+    document.info_box(
+        [
+            ("Nome", business.get("name") or "TechTrack"),
+            ("Documento", business.get("document") or "-"),
+            ("Contato", business.get("phone") or business.get("whatsapp") or "-"),
+            ("E-mail", business.get("email") or "-"),
+            ("Endereco", business.get("address") or "-"),
+        ]
+    )
+    document.section_title("Cliente")
+    document.info_box(
+        [
+            ("Nome", customer.get("name") or "-"),
+            ("Contato", customer.get("whatsapp") or customer.get("phone") or "-"),
+            ("E-mail", customer.get("email") or "-"),
+        ]
+    )
     if equipment:
-        label_values = [equipment.get("type"), equipment.get("manufacturer"), equipment.get("model")]
-        equipment_label = " ".join(value for value in label_values if value)
-        lines.extend(
+        document.section_title("Equipamento")
+        document.info_box(
             [
-                f"Equipamento: {equipment_label}",
-                f"Serial: {equipment.get('serial_number') or '-'}",
+                ("Tipo", equipment.get("type") or "-"),
+                (
+                    "Marca / modelo",
+                    " ".join(filter(None, [equipment.get("manufacturer"), equipment.get("model")])) or "-",
+                ),
+                ("Identificacao", equipment.get("asset_tag") or "-"),
+                ("Serial", equipment.get("serial_number") or "-"),
             ]
         )
-    if quote.get("valid_until"):
-        lines.append(f"Validade: {_pt_date(quote['valid_until'])}")
-    lines.extend(
+    document.section_title("Solicitacao / escopo")
+    document.paragraph("Titulo", quote.get("title") or "Orcamento")
+    if quote.get("description"):
+        document.paragraph("Descricao", quote["description"])
+    document.section_title("Itens")
+    document.table(
+        headers=["Descricao", "Qtd.", "Unitario", "Desconto", "Total"],
+        rows=[
+            [
+                item.get("description") or "-",
+                item.get("quantity") or "0",
+                _money(item.get("unit_price")),
+                _money(item.get("discount")),
+                _money(item.get("total")),
+            ]
+            for item in snapshot.get("items", [])
+        ],
+        widths=[251, 50, 75, 65, 70],
+        aligns=["left", "right", "right", "right", "right"],
+    )
+    document.totals(
         [
-            "",
-            quote.get("title") or "Orcamento",
-            quote.get("description") or "",
-            "",
-            "Itens:",
+            ("Subtotal", _money(quote.get("items_total"))),
+            ("Desconto", _money(quote.get("discount"))),
+            ("Total final", _money(quote.get("total_amount"))),
         ]
     )
-    for item in snapshot["items"]:
-        item_line = (
-            f"- {item['description']} | {item['quantity']} x {_money(item['unit_price'])} "
-            f"| Total {_money(item['total'])}"
-        )
-        lines.append(item_line)
-    lines.extend(
-        [
-            "",
-            f"Subtotal: {_money(quote['items_total'])}",
-            f"Desconto: {_money(quote['discount'])}",
-            f"TOTAL: {_money(quote['total_amount'])}",
-            "",
-            quote.get("notes") or "",
-            "Documento comercial. Nao constitui nota fiscal.",
-        ]
-    )
-    return render_text_pdf(quote["display_number"], lines)
+    if quote.get("notes"):
+        document.section_title("Observacoes")
+        document.note_box("Observacoes da proposta", quote["notes"])
+    return document.build()
 
 
-def work_order_pdf_from_snapshot(snapshot):
+def work_order_pdf_from_snapshot(snapshot, revision=""):
     business = snapshot["business"]
     work_order = snapshot["work_order"]
     customer = snapshot["customer"]
     equipment = snapshot["equipment"]
-    financial = snapshot["financial"]
-    equipment_values = [equipment.get("type"), equipment.get("manufacturer"), equipment.get("model")]
-    equipment_label = " ".join(value for value in equipment_values if value)
-    lines = [
-        business.get("name") or "TechTrack",
-        business.get("document") or "",
-        business.get("phone") or business.get("whatsapp") or "",
-        business.get("email") or "",
-        business.get("address") or "",
-        "",
-        work_order["display_number"],
-        f"Cliente: {customer['name']}",
-        f"Equipamento: {equipment_label}",
-        f"Serial: {equipment.get('serial_number') or '-'}",
-        f"Status: {work_order['status']}",
-        f"Abertura: {_pt_date(work_order['opened_at'])}",
-        f"Conclusao: {_pt_date(work_order.get('completed_at'))}",
-        "",
-        f"Problema relatado: {work_order.get('problem_description') or '-'}",
-        f"Diagnostico: {work_order.get('diagnosis') or '-'}",
-        f"Solucao: {work_order.get('solution') or '-'}",
-        "",
-        "Servicos realizados:",
-    ]
-    for service in snapshot["services"]:
-        description = service.get("description") or ""
-        lines.append(f"- {service['name']}: {description} ({_money(service['labor_price'])})")
-    lines.append("")
-    lines.append("Pecas utilizadas:")
-    for part in snapshot["parts"]:
-        lines.append(f"- {part['description']} | qtd {part['quantity']} | {_money(part['unit_price'])}")
-    lines.extend(
+    financial = snapshot.get("financial") or {}
+    document = PdfDocument(
+        brand=business.get("name") or "TechTrack",
+        document_label="Ordem de Servico",
+        document_number=work_order["display_number"],
+        footer_left=_business_footer(business),
+        revision=revision,
+    )
+    document.metadata_row(
         [
-            "",
-            f"Mao de obra: {_money(financial.get('labor_total'))}",
-            f"Pecas: {_money(financial.get('parts_total'))}",
-            f"Desconto: {_money(financial.get('discount'))}",
-            f"Total: {_money(financial.get('total_amount'))}",
-            "",
-            "Ordem de servico. Nao constitui nota fiscal.",
+            ("Abertura", _pt_date(work_order.get("opened_at"))),
+            ("Conclusao", _pt_date(work_order.get("completed_at"))),
+            ("Status", work_order.get("status") or "-"),
+            ("Responsavel", work_order.get("responsible") or "-"),
         ]
     )
-    return render_text_pdf(work_order["display_number"], lines)
+    document.section_title("Prestador")
+    document.info_box(
+        [
+            ("Nome", business.get("name") or "TechTrack"),
+            ("Documento", business.get("document") or "-"),
+            ("Contato", business.get("phone") or business.get("whatsapp") or "-"),
+            ("E-mail", business.get("email") or "-"),
+            ("Endereco", business.get("address") or "-"),
+        ]
+    )
+    document.section_title("Cliente")
+    document.info_box(
+        [
+            ("Nome", customer.get("name") or "-"),
+            ("Contato", customer.get("whatsapp") or customer.get("phone") or "-"),
+            ("E-mail", customer.get("email") or "-"),
+        ]
+    )
+    document.section_title("Equipamento")
+    document.info_box(
+        [
+            ("Tipo", equipment.get("type") or "-"),
+            ("Marca / modelo", " ".join(filter(None, [equipment.get("manufacturer"), equipment.get("model")])) or "-"),
+            ("Identificacao", equipment.get("asset_tag") or "-"),
+            ("Serial", equipment.get("serial_number") or "-"),
+        ]
+    )
+    document.section_title("Conteudo tecnico")
+    document.paragraph("Problema relatado", work_order.get("problem_description") or "-")
+    document.paragraph("Diagnostico", work_order.get("diagnosis") or "-")
+    if work_order.get("service_description"):
+        document.paragraph("Execucao", work_order["service_description"])
+    document.paragraph("Solucao", work_order.get("solution") or "-")
+
+    if snapshot.get("services"):
+        document.section_title("Servicos realizados")
+        document.table(
+            headers=["Servico", "Descricao", "Data", "Valor"],
+            rows=[
+                [
+                    service.get("name") or "-",
+                    service.get("description") or "-",
+                    _pt_date(service.get("performed_at")),
+                    _money(service.get("labor_price")),
+                ]
+                for service in snapshot["services"]
+            ],
+            widths=[150, 220, 70, 71],
+            aligns=["left", "left", "left", "right"],
+        )
+
+    if snapshot.get("parts"):
+        document.section_title("Pecas utilizadas")
+        part_rows = []
+        for part in snapshot["parts"]:
+            total = Decimal(str(part.get("quantity") or 0)) * Decimal(str(part.get("unit_price") or 0))
+            part_rows.append(
+                [
+                    part.get("description") or "-",
+                    part.get("quantity") or "0",
+                    _money(part.get("unit_price")),
+                    _money(total),
+                ]
+            )
+        document.table(
+            headers=["Descricao", "Qtd.", "Unitario", "Total"],
+            rows=part_rows,
+            widths=[280, 61, 85, 85],
+            aligns=["left", "right", "right", "right"],
+        )
+
+    total_amount = Decimal(str(financial.get("total_amount") or 0))
+    labor_total = Decimal(str(financial.get("labor_total") or 0))
+    parts_total = Decimal(str(financial.get("parts_total") or 0))
+    discount = Decimal(str(financial.get("discount") or 0))
+    if any(value != 0 for value in [total_amount, labor_total, parts_total, discount]):
+        document.section_title("Resumo financeiro")
+        document.totals(
+            [
+                ("Mao de obra", _money(labor_total)),
+                ("Pecas", _money(parts_total)),
+                ("Desconto", _money(discount)),
+                ("Total", _money(total_amount)),
+            ]
+        )
+    return document.build()

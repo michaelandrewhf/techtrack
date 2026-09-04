@@ -138,10 +138,15 @@ class QuoteViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError("Revisao de documento inexistente.") from exc
             snapshot = document.snapshot
             suffix = f"-v{document.version}"
+            revision = f"v{document.version}"
         else:
             snapshot = quote_snapshot(quote)
             suffix = "-preview"
-        response = HttpResponse(quote_pdf_from_snapshot(snapshot), content_type="application/pdf")
+            revision = "PREVIA"
+        response = HttpResponse(
+            quote_pdf_from_snapshot(snapshot, revision=revision),
+            content_type="application/pdf",
+        )
         response["Content-Disposition"] = f'attachment; filename="orcamento-{quote.number:06d}{suffix}.pdf"'
         return response
 
@@ -155,7 +160,10 @@ class QuoteViewSet(viewsets.ModelViewSet):
             )
         except DjangoValidationError as exc:
             _raise_validation(exc)
-        response = HttpResponse(quote_pdf_from_snapshot(document.snapshot), content_type="application/pdf")
+        response = HttpResponse(
+            quote_pdf_from_snapshot(document.snapshot, revision=f"v{document.version}"),
+            content_type="application/pdf",
+        )
         response["Content-Disposition"] = (
             f'attachment; filename="orcamento-{document.quote.number:06d}-v{document.version}.pdf"'
         )

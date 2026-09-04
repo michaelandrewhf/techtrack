@@ -23,7 +23,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
         if self.action == "list":
             return queryset.with_dashboard_data()
         if self.action == "retrieve":
-            return queryset.with_detail_data()
+            return queryset.with_dashboard_data().with_detail_data()
         return queryset
 
     def get_serializer_class(self):

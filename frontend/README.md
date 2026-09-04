@@ -18,6 +18,41 @@ SPA web do TechTrack, separada do backend Django e consumindo exclusivamente a A
 
 Nao ha Redux/Zustand nesta fase. TanStack Query gerencia server state; contexto local gerencia apenas autenticacao e tema.
 
+## Direcao de UX
+
+A interface e orientada a tarefas, nao aos apps internos do backend.
+
+Principios adotados:
+
+- cliente e um dos principais centros de navegacao;
+- acoes aparecem no contexto em que fazem sentido;
+- Financeiro continua sendo uma visao consolidada, mas nao e a unica porta para pagamentos e contratos;
+- equipamento permite iniciar OS e orcamento sem voltar a uma listagem global;
+- OS separa fluxo, conteudo tecnico, execucao, financeiro e historico;
+- orcamento separa composicao comercial, workflow e documentos emitidos;
+- configuracoes ficam reunidas em um hub unico;
+- tabelas viram apresentacao em cards no mobile em vez de depender apenas de scroll horizontal;
+- dark/light usam os mesmos componentes e estados sem duplicar telas.
+
+O status avulso/mensalista nao e armazenado em `Customer`: ele e derivado da existencia de contrato ativo. Encerrar um contrato preserva o historico e faz o cliente voltar naturalmente ao contexto avulso.
+
+## Componentes de interface
+
+A base reutilizavel esta concentrada em `src/components`:
+
+```text
+Breadcrumbs
+DataTable
+Modal
+PageHeader
+Tabs
+ConfirmDialog
+State
+ui.tsx
+```
+
+`ui.tsx` contem primitives compartilhadas como `Button`, `Field`, `Input`, `Select`, `Textarea`, `Badge`, `Panel`, `MetricCard`, `Notice` e `DescriptionList`.
+
 ## Instalacao
 
 Na pasta `frontend/`:
@@ -34,7 +69,7 @@ Crie um `.env` local se precisar alterar a URL base:
 cp .env.example .env
 ```
 
-Variavel:
+Variaveis:
 
 ```text
 VITE_API_BASE_URL=/api
@@ -123,14 +158,36 @@ src/utils
 /work-orders
 /work-orders/new
 /work-orders/:id
+/quotes
+/quotes/new
+/quotes/:id
+/finance
+/settings
 /settings/:resource
+```
+
+Fluxos de criacao aceitam contexto por query string quando aplicavel:
+
+```text
+/work-orders/new?customer=<uuid>&equipment=<uuid>
+/quotes/new?customer=<uuid>&equipment=<uuid>
+```
+
+As tabs do cliente e Financeiro usam query string para manter URLs navegaveis e compartilhadas, por exemplo:
+
+```text
+/customers/<uuid>?tab=finance
+/customers/<uuid>?tab=quotes
+/finance?tab=agreements
 ```
 
 ## Regras de dominio
 
-O frontend nao gera numero de OS, nao decide validade final de transicoes e nao calcula status de manutencao preventiva quando a API ja retorna esse dado.
+O frontend nao gera numero de OS, nao decide validade final de transicoes, nao recria regras financeiras e nao calcula status de manutencao preventiva quando a API ja retorna esse dado.
 
 A UI pode desabilitar botoes por conveniencia, mas o backend continua sendo a fonte da verdade.
+
+A tela de cliente usa os agregados retornados pelo detalhe da API (`equipment_count`, `active_work_order_count`, `latest_work_order_at`) apenas para apresentacao operacional.
 
 ## Comandos
 
@@ -141,11 +198,4 @@ corepack pnpm test
 corepack pnpm build
 ```
 
-## Producao futura
-
-Deploy nao foi implementado. Caminhos possiveis:
-
-- build estatico servido por Nginx;
-- frontend em static hosting;
-- Django e SPA atras de proxy reverso;
-- API e frontend em origens separadas com CORS controlado.
+A workflow de validacao tambem executa backend em SQLite/PostgreSQL e smoke test do Docker Compose antes de merge para `master`.
