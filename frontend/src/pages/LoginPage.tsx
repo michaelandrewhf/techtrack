@@ -1,5 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle2, ClipboardList, ShieldCheck, Wrench } from "lucide-react";
+import {
+  CheckCircle2,
+  ClipboardList,
+  ShieldCheck,
+  Wrench,
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -14,6 +19,12 @@ const loginSchema = z.object({
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
+
+const highlights = [
+  { icon: ClipboardList, label: "Fluxos tecnicos" },
+  { icon: CheckCircle2, label: "Historico rastreavel" },
+  { icon: ShieldCheck, label: "Acesso autenticado" },
+];
 
 export function LoginPage() {
   const auth = useAuth();
@@ -59,14 +70,10 @@ export function LoginPage() {
             Clientes, equipamentos, ordens, orcamentos e financeiro reunidos em uma experiencia orientada ao trabalho real.
           </p>
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            {[
-              [ClipboardList, "Fluxos tecnicos"],
-              [CheckCircle2, "Historico rastreavel"],
-              [ShieldCheck, "Acesso autenticado"],
-            ].map(([Icon, label]) => (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4" key={String(label)}>
-                <Icon className="h-5 w-5 text-blue-300" />
-                <div className="mt-3 text-sm font-medium text-slate-100">{String(label)}</div>
+            {highlights.map((item) => (
+              <div className="rounded-xl border border-white/10 bg-white/5 p-4" key={item.label}>
+                <item.icon className="h-5 w-5 text-blue-300" />
+                <div className="mt-3 text-sm font-medium text-slate-100">{item.label}</div>
               </div>
             ))}
           </div>
