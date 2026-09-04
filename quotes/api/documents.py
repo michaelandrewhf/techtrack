@@ -31,11 +31,16 @@ class WorkOrderPdfView(APIView):
                 raise serializers.ValidationError("Revisao de documento inexistente.") from exc
             snapshot = document.snapshot
             suffix = f"-v{document.version}"
+            revision = f"v{document.version}"
         else:
             snapshot = work_order_snapshot(work_order)
             suffix = "-preview"
+            revision = "PREVIA"
 
-        response = HttpResponse(work_order_pdf_from_snapshot(snapshot), content_type="application/pdf")
+        response = HttpResponse(
+            work_order_pdf_from_snapshot(snapshot, revision=revision),
+            content_type="application/pdf",
+        )
         response["Content-Disposition"] = f'attachment; filename="os-{work_order.number:06d}{suffix}.pdf"'
         return response
 
@@ -59,7 +64,10 @@ class WorkOrderIssuePdfView(APIView):
                 raise serializers.ValidationError(exc.message_dict) from exc
             raise serializers.ValidationError(exc.messages if hasattr(exc, "messages") else str(exc)) from exc
 
-        response = HttpResponse(work_order_pdf_from_snapshot(document.snapshot), content_type="application/pdf")
+        response = HttpResponse(
+            work_order_pdf_from_snapshot(document.snapshot, revision=f"v{document.version}"),
+            content_type="application/pdf",
+        )
         response["Content-Disposition"] = f'attachment; filename="os-{work_order.number:06d}-v{document.version}.pdf"'
         response["X-Document-Id"] = str(document.id)
         response["X-Document-Version"] = str(document.version)
