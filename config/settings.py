@@ -30,6 +30,8 @@ INSTALLED_APPS = [
     "inventory",
     "catalog",
     "workorders",
+    "finance",
+    "quotes",
 ]
 
 MIDDLEWARE = [
@@ -123,8 +125,8 @@ REST_FRAMEWORK = {
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "TechTrack API",
-    "DESCRIPTION": "API para gerenciamento de clientes, equipamentos e ordens de servico de TI.",
-    "VERSION": "1.0.0",
+    "DESCRIPTION": "API para gerenciamento de clientes, equipamentos, ordens de servico, orcamentos e financeiro de TI.",
+    "VERSION": "1.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "ENUM_NAME_OVERRIDES": {
         "CustomerStatusEnum": "customers.models.CustomerStatus",
@@ -133,5 +135,12 @@ SPECTACULAR_SETTINGS = {
         "PaymentStatusEnum": "workorders.models.PaymentStatus",
         "WorkOrderPriorityEnum": "workorders.models.WorkOrderPriority",
         "WorkOrderStatusKindEnum": "workorders.models.WorkOrderStatusKind",
+        "AgreementStatusEnum": "finance.models.AgreementStatus",
+        "BillingFrequencyEnum": "finance.models.BillingFrequency",
+        "ReceivableStatusEnum": "finance.models.ReceivableStatus",
+        "ReceivableOriginEnum": "finance.models.ReceivableOrigin",
+        "QuoteStatusEnum": "quotes.models.QuoteStatus",
+        "QuoteItemTypeEnum": "quotes.models.QuoteItemType",
+        "DocumentTypeEnum": "quotes.models.DocumentType",
     },
 }
