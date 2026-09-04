@@ -1,24 +1,22 @@
 # TechTrack
 
-TechTrack e uma aplicacao para gerenciamento de clientes de suporte e manutencao de TI, com backend Django/DRF e frontend React.
+TechTrack e uma aplicacao para gerenciamento de clientes, equipamentos e servicos de suporte/manutencao de TI, com backend Django/DRF e frontend React.
 
 O projeto inclui:
 
-- clientes;
-- equipamentos;
-- componentes;
-- ordens de servico;
-- historico de status;
-- servicos realizados;
-- pecas utilizadas;
-- fechamento financeiro simples;
-- regras de manutencao preventiva calculadas pelo historico;
-- API com Django REST Framework;
-- JWT para autenticacao inicial;
+- clientes e equipamentos;
+- componentes e historico tecnico;
+- ordens de servico e timeline de status;
+- servicos realizados e pecas utilizadas;
+- manutencao preventiva calculada pelo historico;
+- orcamentos com workflow de aprovacao;
+- conversao de orcamento aprovado em OS;
+- contas a receber, pagamentos e cobrancas recorrentes;
+- emissao versionada de documentos/PDFs de orcamento e OS;
+- API REST autenticada com JWT;
 - schema OpenAPI com drf-spectacular;
-- SPA React em `frontend/`.
-
-Nao ha Celery, Redis, IA, Docker ou deploy nesta fase.
+- SPA React em `frontend/`;
+- ambiente local completo com Docker Compose e PostgreSQL.
 
 ## Arquitetura dos apps
 
@@ -48,227 +46,276 @@ workorders
 - WorkOrderPart
 - WorkOrderBilling
 - servicos de dominio
+
+quotes
+- Quote
+- QuoteItem
+- QuoteNumberSequence
+- GeneratedDocument
+- workflow de orcamento
+- emissao de PDF/snapshot
+
+finance
+- ServiceAgreement
+- Receivable
+- Payment
+- BusinessProfile
+- cobrancas recorrentes
 ```
 
-## Modelo de dominio resumido
+## Documentacao
 
-```text
-Customer
-1 ----- N Equipment
-
-EquipmentType
-1 ----- N Equipment
-
-Customer
-1 ----- N WorkOrder
-
-Equipment
-1 ----- N WorkOrder
-
-Equipment
-1 ----- N EquipmentComponent
-
-ComponentType
-1 ----- N EquipmentComponent
-
-WorkOrder
-1 ----- N WorkOrderStatusHistory
-
-WorkOrderStatus
-1 ----- N WorkOrder
-
-WorkOrderStatus
-1 ----- N WorkOrderStatusHistory
-
-WorkOrder
-1 ----- N WorkOrderService
-
-ServiceCategory
-1 ----- N ServiceType
-
-ServiceType
-1 ----- N WorkOrderService
-
-WorkOrder
-1 ----- N WorkOrderPart
-
-WorkOrderService
-1 ----- N WorkOrderPart
-
-PartCategory
-1 ----- N Part
-
-WorkOrder
-1 ----- 0..1 WorkOrderBilling
-
-PaymentMethod
-1 ----- N WorkOrderBilling
-```
-
-Decisoes importantes:
-
-- uma `WorkOrder` pertence exatamente a um `Equipment`;
-- `WorkOrder.equipment` e obrigatorio;
-- `WorkOrder.customer` e mantido explicitamente;
-- `WorkOrderService` nao possui `equipment_id`;
-- ultima e proxima manutencao sao calculadas pelo historico de `WorkOrderService`;
-- servicos de OS nao concluida nao contam para preventiva;
-- servicos invalidados nao contam para preventiva;
-- tipos de equipamento, tipos de componente, categorias, metodos de pagamento e status da OS sao catalogos configuraveis;
-- dinheiro usa `DecimalField`, nunca `float`.
-
-Veja a documentacao completa em [docs/domain-model.md](docs/domain-model.md).
-
-Para padroes de consulta, indices e prevencao de N+1, veja [docs/query-performance.md](docs/query-performance.md).
-
-Para endpoints, autenticacao, filtros e convencoes da API, veja [docs/api.md](docs/api.md).
-
-Para a aplicacao web React, veja [frontend/README.md](frontend/README.md).
+- [Modelo de dominio](docs/domain-model.md)
+- [Consultas, indices e N+1](docs/query-performance.md)
+- [API](docs/api.md)
+- [Financeiro](docs/finance.md)
+- [Orcamentos](docs/quotes.md)
+- [Frontend](frontend/README.md)
 
 ## Requisitos
 
+Para o fluxo recomendado com Docker:
+
+- Docker Engine
+- Docker Compose v2
+
+Para executar sem Docker:
+
 - Python 3.13+
 - uv 0.10+
-- Django 5.2.x
-- Django REST Framework
-- PostgreSQL para uso real
-- SQLite pode ser usado para desenvolvimento local simples e testes iniciais
+- Node.js 22+
+- pnpm 11.25 via Corepack
+- PostgreSQL para reproduzir o ambiente principal; SQLite continua suportado para desenvolvimento/testes simples.
 
-## Configuracao local
+## Atualizar o codigo local
 
-Instale as dependencias e sincronize o ambiente com `uv`:
+Se o repositorio ja estiver clonado e sua branch local estiver limpa:
+
+```bash
+git switch master
+git pull origin master
+```
+
+Antes de atualizar, confirme com `git status` se voce possui alteracoes locais nao commitadas.
+
+## Forma recomendada: Docker Compose
+
+Na raiz do projeto:
+
+```bash
+docker compose up --build
+```
+
+O Compose sobe:
+
+```text
+PostgreSQL 17
+    ^
+    |
+Django/DRF        http://localhost:8001
+    ^
+    | /api
+React/Vite        http://localhost:5173
+```
+
+As migrations sao aplicadas no startup do backend. O frontend usa proxy para acessar o backend dentro da rede Docker.
+
+Para criar um superusuario:
+
+```bash
+docker compose exec backend uv run python manage.py createsuperuser
+```
+
+Para acompanhar os containers:
+
+```bash
+docker compose ps
+docker compose logs -f backend
+docker compose logs -f frontend
+```
+
+Para encerrar sem apagar o banco:
+
+```bash
+docker compose down
+```
+
+Para encerrar e tambem remover os volumes locais, incluindo os dados do PostgreSQL:
+
+```bash
+docker compose down -v
+```
+
+Use `down -v` somente quando realmente quiser reiniciar o banco do zero.
+
+## Variaveis de ambiente do Compose
+
+Os principais valores podem ser sobrescritos por variaveis de ambiente:
+
+```text
+POSTGRES_DB=techtrack
+POSTGRES_USER=techtrack
+POSTGRES_PASSWORD=techtrack
+DJANGO_SECRET_KEY=...
+DJANGO_DEBUG=True
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,backend
+BACKEND_PORT=8001
+FRONTEND_PORT=5173
+```
+
+Os defaults do `compose.yaml` sao adequados somente para desenvolvimento local.
+
+## Backend sem Docker
+
+Sincronize o ambiente:
 
 ```bash
 uv sync
 ```
 
-O `uv` cria e gerencia `.venv` automaticamente. O fluxo oficial do projeto usa `uv run`, sem depender de ativar o ambiente manualmente.
-
-O TechTrack e configurado como um projeto uv `no-package`: ele e uma aplicacao Django web, nao uma biblioteca Python para publicacao. Por isso nao ha `src/`, `build-system` nem instalacao do proprio projeto dentro do virtualenv.
-
-Copie o exemplo de ambiente se quiser usar variaveis locais:
+Sem `DATABASE_URL`, o Django usa SQLite local. Para PostgreSQL, configure uma URL como:
 
 ```bash
-cp .env.example .env
+export DATABASE_URL=postgresql://usuario:senha@localhost:5432/techtrack
 ```
 
-O projeto usa SQLite quando `DATABASE_URL` nao esta definido.
-
-Para PostgreSQL, defina:
-
-```bash
-DATABASE_URL=postgresql://usuario:senha@localhost:5432/techtrack
-```
-
-## Dependencias
-
-Adicionar dependencia de producao:
-
-```bash
-uv add pacote
-```
-
-Adicionar dependencia de desenvolvimento:
-
-```bash
-uv add --dev pacote
-```
-
-As dependencias ficam declaradas em `pyproject.toml`, e a resolucao reproduzivel fica em `uv.lock`.
-
-## Variaveis de ambiente
-
-- `DJANGO_SECRET_KEY`: chave secreta do Django.
-- `DJANGO_DEBUG`: `True` ou `False`.
-- `DJANGO_ALLOWED_HOSTS`: hosts separados por virgula.
-- `DATABASE_URL`: URL PostgreSQL. Se ausente, usa SQLite local.
-
-O valor padrao de `DJANGO_SECRET_KEY` existe apenas para desenvolvimento local com `DJANGO_DEBUG=True`. Com `DJANGO_DEBUG=False`, a aplicacao exige `DJANGO_SECRET_KEY` configurado.
-
-## Migrations
+Aplique as migrations:
 
 ```bash
 uv run python manage.py migrate
 ```
 
-Verificar se ha migrations pendentes:
-
-```bash
-uv run python manage.py makemigrations --check --dry-run
-```
-
-## Superuser
+Crie um usuario administrador, se necessario:
 
 ```bash
 uv run python manage.py createsuperuser
 ```
 
-## Servidor local
+Inicie o backend:
 
 ```bash
 uv run python manage.py runserver
 ```
 
+Nesse modo ele fica em `http://localhost:8000`.
+
+## Frontend sem Docker
+
+Em outro terminal:
+
+```bash
+cd frontend
+corepack enable
+corepack prepare pnpm@11.25.0 --activate
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+O Vite fica em `http://localhost:5173` e, por padrao, encaminha `/api` para `http://localhost:8000`.
+
 ## API
+
+Endpoints basicos:
 
 ```text
 GET  /api/health/
 POST /api/token/
+POST /api/token/refresh/
 GET  /api/schema/
 GET  /api/docs/
-GET  /api/v1/customers/
-GET  /api/v1/equipment/
-GET  /api/v1/work-orders/
 ```
 
-Endpoints de negocio exigem autenticacao por JWT:
+Os recursos de negocio ficam sob `/api/v1/`, incluindo clientes, equipamentos, OS, orcamentos e financeiro.
+
+Endpoints autenticados usam:
 
 ```http
 Authorization: Bearer <access_token>
 ```
 
-## Frontend
+## Validacao do backend
 
-Na pasta `frontend/`, use pnpm via Corepack:
-
-```bash
-corepack pnpm install
-corepack pnpm dev
-```
-
-O Vite faz proxy de `/api` para o backend local em `http://localhost:8000`.
-
-Comandos de validacao:
+Executar a suite:
 
 ```bash
-corepack pnpm lint
-corepack pnpm format:check
-corepack pnpm test
-corepack pnpm build
+uv run pytest -q
 ```
 
-## Testes
-
-```bash
-uv run pytest
-```
-
-## Checks
+Validar Django, migrations, lint, formato e OpenAPI:
 
 ```bash
 uv run python manage.py check
-```
-
-## Ruff
-
-```bash
+uv run python manage.py makemigrations --check --dry-run
 uv run ruff check .
 uv run ruff format --check .
+uv run python manage.py spectacular --file /tmp/techtrack-openapi.yaml --validate
 ```
 
-## Observacoes de seguranca e historico
+## Validacao do frontend
 
-- `WorkOrderStatusHistory` e conceitualmente append-only.
-- `WorkOrderService` e `WorkOrderPart` possuem campos `voided_*` para invalidar registros sem apagar historico.
-- FKs historicas usam `PROTECT` ou `SET_NULL` de forma seletiva.
-- OS concluida nao deve ser modificada livremente por fluxos comuns.
+Dentro de `frontend/`:
+
+```bash
+pnpm lint
+pnpm format:check
+pnpm test
+pnpm build
+```
+
+## Smoke test com a stack completa
+
+O mesmo fluxo validado pelo CI pode ser reproduzido localmente com:
+
+```bash
+docker compose config
+docker compose build
+docker compose up -d
+docker compose ps
+curl --fail http://localhost:8001/api/health/
+curl --fail http://localhost:5173/api/health/
+```
+
+Depois:
+
+```bash
+docker compose down
+```
+
+## Cobrancas recorrentes
+
+Para gerar as cobrancas recorrentes da competencia atual:
+
+```bash
+uv run python manage.py generate_monthly_receivables
+```
+
+Ou para uma competencia especifica:
+
+```bash
+uv run python manage.py generate_monthly_receivables --competence 2026-09
+```
+
+A geracao e idempotente para acordo/competencia: repetir o comando nao deve duplicar a mesma cobranca.
+
+## Decisoes importantes de dominio
+
+- uma `WorkOrder` pertence exatamente a um equipamento e cliente coerentes entre si;
+- historico de status e preservado;
+- servicos/pecas invalidados deixam de participar dos calculos sem destruir o historico;
+- manutencao preventiva e derivada de servicos validos em OS concluidas;
+- dinheiro usa `DecimalField`, nunca `float`;
+- pagamentos podem ser parciais e podem ser invalidados preservando auditoria;
+- documentos oficialmente emitidos guardam snapshot, versao e checksum;
+- alteracoes posteriores no cadastro nao reescrevem o conteudo conceitual de documentos ja emitidos;
+- notas internas da OS nao fazem parte do documento entregue ao cliente.
+
+## CI
+
+O workflow de validacao executa quatro frentes independentes:
+
+- backend com SQLite;
+- backend com PostgreSQL 17;
+- frontend (lint, formato, testes e build);
+- smoke test do Docker Compose completo.
+
+O objetivo e detectar tanto erros de aplicacao quanto diferencas entre SQLite/PostgreSQL e problemas de integracao entre frontend, backend e containers.
