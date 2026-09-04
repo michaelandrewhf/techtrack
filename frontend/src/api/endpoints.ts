@@ -1,4 +1,4 @@
-import { apiRequest, toQueryString } from "./client";
+import { apiDownload, apiRequest, toQueryString } from "./client";
 import type {
   Billing,
   CatalogItem,
@@ -6,8 +6,14 @@ import type {
   Dashboard,
   Equipment,
   EquipmentComponent,
+  FinanceDashboard,
   MaintenanceItem,
   Paginated,
+  Payment,
+  Quote,
+  QuoteItem,
+  Receivable,
+  ServiceAgreement,
   User,
   WorkOrder,
   WorkOrderPart,
@@ -32,6 +38,86 @@ export const authApi = {
 
 export const dashboardApi = {
   get: () => apiRequest<Dashboard>("/v1/dashboard/"),
+};
+
+export const financeApi = {
+  dashboard: () => apiRequest<FinanceDashboard>("/v1/finance/dashboard/"),
+  receivables: (filters: Filters = {}) =>
+    apiRequest<Paginated<Receivable>>(
+      `/v1/receivables/${toQueryString(filters)}`,
+    ),
+  createReceivable: (body: Record<string, unknown>) =>
+    apiRequest<Receivable>("/v1/receivables/", { method: "POST", body }),
+  addPayment: (id: string, body: Record<string, unknown>) =>
+    apiRequest<Payment>(`/v1/receivables/${id}/payments/`, {
+      method: "POST",
+      body,
+    }),
+  payments: (filters: Filters = {}) =>
+    apiRequest<Paginated<Payment>>(`/v1/payments/${toQueryString(filters)}`),
+  voidPayment: (id: string, reason: string) =>
+    apiRequest<Payment>(`/v1/payments/${id}/void/`, {
+      method: "POST",
+      body: { reason },
+    }),
+  agreements: (filters: Filters = {}) =>
+    apiRequest<Paginated<ServiceAgreement>>(
+      `/v1/service-agreements/${toQueryString(filters)}`,
+    ),
+  createAgreement: (body: Record<string, unknown>) =>
+    apiRequest<ServiceAgreement>("/v1/service-agreements/", {
+      method: "POST",
+      body,
+    }),
+  generateAgreementReceivable: (id: string, competence: string) =>
+    apiRequest<Receivable>(`/v1/service-agreements/${id}/generate-receivable/`, {
+      method: "POST",
+      body: { competence },
+    }),
+};
+
+export const quotesApi = {
+  list: (filters: Filters = {}) =>
+    apiRequest<Paginated<Quote>>(`/v1/quotes/${toQueryString(filters)}`),
+  get: (id: string) => apiRequest<Quote>(`/v1/quotes/${id}/`),
+  create: (body: Record<string, unknown>) =>
+    apiRequest<Quote>("/v1/quotes/", { method: "POST", body }),
+  update: (id: string, body: Record<string, unknown>) =>
+    apiRequest<Quote>(`/v1/quotes/${id}/`, { method: "PATCH", body }),
+  addItem: (id: string, body: Record<string, unknown>) =>
+    apiRequest<QuoteItem>(`/v1/quotes/${id}/items/`, {
+      method: "POST",
+      body,
+    }),
+  markSent: (id: string) =>
+    apiRequest<Quote>(`/v1/quotes/${id}/mark-sent/`, {
+      method: "POST",
+      body: {},
+    }),
+  approve: (id: string) =>
+    apiRequest<Quote>(`/v1/quotes/${id}/approve/`, {
+      method: "POST",
+      body: {},
+    }),
+  reject: (id: string) =>
+    apiRequest<Quote>(`/v1/quotes/${id}/reject/`, {
+      method: "POST",
+      body: {},
+    }),
+  cancel: (id: string) =>
+    apiRequest<Quote>(`/v1/quotes/${id}/cancel/`, {
+      method: "POST",
+      body: {},
+    }),
+  createWorkOrder: (id: string) =>
+    apiRequest<WorkOrder>(`/v1/quotes/${id}/create-work-order/`, {
+      method: "POST",
+      body: {},
+    }),
+  previewPdf: (id: string, version?: number) =>
+    apiDownload(`/v1/quotes/${id}/pdf/${version ? `?version=${version}` : ""}`),
+  issuePdf: (id: string) =>
+    apiDownload(`/v1/quotes/${id}/issue-pdf/`, { method: "POST", body: {} }),
 };
 
 export const customersApi = {
@@ -138,6 +224,13 @@ export const workOrdersApi = {
     apiRequest<Billing>(`/v1/work-orders/${id}/billing/`, {
       method: "PUT",
       body,
+    }),
+  previewPdf: (id: string, version?: number) =>
+    apiDownload(`/v1/work-orders/${id}/pdf/${version ? `?version=${version}` : ""}`),
+  issuePdf: (id: string) =>
+    apiDownload(`/v1/work-orders/${id}/issue-pdf/`, {
+      method: "POST",
+      body: {},
     }),
 };
 
