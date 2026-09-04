@@ -7,11 +7,13 @@ import { z } from "zod";
 
 import { customersApi, equipmentApi, workOrdersApi } from "../api/endpoints";
 import { queryKeys } from "../api/queryKeys";
+import { Breadcrumbs } from "../components/Breadcrumbs";
 import { PageHeader } from "../components/PageHeader";
 import {
   Button,
   Field,
   Input,
+  Notice,
   Panel,
   Select,
   Textarea,
@@ -41,12 +43,12 @@ export function WorkOrderCreatePage() {
   });
   const customerId = form.watch("customer_id");
   const customers = useQuery({
-    queryKey: queryKeys.customers({ page_size: 100 }),
-    queryFn: () => customersApi.list({}),
+    queryKey: queryKeys.customers({ page_size: 100, status: "active" }),
+    queryFn: () => customersApi.list({ page_size: 100, status: "active" }),
   });
   const equipment = useQuery({
-    queryKey: queryKeys.equipment({ customer: customerId }),
-    queryFn: () => equipmentApi.list({ customer: customerId }),
+    queryKey: queryKeys.equipment({ customer: customerId, page_size: 100 }),
+    queryFn: () => equipmentApi.list({ customer: customerId, page_size: 100 }),
     enabled: Boolean(customerId),
   });
   const mutation = useMutation({
@@ -58,19 +60,51 @@ export function WorkOrderCreatePage() {
     if (!customerId) form.setValue("equipment_id", "");
   }, [customerId, form]);
 
+  const selectedCustomer = customers.data?.results.find(
+    (customer) => customer.id === customerId,
+  );
+
   return (
-    <div>
-      <PageHeader
-        title="Abrir OS"
-        description="O status inicial e o numero da OS sao definidos pelo backend."
+    <div className="mx-auto max-w-4xl">
+      <Breadcrumbs
+        items={[
+          { label: "Ordens de servico", to: "/work-orders" },
+          ...(selectedCustomer
+            ? [
+                {
+                  label: selectedCustomer.name,
+                  to: `/customers/${selectedCustomer.id}?tab=work-orders`,
+                },
+              ]
+            : []),
+          { label: "Nova OS" },
+        ]}
       />
-      <Panel title="Dados da abertura">
+      <PageHeader
+        eyebrow="Atendimento tecnico"
+        title="Abrir ordem de servico"
+        description="Mantenha cliente e equipamento no mesmo contexto. O numero e o status inicial continuam definidos pelo backend."
+      />
+      <Panel>
         <form
-          className="grid gap-4 md:grid-cols-2"
+          className="grid gap-5 md:grid-cols-2"
           onSubmit={form.handleSubmit((data) => mutation.mutate(data))}
         >
-          <Field label="Cliente">
-            <Select {...form.register("customer_id")}>
+          <Field
+            label="Cliente"
+            required
+            error={form.formState.errors.customer_id?.message}
+          >
+            <Select
+              aria-invalid={Boolean(form.formState.errors.customer_id)}
+              value={customerId}
+              onChange={(event) => {
+                form.setValue("customer_id", event.target.value, {
+                  shouldValidate: true,
+                });
+                form.setValue("equipment_id", "");
+              }}
+            >
               <option value="">Selecione</option>
               {(customers.data?.results ?? []).map((customer) => (
                 <option key={customer.id} value={customer.id}>
@@ -79,8 +113,16 @@ export function WorkOrderCreatePage() {
               ))}
             </Select>
           </Field>
-          <Field label="Equipamento">
-            <Select {...form.register("equipment_id")} disabled={!customerId}>
+          <Field
+            label="Equipamento"
+            required
+            error={form.formState.errors.equipment_id?.message}
+          >
+            <Select
+              aria-invalid={Boolean(form.formState.errors.equipment_id)}
+              disabled={!customerId}
+              {...form.register("equipment_id")}
+            >
               <option value="">Selecione</option>
               {(equipment.data?.results ?? []).map((item) => (
                 <option key={item.id} value={item.id}>
@@ -91,13 +133,17 @@ export function WorkOrderCreatePage() {
                     item.serial_number,
                   ]
                     .filter(Boolean)
-                    .join(" - ")}
+                    .join(" · ")}
                 </option>
               ))}
             </Select>
           </Field>
-          <Field label="Titulo">
-            <Input {...form.register("title")} />
+          <Field label="Titulo" required error={form.formState.errors.title?.message}>
+            <Input
+              aria-invalid={Boolean(form.formState.errors.title)}
+              placeholder="Resumo objetivo do atendimento"
+              {...form.register("title")}
+            />
           </Field>
           <Field label="Prioridade">
             <Select {...form.register("priority")}>
@@ -108,18 +154,30 @@ export function WorkOrderCreatePage() {
             </Select>
           </Field>
           <div className="md:col-span-2">
-            <Field label="Descricao do problema">
-              <Textarea rows={5} {...form.register("problem_description")} />
+            <Field
+              label="Problema relatado"
+              required
+              error={form.formState.errors.problem_description?.message}
+              hint="Registre o relato inicial do cliente; diagnostico e solucao serao tratados dentro da OS."
+            >
+              <Textarea
+                aria-invalid={Boolean(form.formState.errors.problem_description)}
+                rows={5}
+                {...form.register("problem_description")}
+              />
             </Field>
           </div>
           {mutation.error ? (
-            <p className="text-sm text-red-600 md:col-span-2">
-              {errorMessage(mutation.error)}
-            </p>
+            <div className="md:col-span-2">
+              <Notice tone="danger">{errorMessage(mutation.error)}</Notice>
+            </div>
           ) : null}
-          <div className="md:col-span-2">
+          <div className="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-800 md:col-span-2">
+            <Button type="button" variant="secondary" onClick={() => navigate(-1)}>
+              Cancelar
+            </Button>
             <Button disabled={mutation.isPending} type="submit">
-              Abrir OS
+              {mutation.isPending ? "Abrindo..." : "Abrir OS"}
             </Button>
           </div>
         </form>
