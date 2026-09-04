@@ -26,11 +26,13 @@ export function CustomerDetailPage() {
   });
   const agreements = useQuery({
     queryKey: ["finance", "customer", id, "agreements"],
-    queryFn: () => financeApi.agreements({ customer: id, ordering: "-starts_on" }),
+    queryFn: () =>
+      financeApi.agreements({ customer: id, ordering: "-starts_on" }),
   });
   const receivables = useQuery({
     queryKey: ["finance", "customer", id, "receivables"],
-    queryFn: () => financeApi.receivables({ customer: id, ordering: "-due_date" }),
+    queryFn: () =>
+      financeApi.receivables({ customer: id, ordering: "-due_date" }),
   });
 
   if (customer.isLoading) return <PageLoader />;
@@ -74,7 +76,9 @@ export function CustomerDetailPage() {
             </div>
             <div>
               <dt className="text-slate-500">Status</dt>
-              <dd><Badge>{customer.data.status}</Badge></dd>
+              <dd>
+                <Badge>{customer.data.status}</Badge>
+              </dd>
             </div>
           </dl>
         </Panel>
@@ -82,12 +86,16 @@ export function CustomerDetailPage() {
           <div className="space-y-3 text-sm">
             <div>
               <div className="text-slate-500">Saldo pendente</div>
-              <div className="text-xl font-semibold">{formatMoney(pending)}</div>
+              <div className="text-xl font-semibold">
+                {formatMoney(pending)}
+              </div>
             </div>
             <div>
               <div className="text-slate-500">Acordos ativos</div>
               <div className="font-medium">
-                {agreements.data?.results.filter((item) => item.status === "active").length ?? 0}
+                {agreements.data?.results.filter(
+                  (item) => item.status === "active",
+                ).length ?? 0}
               </div>
             </div>
             <Link className="text-blue-700 dark:text-blue-300" to="/finance">
@@ -118,7 +126,9 @@ export function CustomerDetailPage() {
                       className="text-blue-700 dark:text-blue-300"
                       to={`/equipment/${row.id}`}
                     >
-                      {[row.manufacturer, row.model].filter(Boolean).join(" ") || "-"}
+                      {[row.manufacturer, row.model]
+                        .filter(Boolean)
+                        .join(" ") || "-"}
                     </Link>
                   ),
                 },
@@ -148,7 +158,10 @@ export function CustomerDetailPage() {
                 },
                 { header: "Titulo", cell: (row) => row.title },
                 { header: "Status", cell: (row) => row.status.name },
-                { header: "Abertura", cell: (row) => formatDateTime(row.opened_at) },
+                {
+                  header: "Abertura",
+                  cell: (row) => formatDateTime(row.opened_at),
+                },
               ]}
             />
           ) : null}
@@ -166,19 +179,26 @@ export function CustomerDetailPage() {
                 <div>
                   <div className="font-medium">{agreement.name}</div>
                   <div className="text-xs text-slate-500">
-                    Desde {formatDate(agreement.starts_on)} · vence dia {agreement.billing_day}
+                    Desde {formatDate(agreement.starts_on)} · vence dia{" "}
+                    {agreement.billing_day}
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-medium">{formatMoney(agreement.amount)}</div>
-                  <Badge tone={agreement.status === "active" ? "success" : "neutral"}>
+                  <div className="font-medium">
+                    {formatMoney(agreement.amount)}
+                  </div>
+                  <Badge
+                    tone={agreement.status === "active" ? "success" : "neutral"}
+                  >
                     {agreement.status}
                   </Badge>
                 </div>
               </div>
             ))}
             {!agreements.data?.results.length ? (
-              <p className="text-sm text-slate-500">Cliente sem acordo recorrente.</p>
+              <p className="text-sm text-slate-500">
+                Cliente sem acordo recorrente.
+              </p>
             ) : null}
           </div>
         </Panel>
@@ -192,11 +212,14 @@ export function CustomerDetailPage() {
                 <div>
                   <div className="font-medium">{receivable.description}</div>
                   <div className="text-xs text-slate-500">
-                    Vencimento {formatDate(receivable.due_date)} · {receivable.status}
+                    Vencimento {formatDate(receivable.due_date)} ·{" "}
+                    {receivable.status}
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-medium">{formatMoney(receivable.amount)}</div>
+                  <div className="font-medium">
+                    {formatMoney(receivable.amount)}
+                  </div>
                   <div className="text-xs text-slate-500">
                     Saldo {formatMoney(receivable.balance)}
                   </div>
@@ -204,7 +227,9 @@ export function CustomerDetailPage() {
               </div>
             ))}
             {!receivables.data?.results.length ? (
-              <p className="text-sm text-slate-500">Nenhum lancamento financeiro.</p>
+              <p className="text-sm text-slate-500">
+                Nenhum lancamento financeiro.
+              </p>
             ) : null}
           </div>
         </Panel>

@@ -70,10 +70,13 @@ export const financeApi = {
       body,
     }),
   generateAgreementReceivable: (id: string, competence: string) =>
-    apiRequest<Receivable>(`/v1/service-agreements/${id}/generate-receivable/`, {
-      method: "POST",
-      body: { competence },
-    }),
+    apiRequest<Receivable>(
+      `/v1/service-agreements/${id}/generate-receivable/`,
+      {
+        method: "POST",
+        body: { competence },
+      },
+    ),
 };
 
 export const quotesApi = {
@@ -226,7 +229,9 @@ export const workOrdersApi = {
       body,
     }),
   previewPdf: (id: string, version?: number) =>
-    apiDownload(`/v1/work-orders/${id}/pdf/${version ? `?version=${version}` : ""}`),
+    apiDownload(
+      `/v1/work-orders/${id}/pdf/${version ? `?version=${version}` : ""}`,
+    ),
   issuePdf: (id: string) =>
     apiDownload(`/v1/work-orders/${id}/issue-pdf/`, {
       method: "POST",
