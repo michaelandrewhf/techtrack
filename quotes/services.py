@@ -1,8 +1,9 @@
 import hashlib
 import json
+from datetime import date, datetime
 from decimal import Decimal
 
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import Max
 from django.utils import timezone
@@ -40,6 +41,22 @@ def _money(value):
     return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+def _pt_date(value):
+    if not value:
+        return "-"
+    if isinstance(value, (date, datetime)):
+        parsed = value
+    else:
+        try:
+            parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        except ValueError:
+            try:
+                parsed = date.fromisoformat(str(value))
+            except ValueError:
+                return str(value)
+    return parsed.strftime("%d/%m/%Y")
+
+
 def _profile_snapshot():
     profile, _ = BusinessProfile.objects.get_or_create(pk=1)
     return {
@@ -52,24 +69,29 @@ def _profile_snapshot():
     }
 
 
+def _quote_amounts(quote):
+    items = list(quote.items.all())
+    items_total = sum((item.total for item in items), Decimal("0.00"))
+    total_amount = items_total - quote.discount
+    if total_amount < 0:
+        raise ValidationError({"discount": "O desconto do orcamento nao pode superar o total dos itens."})
+    return items, items_total, total_amount
+
+
 def quote_snapshot(quote):
     quote = Quote.objects.with_detail_data().get(pk=quote.pk)
-    items = []
-    items_total = Decimal("0.00")
-    for item in quote.items.all():
-        total = item.total
-        items_total += total
-        items.append(
-            {
-                "type": item.item_type,
-                "description": item.description,
-                "quantity": str(item.quantity),
-                "unit_price": str(item.unit_price),
-                "discount": str(item.discount),
-                "total": str(total),
-            }
-        )
-    total_amount = max(Decimal("0.00"), items_total - quote.discount)
+    quote_items, items_total, total_amount = _quote_amounts(quote)
+    items = [
+        {
+            "type": item.item_type,
+            "description": item.description,
+            "quantity": str(item.quantity),
+            "unit_price": str(item.unit_price),
+            "discount": str(item.discount),
+            "total": str(item.total),
+        }
+        for item in quote_items
+    ]
     equipment = None
     if quote.equipment_id:
         equipment = {
@@ -133,23 +155,28 @@ def work_order_snapshot(work_order):
     ]
     labor_total = sum((Decimal(item["labor_price"]) for item in services), Decimal("0.00"))
     parts_total = sum(
-        (Decimal(item["quantity"]) * Decimal(item["unit_price"]) for item in parts), Decimal("0.00")
+        (Decimal(item["quantity"]) * Decimal(item["unit_price"]) for item in parts),
+        Decimal("0.00"),
     )
     financial = {
         "labor_total": str(labor_total),
         "parts_total": str(parts_total),
+        "discount": "0.00",
         "total_amount": str(labor_total + parts_total),
     }
     try:
         billing = work_order.billing
-    except Exception:  # OneToOne absence; avoid coupling document generation to legacy billing.
+    except ObjectDoesNotExist:
         billing = None
     if billing:
+        billing_total = billing.total_amount
+        if billing_total is None:
+            billing_total = labor_total + parts_total
         financial = {
             "labor_total": str(billing.labor_total if billing.labor_total is not None else labor_total),
             "parts_total": str(billing.parts_total if billing.parts_total is not None else parts_total),
             "discount": str(billing.discount or Decimal("0.00")),
-            "total_amount": str(billing.total_amount if billing.total_amount is not None else labor_total + parts_total),
+            "total_amount": str(billing_total),
         }
     return {
         "business": _profile_snapshot(),
@@ -188,12 +215,28 @@ def work_order_snapshot(work_order):
 
 
 def _checksum(snapshot):
-    payload = json.dumps(snapshot, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    payload = json.dumps(
+        snapshot,
+        sort_keys=True,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
 
 
 @transaction.atomic
-def create_quote(*, customer, title, equipment=None, work_order=None, description="", valid_until=None, discount=0, notes="", created_by=None):
+def create_quote(
+    *,
+    customer,
+    title,
+    equipment=None,
+    work_order=None,
+    description="",
+    valid_until=None,
+    discount=0,
+    notes="",
+    created_by=None,
+):
     quote = Quote(
         number=_next_quote_number(),
         customer=customer,
@@ -212,7 +255,18 @@ def create_quote(*, customer, title, equipment=None, work_order=None, descriptio
 
 
 @transaction.atomic
-def add_quote_item(*, quote, item_type, description, quantity, unit_price, discount=0, service_type=None, part=None, sort_order=0):
+def add_quote_item(
+    *,
+    quote,
+    item_type,
+    description,
+    quantity,
+    unit_price,
+    discount=0,
+    service_type=None,
+    part=None,
+    sort_order=0,
+):
     quote = Quote.objects.select_for_update().get(pk=quote.pk)
     if not quote.is_editable:
         raise ValidationError("Orcamento fechado nao pode receber novos itens.")
@@ -237,6 +291,9 @@ def mark_quote_sent(*, quote):
     quote = Quote.objects.select_for_update().get(pk=quote.pk)
     if quote.status != QuoteStatus.DRAFT:
         raise ValidationError("Somente rascunhos podem ser marcados como enviados.")
+    if not quote.items.exists():
+        raise ValidationError("Nao e possivel enviar um orcamento sem itens.")
+    _quote_amounts(quote)
     quote.status = QuoteStatus.SENT
     quote.sent_at = timezone.now()
     quote.save(update_fields=["status", "sent_at", "updated_at"])
@@ -250,6 +307,7 @@ def approve_quote(*, quote, approved_by=None):
         raise ValidationError("Este orcamento nao pode ser aprovado no estado atual.")
     if not quote.items.exists():
         raise ValidationError("Nao e possivel aprovar um orcamento sem itens.")
+    _quote_amounts(quote)
     quote.status = QuoteStatus.APPROVED
     quote.approved_at = timezone.now()
     quote.approved_by = approved_by
@@ -274,7 +332,9 @@ def set_quote_terminal_status(*, quote, status):
 
 @transaction.atomic
 def create_work_order_from_quote(*, quote, responsible_user=None):
-    quote = Quote.objects.select_for_update().select_related("customer", "equipment", "work_order").get(pk=quote.pk)
+    # Lock only the quote row. PostgreSQL rejects FOR UPDATE when select_related()
+    # introduces nullable OUTER JOINs for equipment/work_order.
+    quote = Quote.objects.select_for_update().get(pk=quote.pk)
     if quote.status != QuoteStatus.APPROVED:
         raise ValidationError("Somente orcamentos aprovados podem gerar OS.")
     if quote.work_order_id:
@@ -298,17 +358,21 @@ def issue_document(*, document_type, generated_by=None, quote=None, work_order=N
     if document_type == DocumentType.QUOTE:
         if not quote:
             raise ValidationError("Informe o orcamento.")
+        quote = Quote.objects.select_for_update().get(pk=quote.pk)
         snapshot = quote_snapshot(quote)
         filter_kwargs = {"document_type": document_type, "quote": quote}
     elif document_type == DocumentType.WORK_ORDER:
         if not work_order:
             raise ValidationError("Informe a OS.")
+        work_order = work_order.__class__.objects.select_for_update().get(pk=work_order.pk)
         snapshot = work_order_snapshot(work_order)
         filter_kwargs = {"document_type": document_type, "work_order": work_order}
     else:
         raise ValidationError("Tipo de documento ainda nao suportado para emissao.")
 
-    current = GeneratedDocument.objects.select_for_update().filter(**filter_kwargs).aggregate(max_version=Max("version"))["max_version"] or 0
+    current = (
+        GeneratedDocument.objects.filter(**filter_kwargs).aggregate(max_version=Max("version"))["max_version"] or 0
+    )
     document = GeneratedDocument(
         document_type=document_type,
         quote=quote,
@@ -334,21 +398,38 @@ def quote_pdf_from_snapshot(snapshot):
         business.get("document") or "",
         business.get("phone") or business.get("whatsapp") or "",
         business.get("email") or "",
+        business.get("address") or "",
         "",
         quote["display_number"],
         f"Cliente: {customer['name']}",
         f"Contato: {customer.get('whatsapp') or customer.get('phone') or customer.get('email') or '-'}",
     ]
     if equipment:
-        equipment_label = " ".join(value for value in [equipment.get("type"), equipment.get("manufacturer"), equipment.get("model")] if value)
-        lines.extend([f"Equipamento: {equipment_label}", f"Serial: {equipment.get('serial_number') or '-'}"])
-    if quote.get("valid_until"):
-        lines.append(f"Validade: {quote['valid_until']}")
-    lines.extend(["", quote.get("title") or "Orcamento", quote.get("description") or "", "", "Itens:"])
-    for item in snapshot["items"]:
-        lines.append(
-            f"- {item['description']} | {item['quantity']} x {_money(item['unit_price'])} | Total {_money(item['total'])}"
+        label_values = [equipment.get("type"), equipment.get("manufacturer"), equipment.get("model")]
+        equipment_label = " ".join(value for value in label_values if value)
+        lines.extend(
+            [
+                f"Equipamento: {equipment_label}",
+                f"Serial: {equipment.get('serial_number') or '-'}",
+            ]
         )
+    if quote.get("valid_until"):
+        lines.append(f"Validade: {_pt_date(quote['valid_until'])}")
+    lines.extend(
+        [
+            "",
+            quote.get("title") or "Orcamento",
+            quote.get("description") or "",
+            "",
+            "Itens:",
+        ]
+    )
+    for item in snapshot["items"]:
+        item_line = (
+            f"- {item['description']} | {item['quantity']} x {_money(item['unit_price'])} "
+            f"| Total {_money(item['total'])}"
+        )
+        lines.append(item_line)
     lines.extend(
         [
             "",
@@ -369,19 +450,22 @@ def work_order_pdf_from_snapshot(snapshot):
     customer = snapshot["customer"]
     equipment = snapshot["equipment"]
     financial = snapshot["financial"]
+    equipment_values = [equipment.get("type"), equipment.get("manufacturer"), equipment.get("model")]
+    equipment_label = " ".join(value for value in equipment_values if value)
     lines = [
         business.get("name") or "TechTrack",
         business.get("document") or "",
         business.get("phone") or business.get("whatsapp") or "",
         business.get("email") or "",
+        business.get("address") or "",
         "",
         work_order["display_number"],
         f"Cliente: {customer['name']}",
-        f"Equipamento: {' '.join(v for v in [equipment.get('type'), equipment.get('manufacturer'), equipment.get('model')] if v)}",
+        f"Equipamento: {equipment_label}",
         f"Serial: {equipment.get('serial_number') or '-'}",
         f"Status: {work_order['status']}",
-        f"Abertura: {work_order['opened_at']}",
-        f"Conclusao: {work_order.get('completed_at') or '-'}",
+        f"Abertura: {_pt_date(work_order['opened_at'])}",
+        f"Conclusao: {_pt_date(work_order.get('completed_at'))}",
         "",
         f"Problema relatado: {work_order.get('problem_description') or '-'}",
         f"Diagnostico: {work_order.get('diagnosis') or '-'}",
@@ -390,7 +474,8 @@ def work_order_pdf_from_snapshot(snapshot):
         "Servicos realizados:",
     ]
     for service in snapshot["services"]:
-        lines.append(f"- {service['name']}: {service.get('description') or ''} ({_money(service['labor_price'])})")
+        description = service.get("description") or ""
+        lines.append(f"- {service['name']}: {description} ({_money(service['labor_price'])})")
     lines.append("")
     lines.append("Pecas utilizadas:")
     for part in snapshot["parts"]:
@@ -400,6 +485,7 @@ def work_order_pdf_from_snapshot(snapshot):
             "",
             f"Mao de obra: {_money(financial.get('labor_total'))}",
             f"Pecas: {_money(financial.get('parts_total'))}",
+            f"Desconto: {_money(financial.get('discount'))}",
             f"Total: {_money(financial.get('total_amount'))}",
             "",
             "Ordem de servico. Nao constitui nota fiscal.",
