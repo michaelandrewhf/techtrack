@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, CircleX, Download, FileCheck2, Plus } from "lucide-react";
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Link, useParams } from "react-router-dom";
 import { z } from "zod";
@@ -53,8 +54,8 @@ type PartForm = z.infer<typeof partSchema>;
 export function WorkOrderDetailPage() {
   const { id = "" } = useParams();
   const queryClient = useQueryClient();
-  const [chargeAmount, setChargeAmount] = useStateFromWorkOrder();
-  const [dueDate, setDueDate] = useStateFromToday();
+  const [chargeAmount, setChargeAmount] = useState("");
+  const [dueDate, setDueDate] = useState(new Date().toISOString().slice(0, 10));
 
   const workOrder = useQuery({
     queryKey: queryKeys.workOrder(id),
@@ -252,14 +253,4 @@ export function WorkOrderDetailPage() {
       </div>
     </div>
   );
-}
-
-function useStateFromWorkOrder(): [string, (value: string) => void] {
-  const [value, setValue] = React.useState("");
-  return [value, setValue];
-}
-
-function useStateFromToday(): [string, (value: string) => void] {
-  const [value, setValue] = React.useState(new Date().toISOString().slice(0, 10));
-  return [value, setValue];
 }
