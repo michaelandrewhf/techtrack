@@ -14,7 +14,16 @@ from catalog.api.views import (
     ServiceTypeViewSet,
 )
 from customers.api.views import CustomerViewSet
+from finance.api.views import (
+    BusinessProfileView,
+    FinanceDashboardView,
+    PaymentViewSet,
+    ReceivableViewSet,
+    ServiceAgreementViewSet,
+)
 from inventory.api.views import ComponentTypeViewSet, EquipmentTypeViewSet, EquipmentViewSet
+from quotes.api.documents import WorkOrderIssuePdfView, WorkOrderPdfView
+from quotes.api.views import QuoteViewSet
 from workorders.api.dashboard import DashboardView
 from workorders.api.views import WorkOrderStatusViewSet, WorkOrderViewSet
 
@@ -43,6 +52,10 @@ router.register("parts", PartViewSet, basename="part")
 router.register("payment-methods", PaymentMethodViewSet, basename="payment-method")
 router.register("work-order-statuses", WorkOrderStatusViewSet, basename="work-order-status")
 router.register("work-orders", WorkOrderViewSet, basename="work-order")
+router.register("quotes", QuoteViewSet, basename="quote")
+router.register("service-agreements", ServiceAgreementViewSet, basename="service-agreement")
+router.register("receivables", ReceivableViewSet, basename="receivable")
+router.register("payments", PaymentViewSet, basename="payment")
 
 urlpatterns = [
     path("health/", health_check, name="api-health"),
@@ -53,5 +66,9 @@ urlpatterns = [
     path("docs/", PublicSpectacularSwaggerView.as_view(url_name="api-schema"), name="api-docs"),
     path("v1/me/", MeView.as_view(), name="api-me"),
     path("v1/dashboard/", DashboardView.as_view(), name="api-dashboard"),
+    path("v1/finance/dashboard/", FinanceDashboardView.as_view(), name="api-finance-dashboard"),
+    path("v1/business-profile/", BusinessProfileView.as_view(), name="api-business-profile"),
+    path("v1/work-orders/<uuid:pk>/pdf/", WorkOrderPdfView.as_view(), name="api-work-order-pdf"),
+    path("v1/work-orders/<uuid:pk>/issue-pdf/", WorkOrderIssuePdfView.as_view(), name="api-work-order-issue-pdf"),
     path("v1/", include(router.urls)),
 ]
