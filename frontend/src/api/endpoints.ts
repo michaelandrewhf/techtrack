@@ -69,6 +69,11 @@ export const financeApi = {
       method: "POST",
       body,
     }),
+  updateAgreement: (id: string, body: Record<string, unknown>) =>
+    apiRequest<ServiceAgreement>(`/v1/service-agreements/${id}/`, {
+      method: "PATCH",
+      body,
+    }),
   generateAgreementReceivable: (id: string, competence: string) =>
     apiRequest<Receivable>(
       `/v1/service-agreements/${id}/generate-receivable/`,
