@@ -2,6 +2,7 @@ import {
   Boxes,
   BriefcaseBusiness,
   ClipboardList,
+  FileText,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -9,6 +10,7 @@ import {
   Settings,
   Sun,
   Users,
+  WalletCards,
   Wrench,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -22,6 +24,8 @@ const nav = [
   { to: "/customers", label: "Clientes", icon: Users },
   { to: "/equipment", label: "Equipamentos", icon: Boxes },
   { to: "/work-orders", label: "Ordens de Servico", icon: ClipboardList },
+  { to: "/quotes", label: "Orcamentos", icon: FileText },
+  { to: "/finance", label: "Financeiro", icon: WalletCards },
 ];
 
 const settings = [
