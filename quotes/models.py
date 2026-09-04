@@ -29,7 +29,6 @@ class QuoteItemType(models.TextChoices):
 class DocumentType(models.TextChoices):
     QUOTE = "quote", "Orcamento"
     WORK_ORDER = "work_order", "Ordem de servico"
-    PAYMENT_RECEIPT = "payment_receipt", "Comprovante de pagamento"
 
 
 class QuoteNumberSequence(models.Model):
@@ -55,29 +54,57 @@ class QuoteQuerySet(models.QuerySet):
             )
         )
         return self.annotate(
-            items_total=Coalesce(item_total, Value(Decimal("0.00")), output_field=DecimalField(max_digits=14, decimal_places=2))
+            items_total=Coalesce(
+                item_total,
+                Value(Decimal("0.00")),
+                output_field=DecimalField(max_digits=14, decimal_places=2),
+            )
         ).annotate(
             total_amount=ExpressionWrapper(
-                F("items_total") - F("discount"), output_field=DecimalField(max_digits=14, decimal_places=2)
+                F("items_total") - F("discount"),
+                output_field=DecimalField(max_digits=14, decimal_places=2),
             )
         )
 
     def with_list_data(self):
-        return self.select_related("customer", "equipment", "work_order", "created_by", "approved_by").with_totals()
+        return self.select_related(
+            "customer",
+            "equipment",
+            "equipment__equipment_type",
+            "work_order",
+            "created_by",
+            "approved_by",
+        ).with_totals()
 
     def with_detail_data(self):
         return self.with_list_data().prefetch_related(
-            Prefetch("items", queryset=QuoteItem.objects.with_list_data().order_by("sort_order", "created_at")),
-            Prefetch("documents", queryset=GeneratedDocument.objects.order_by("-version", "-generated_at")),
+            Prefetch(
+                "items",
+                queryset=QuoteItem.objects.with_list_data().order_by("sort_order", "created_at"),
+            ),
+            Prefetch(
+                "documents",
+                queryset=GeneratedDocument.objects.order_by("-version", "-generated_at"),
+            ),
         )
 
 
 class Quote(TimeStampedUUIDModel):
     number = models.PositiveBigIntegerField(unique=True, editable=False)
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name="quotes")
-    equipment = models.ForeignKey(Equipment, on_delete=models.PROTECT, null=True, blank=True, related_name="quotes")
+    equipment = models.ForeignKey(
+        Equipment,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="quotes",
+    )
     work_order = models.ForeignKey(
-        "workorders.WorkOrder", on_delete=models.PROTECT, null=True, blank=True, related_name="quotes"
+        "workorders.WorkOrder",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="quotes",
     )
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
@@ -111,7 +138,12 @@ class Quote(TimeStampedUUIDModel):
             models.Index(fields=["status", "created_at"], name="quote_status_created_idx"),
             models.Index(fields=["valid_until"], name="quote_valid_until_idx"),
         ]
-        constraints = [models.CheckConstraint(condition=Q(discount__gte=0), name="quote_discount_non_negative")]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(discount__gte=0),
+                name="quote_discount_non_negative",
+            )
+        ]
 
     @property
     def display_number(self):
@@ -129,7 +161,9 @@ class Quote(TimeStampedUUIDModel):
             if self.work_order.customer_id != self.customer_id:
                 raise ValidationError({"work_order": "A OS deve pertencer ao cliente do orcamento."})
             if self.equipment_id and self.work_order.equipment_id != self.equipment_id:
-                raise ValidationError({"work_order": "A OS deve pertencer ao mesmo equipamento do orcamento."})
+                raise ValidationError(
+                    {"work_order": "A OS deve pertencer ao mesmo equipamento do orcamento."}
+                )
         if self.status == QuoteStatus.APPROVED and not self.approved_at:
             raise ValidationError({"approved_at": "Orcamentos aprovados exigem data de aprovacao."})
 
@@ -140,8 +174,20 @@ class Quote(TimeStampedUUIDModel):
 class QuoteItem(TimeStampedUUIDModel):
     quote = models.ForeignKey(Quote, on_delete=models.PROTECT, related_name="items")
     item_type = models.CharField(max_length=20, choices=QuoteItemType)
-    service_type = models.ForeignKey(ServiceType, on_delete=models.PROTECT, null=True, blank=True, related_name="quote_items")
-    part = models.ForeignKey(Part, on_delete=models.SET_NULL, null=True, blank=True, related_name="quote_items")
+    service_type = models.ForeignKey(
+        ServiceType,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="quote_items",
+    )
+    part = models.ForeignKey(
+        Part,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="quote_items",
+    )
     description = models.CharField(max_length=255)
     quantity = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("1.00"))
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
@@ -153,9 +199,18 @@ class QuoteItem(TimeStampedUUIDModel):
     class Meta:
         ordering = ["sort_order", "created_at"]
         constraints = [
-            models.CheckConstraint(condition=Q(quantity__gt=0), name="quote_item_quantity_positive"),
-            models.CheckConstraint(condition=Q(unit_price__gte=0), name="quote_item_price_non_negative"),
-            models.CheckConstraint(condition=Q(discount__gte=0), name="quote_item_discount_non_negative"),
+            models.CheckConstraint(
+                condition=Q(quantity__gt=0),
+                name="quote_item_quantity_positive",
+            ),
+            models.CheckConstraint(
+                condition=Q(unit_price__gte=0),
+                name="quote_item_price_non_negative",
+            ),
+            models.CheckConstraint(
+                condition=Q(discount__gte=0),
+                name="quote_item_discount_non_negative",
+            ),
         ]
 
     @property
@@ -177,9 +232,19 @@ class QuoteItem(TimeStampedUUIDModel):
 
 class GeneratedDocument(TimeStampedUUIDModel):
     document_type = models.CharField(max_length=30, choices=DocumentType)
-    quote = models.ForeignKey(Quote, on_delete=models.PROTECT, null=True, blank=True, related_name="documents")
+    quote = models.ForeignKey(
+        Quote,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="documents",
+    )
     work_order = models.ForeignKey(
-        "workorders.WorkOrder", on_delete=models.PROTECT, null=True, blank=True, related_name="documents"
+        "workorders.WorkOrder",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="documents",
     )
     version = models.PositiveIntegerField()
     snapshot = models.JSONField(default=dict)
