@@ -1,5 +1,2 @@
 export type EquipmentTabId =
-  | "overview"
-  | "components"
-  | "maintenance"
-  | "work-orders";
+  "overview" | "components" | "maintenance" | "work-orders";
