@@ -7,7 +7,14 @@ import { z } from "zod";
 import { equipmentApi } from "../../../api/endpoints";
 import type { Equipment } from "../../../api/types";
 import { Modal } from "../../../components/Modal";
-import { Button, Field, Input, Notice, Select, Textarea } from "../../../components/ui";
+import {
+  Button,
+  Field,
+  Input,
+  Notice,
+  Select,
+  Textarea,
+} from "../../../components/ui";
 import { errorMessage } from "../../../utils/errors";
 
 const editSchema = z.object({
