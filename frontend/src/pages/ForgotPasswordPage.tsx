@@ -10,7 +10,10 @@ import { Button, Field, Input, Notice } from "../components/ui";
 import { errorMessage } from "../utils/errors";
 
 const schema = z.object({
-  email: z.string().min(1, "Informe o e-mail.").email("Informe um e-mail valido."),
+  email: z
+    .string()
+    .min(1, "Informe o e-mail.")
+    .email("Informe um e-mail valido."),
 });
 
 type FormData = z.infer<typeof schema>;
