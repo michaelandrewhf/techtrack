@@ -24,7 +24,7 @@ export function DataTable<T>({
       <div className="space-y-3 md:hidden">
         {rows.map((row, index) => (
           <article
-            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+            className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-sm)]"
             key={getRowKey?.(row, index) ?? index}
           >
             <dl className="space-y-3">
@@ -35,10 +35,10 @@ export function DataTable<T>({
                     className="grid grid-cols-[110px_1fr] items-start gap-3 text-sm"
                     key={column.header}
                   >
-                    <dt className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    <dt className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
                       {column.header}
                     </dt>
-                    <dd className="min-w-0 break-words text-right text-slate-800 dark:text-slate-100">
+                    <dd className="min-w-0 break-words text-right text-[var(--text)]">
                       {column.cell(row)}
                     </dd>
                   </div>
@@ -48,9 +48,9 @@ export function DataTable<T>({
         ))}
       </div>
 
-      <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 md:block">
-        <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
-          <thead className="bg-slate-50/80 text-left text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-950/70 dark:text-slate-400">
+      <div className="hidden overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] md:block">
+        <table className="min-w-full divide-y divide-[var(--border)] text-sm">
+          <thead className="bg-[var(--surface-subtle)] text-left text-xs uppercase tracking-wide text-[var(--text-muted)]">
             <tr>
               {columns.map((column) => (
                 <th className="px-4 py-3 font-semibold" key={column.header}>
@@ -59,15 +59,15 @@ export function DataTable<T>({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+          <tbody className="divide-y divide-[var(--border)]">
             {rows.map((row, index) => (
               <tr
-                className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                className="transition-colors hover:bg-[var(--surface-subtle)]"
                 key={getRowKey?.(row, index) ?? index}
               >
                 {columns.map((column) => (
                   <td
-                    className="px-4 py-3 align-middle text-slate-700 dark:text-slate-200"
+                    className="px-4 py-3 align-middle text-[var(--text)]"
                     key={column.header}
                   >
                     {column.cell(row)}

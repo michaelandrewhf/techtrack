@@ -14,14 +14,72 @@
     sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  --app-bg: #f6f8fb;
+
+  --app-bg: #f4f7fb;
   --app-fg: #172033;
+  --surface: #ffffff;
+  --surface-subtle: #f8fafc;
+  --surface-raised: #ffffff;
+  --surface-inverse: #172033;
+  --border: #dfe5ee;
+  --border-strong: #c9d2df;
+  --text: #172033;
+  --text-muted: #667085;
+  --text-subtle: #98a2b3;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-soft: #eff6ff;
+  --primary-soft-text: #1d4ed8;
+  --success: #059669;
+  --success-soft: #ecfdf3;
+  --warning: #d97706;
+  --warning-soft: #fffbeb;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --info: #2563eb;
+  --info-soft: #eff6ff;
+  --focus: #2563eb;
+  --overlay: rgb(15 23 42 / 0.46);
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.05);
+  --shadow-md: 0 10px 30px rgb(15 23 42 / 0.08);
+  --shadow-lg: 0 24px 60px rgb(15 23 42 / 0.16);
 }
 
 :root.dark {
   color-scheme: dark;
-  --app-bg: #0b1120;
-  --app-fg: #e8edf7;
+  --app-bg: #0a1020;
+  --app-fg: #edf2f7;
+  --surface: #111827;
+  --surface-subtle: #0f172a;
+  --surface-raised: #172033;
+  --surface-inverse: #f8fafc;
+  --border: #263247;
+  --border-strong: #344157;
+  --text: #f8fafc;
+  --text-muted: #a8b3c5;
+  --text-subtle: #728096;
+  --primary: #60a5fa;
+  --primary-hover: #93c5fd;
+  --primary-soft: #10254b;
+  --primary-soft-text: #bfdbfe;
+  --success: #34d399;
+  --success-soft: #0d2d25;
+  --warning: #fbbf24;
+  --warning-soft: #35270b;
+  --danger: #f87171;
+  --danger-soft: #3a1518;
+  --info: #60a5fa;
+  --info-soft: #10254b;
+  --focus: #60a5fa;
+  --overlay: rgb(2 6 23 / 0.72);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.22);
+  --shadow-md: 0 10px 30px rgb(0 0 0 / 0.24);
+  --shadow-lg: 0 24px 60px rgb(0 0 0 / 0.38);
 }
 
 html {
@@ -52,7 +110,7 @@ textarea {
 }
 
 ::selection {
-  background: rgb(37 99 235 / 0.2);
+  background: color-mix(in srgb, var(--primary) 20%, transparent);
 }
 
 * {
@@ -60,7 +118,7 @@ textarea {
 }
 
 *:focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
