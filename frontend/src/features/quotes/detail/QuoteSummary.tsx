@@ -45,7 +45,10 @@ export function QuoteSummary({
               { label: "Criado em", value: formatDateTime(quote.created_at) },
               { label: "Validade", value: formatDate(quote.valid_until) },
               { label: "Enviado em", value: formatDateTime(quote.sent_at) },
-              { label: "Aprovado em", value: formatDateTime(quote.approved_at) },
+              {
+                label: "Aprovado em",
+                value: formatDateTime(quote.approved_at),
+              },
             ]}
           />
         </Panel>
@@ -53,7 +56,9 @@ export function QuoteSummary({
         <Panel title="Valores">
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
-              <span className="text-[var(--text-muted)]">Subtotal dos itens</span>
+              <span className="text-[var(--text-muted)]">
+                Subtotal dos itens
+              </span>
               <strong>{formatMoney(quote.items_total)}</strong>
             </div>
             <div className="flex justify-between text-sm">
