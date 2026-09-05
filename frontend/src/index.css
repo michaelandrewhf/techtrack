@@ -14,26 +14,73 @@
     sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  --app-bg: #f6f8fb;
-  --app-fg: #172033;
+
+  --tt-bg: #f6f8fb;
+  --tt-surface: #ffffff;
+  --tt-surface-subtle: #f8fafc;
+  --tt-surface-raised: #ffffff;
+  --tt-border: #e2e8f0;
+  --tt-border-strong: #cbd5e1;
+  --tt-text: #172033;
+  --tt-text-muted: #64748b;
+  --tt-text-subtle: #94a3b8;
+  --tt-brand: #2563eb;
+  --tt-brand-hover: #1d4ed8;
+  --tt-brand-soft: #eff6ff;
+  --tt-brand-contrast: #ffffff;
+  --tt-success: #059669;
+  --tt-success-soft: #ecfdf5;
+  --tt-warning: #d97706;
+  --tt-warning-soft: #fffbeb;
+  --tt-danger: #dc2626;
+  --tt-danger-soft: #fef2f2;
+  --tt-focus: #2563eb;
+  --tt-overlay: rgb(15 23 42 / 0.48);
+  --tt-radius-sm: 0.5rem;
+  --tt-radius-md: 0.75rem;
+  --tt-radius-lg: 1rem;
+  --tt-shadow-sm: 0 1px 2px rgb(15 23 42 / 0.06);
+  --tt-shadow-md: 0 12px 30px rgb(15 23 42 / 0.10);
 }
 
 :root.dark {
   color-scheme: dark;
-  --app-bg: #0b1120;
-  --app-fg: #e8edf7;
+  --tt-bg: #0b1120;
+  --tt-surface: #111827;
+  --tt-surface-subtle: #0f172a;
+  --tt-surface-raised: #172033;
+  --tt-border: #273449;
+  --tt-border-strong: #3b4a63;
+  --tt-text: #e8edf7;
+  --tt-text-muted: #9aa8bd;
+  --tt-text-subtle: #718096;
+  --tt-brand: #3b82f6;
+  --tt-brand-hover: #60a5fa;
+  --tt-brand-soft: #172554;
+  --tt-brand-contrast: #ffffff;
+  --tt-success: #34d399;
+  --tt-success-soft: #052e2b;
+  --tt-warning: #fbbf24;
+  --tt-warning-soft: #3b2f0b;
+  --tt-danger: #f87171;
+  --tt-danger-soft: #3f1518;
+  --tt-focus: #60a5fa;
+  --tt-overlay: rgb(2 6 23 / 0.66);
+  --tt-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.20);
+  --tt-shadow-md: 0 18px 42px rgb(0 0 0 / 0.32);
 }
 
 html {
-  background: var(--app-bg);
+  background: var(--tt-bg);
 }
 
 body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
-  background: var(--app-bg);
-  color: var(--app-fg);
+  background: var(--tt-bg);
+  color: var(--tt-text);
+  -webkit-font-smoothing: antialiased;
 }
 
 button,
@@ -52,7 +99,7 @@ textarea {
 }
 
 ::selection {
-  background: rgb(37 99 235 / 0.2);
+  background: color-mix(in srgb, var(--tt-brand) 22%, transparent);
 }
 
 * {
@@ -60,7 +107,7 @@ textarea {
 }
 
 *:focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid var(--tt-focus);
   outline-offset: 2px;
 }
 
