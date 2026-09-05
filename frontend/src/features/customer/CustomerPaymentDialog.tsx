@@ -44,9 +44,7 @@ export function CustomerPaymentDialog({
         <Field label="Conta a receber" required>
           <Select
             value={selectedReceivable}
-            onChange={(event) =>
-              onSelectedReceivableChange(event.target.value)
-            }
+            onChange={(event) => onSelectedReceivableChange(event.target.value)}
           >
             <option value="">Selecione</option>
             {openReceivables.map((row) => (
@@ -83,10 +81,7 @@ export function CustomerPaymentDialog({
           </Button>
           <Button
             disabled={
-              !selectedReceivable ||
-              !paymentAmount ||
-              !paymentMethod ||
-              pending
+              !selectedReceivable || !paymentAmount || !paymentMethod || pending
             }
             type="button"
             onClick={onSubmit}
