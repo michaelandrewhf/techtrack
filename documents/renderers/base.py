@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from config.pdf import CONTENT_BOTTOM, CONTENT_TOP, MARGIN_X, PdfDocument, WHITE
+from config.pdf import CONTENT_BOTTOM, CONTENT_TOP, MARGIN_X, WHITE, PdfDocument
 
 PRIMARY = (0.145, 0.388, 0.922)
 PRIMARY_SOFT = (0.925, 0.953, 1.0)
