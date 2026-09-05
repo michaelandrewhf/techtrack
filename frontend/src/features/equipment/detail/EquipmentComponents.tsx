@@ -10,7 +10,14 @@ import type { Equipment, EquipmentComponent } from "../../../api/types";
 import { CatalogSelect } from "../../../components/CatalogSelect";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { DataTable } from "../../../components/DataTable";
-import { Button, Field, Input, Notice, Panel, Textarea } from "../../../components/ui";
+import {
+  Button,
+  Field,
+  Input,
+  Notice,
+  Panel,
+  Textarea,
+} from "../../../components/ui";
 import { errorMessage } from "../../../utils/errors";
 import { formatDate } from "../../../utils/format";
 
@@ -34,10 +41,13 @@ export function EquipmentComponents({
   onChanged: () => Promise<void> | void;
 }) {
   const [formOpen, setFormOpen] = useState(false);
-  const form = useForm<ComponentForm>({ resolver: zodResolver(componentSchema) });
+  const form = useForm<ComponentForm>({
+    resolver: zodResolver(componentSchema),
+  });
 
   const addComponent = useMutation({
-    mutationFn: (data: ComponentForm) => equipmentApi.addComponent(equipment.id, data),
+    mutationFn: (data: ComponentForm) =>
+      equipmentApi.addComponent(equipment.id, data),
     onSuccess: async () => {
       form.reset();
       setFormOpen(false);
@@ -110,7 +120,11 @@ export function EquipmentComponents({
             </div>
           ) : null}
           <div className="flex justify-end gap-2 sm:col-span-2">
-            <Button type="button" variant="ghost" onClick={() => setFormOpen(false)}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setFormOpen(false)}
+            >
               Cancelar
             </Button>
             <Button disabled={addComponent.isPending} type="submit">
@@ -129,7 +143,9 @@ export function EquipmentComponents({
           {
             header: "Descricao",
             cell: (row) =>
-              [row.manufacturer, row.model, row.capacity].filter(Boolean).join(" ") || "-",
+              [row.manufacturer, row.model, row.capacity]
+                .filter(Boolean)
+                .join(" ") || "-",
           },
           { header: "Serial", cell: (row) => row.serial_number || "-" },
           { header: "Instalado", cell: (row) => formatDate(row.installed_at) },
