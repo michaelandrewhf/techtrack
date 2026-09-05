@@ -23,7 +23,7 @@ dev = [
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
-testpaths = ["accounts", "customers", "inventory", "catalog", "workorders", "finance", "quotes"]
+testpaths = ["accounts", "customers", "inventory", "catalog", "workorders", "finance", "quotes", "documents"]
 
 [tool.ruff]
 line-length = 120
