@@ -36,7 +36,9 @@ export function Modal({
     if (!open) return;
 
     previousFocusRef.current =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
@@ -108,17 +110,11 @@ export function Modal({
       >
         <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-[var(--border)] bg-[var(--surface)] px-5 py-4">
           <div>
-            <h2
-              className="text-lg font-semibold text-[var(--text)]"
-              id={titleId}
-            >
+            <h2 className="text-lg font-semibold text-[var(--text)]" id={titleId}>
               {title}
             </h2>
             {description ? (
-              <p
-                className="mt-1 text-sm text-[var(--text-muted)]"
-                id={descriptionId}
-              >
+              <p className="mt-1 text-sm text-[var(--text-muted)]" id={descriptionId}>
                 {description}
               </p>
             ) : null}
