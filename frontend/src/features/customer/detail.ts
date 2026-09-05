@@ -49,11 +49,7 @@ export type CustomerForm = z.input<typeof customerSchema>;
 export type EquipmentForm = z.input<typeof equipmentSchema>;
 export type AgreementForm = z.input<typeof agreementSchema>;
 export type CustomerModal =
-  | "edit"
-  | "equipment"
-  | "agreement"
-  | "payment"
-  | null;
+  "edit" | "equipment" | "agreement" | "payment" | null;
 
 export const customerTabs = [
   { id: "overview", label: "Visao geral" },
