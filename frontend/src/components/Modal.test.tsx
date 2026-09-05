@@ -22,7 +22,9 @@ describe("Modal", () => {
       </Modal>,
     );
 
-    expect(screen.getByRole("dialog", { name: "Editar cliente" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "Editar cliente" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Fechar" })).toHaveFocus();
     expect(document.body.style.overflow).toBe("hidden");
 
