@@ -97,4 +97,70 @@ describe("FinancePage", () => {
       ).toBe(true);
     });
   });
+
+  it("shows only unsettled entries in accounts receivable", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/api/v1/finance/dashboard/")) {
+        return json({
+          pending_total: "180.00",
+          overdue_total: "0.00",
+          received_this_month: "300.00",
+          upcoming: [],
+          recent_payments: [],
+        });
+      }
+      if (url.includes("/api/v1/receivables/")) {
+        return json({
+          count: 2,
+          next: null,
+          previous: null,
+          results: [
+            {
+              id: "r-paid",
+              customer: "c1",
+              customer_name: "Cliente A",
+              description: "Mensalidade paga",
+              origin: "agreement",
+              due_date: "2026-09-03",
+              amount: "300.00",
+              balance: "0.00",
+              status: "paid",
+              is_overdue: false,
+            },
+            {
+              id: "r-open",
+              customer: "c2",
+              customer_name: "Cliente B",
+              description: "Mensalidade pendente",
+              origin: "agreement",
+              due_date: "2026-09-15",
+              amount: "180.00",
+              balance: "180.00",
+              status: "pending",
+              is_overdue: false,
+            },
+          ],
+        });
+      }
+      return json(emptyPage);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderPage();
+
+    expect(
+      await screen.findByRole("heading", { name: "Financeiro" }),
+    ).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("tab", { name: /Contas a receber/ }),
+    );
+
+    expect(await screen.findByText("Mensalidade pendente")).toBeInTheDocument();
+    expect(screen.queryByText("Mensalidade paga")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("tab", { name: /Contas a receber/ }),
+    ).toHaveTextContent("1");
+  });
 });
