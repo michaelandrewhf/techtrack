@@ -40,7 +40,11 @@ const groups: Array<{ label?: string; items: NavItem[] }> = [
   {
     label: "Operacao",
     items: [
-      { to: "/work-orders", label: "Ordens de Servico", icon: ClipboardList },
+      {
+        to: "/work-orders",
+        label: "Ordens de Servico",
+        icon: ClipboardList,
+      },
       { to: "/quotes", label: "Orcamentos", icon: FileText },
       { to: "/equipment", label: "Equipamentos", icon: Boxes },
     ],
@@ -83,31 +87,33 @@ export function AppLayout() {
     "Usuario";
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen bg-[var(--app-bg)] text-[var(--text)]">
       {sidebarOpen ? (
         <button
           aria-label="Fechar menu"
-          className="fixed inset-0 z-30 bg-slate-950/40 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-30 bg-[var(--overlay)] backdrop-blur-sm lg:hidden"
           type="button"
           onClick={() => setSidebarOpen(false)}
         />
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform dark:border-slate-800 dark:bg-slate-900 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-[var(--border)] bg-[var(--surface)] transition-transform lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex h-16 items-center justify-between border-b border-slate-200 px-5 dark:border-slate-800">
+        <div className="flex h-16 items-center justify-between border-b border-[var(--border)] px-5">
           <Link className="flex items-center gap-3" to="/">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
+            <div className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] bg-[var(--primary)] text-white shadow-[var(--shadow-sm)]">
               <Wrench className="h-5 w-5" />
             </div>
             <div>
-              <div className="font-semibold tracking-tight text-slate-950 dark:text-white">
+              <div className="font-semibold tracking-tight text-[var(--text)]">
                 TechTrack
               </div>
-              <div className="text-xs text-slate-500">Gestao de suporte TI</div>
+              <div className="text-xs text-[var(--text-muted)]">
+                Gestao de suporte TI
+              </div>
             </div>
           </Link>
           <Button
@@ -129,7 +135,7 @@ export function AppLayout() {
           {groups.map((group, groupIndex) => (
             <div key={group.label ?? groupIndex}>
               {group.label ? (
-                <div className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                <div className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
                   {group.label}
                 </div>
               ) : null}
@@ -137,10 +143,10 @@ export function AppLayout() {
                 {group.items.map((item) => (
                   <NavLink
                     className={({ isActive }) =>
-                      `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                      `flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium transition-colors ${
                         isActive
-                          ? "bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-blue-200"
-                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                          ? "bg-[var(--primary-soft)] text-[var(--primary-soft-text)]"
+                          : "text-[var(--text-muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--text)]"
                       }`
                     }
                     end={item.end}
@@ -156,13 +162,13 @@ export function AppLayout() {
           ))}
         </nav>
 
-        <div className="border-t border-slate-200 p-3 dark:border-slate-800">
+        <div className="border-t border-[var(--border)] p-3">
           <NavLink
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              `flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 text-sm font-medium transition-colors ${
                 isActive
-                  ? "bg-slate-100 text-slate-950 dark:bg-slate-800 dark:text-white"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                  ? "bg-[var(--surface-subtle)] text-[var(--text)]"
+                  : "text-[var(--text-muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--text)]"
               }`
             }
             to="/settings"
@@ -174,7 +180,7 @@ export function AppLayout() {
       </aside>
 
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white/90 px-3 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/90 sm:px-5">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] px-3 backdrop-blur-xl sm:px-5">
           <div className="flex items-center gap-2">
             <Button
               aria-label="Abrir menu"
@@ -188,6 +194,8 @@ export function AppLayout() {
             </Button>
             <div className="relative">
               <Button
+                aria-expanded={createOpen}
+                aria-haspopup="menu"
                 type="button"
                 onClick={() => setCreateOpen((value) => !value)}
               >
@@ -196,11 +204,15 @@ export function AppLayout() {
                 <ChevronDown className="h-3.5 w-3.5" />
               </Button>
               {createOpen ? (
-                <div className="absolute left-0 top-11 z-50 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+                <div
+                  className="absolute left-0 top-11 z-50 w-52 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--shadow-md)]"
+                  role="menu"
+                >
                   {quickCreate.map((item) => (
                     <Link
-                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                      className="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2 text-sm text-[var(--text)] hover:bg-[var(--surface-subtle)]"
                       key={item.to}
+                      role="menuitem"
                       to={item.to}
                     >
                       <item.icon className="h-4 w-4" />
@@ -229,15 +241,15 @@ export function AppLayout() {
             </Button>
             <Link
               aria-label="Abrir meu perfil"
-              className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+              className="flex items-center gap-2 rounded-[var(--radius-md)] px-2.5 py-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-subtle)] hover:text-[var(--text)]"
               to="/profile"
             >
               <CircleUserRound className="h-4 w-4" />
               <div className="hidden text-right sm:block">
-                <div className="max-w-40 truncate text-sm font-medium">
+                <div className="max-w-40 truncate text-sm font-medium text-[var(--text)]">
                   {displayName}
                 </div>
-                <div className="max-w-40 truncate text-xs text-slate-500">
+                <div className="max-w-40 truncate text-xs text-[var(--text-muted)]">
                   @{user?.username}
                 </div>
               </div>
