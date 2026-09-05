@@ -5,7 +5,11 @@ from rest_framework.permissions import AllowAny
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 
-from accounts.api.views import MeView
+from accounts.api.views import (
+    MeView,
+    PasswordResetConfirmView,
+    PasswordResetRequestView,
+)
 from catalog.api.views import (
     PartCategoryViewSet,
     PartViewSet,
@@ -65,6 +69,16 @@ urlpatterns = [
     path("schema/", PublicSpectacularAPIView.as_view(), name="api-schema"),
     path("docs/", PublicSpectacularSwaggerView.as_view(url_name="api-schema"), name="api-docs"),
     path("v1/me/", MeView.as_view(), name="api-me"),
+    path(
+        "v1/auth/password-reset/",
+        PasswordResetRequestView.as_view(),
+        name="api-password-reset",
+    ),
+    path(
+        "v1/auth/password-reset/confirm/",
+        PasswordResetConfirmView.as_view(),
+        name="api-password-reset-confirm",
+    ),
     path("v1/dashboard/", DashboardView.as_view(), name="api-dashboard"),
     path("v1/finance/dashboard/", FinanceDashboardView.as_view(), name="api-finance-dashboard"),
     path("v1/business-profile/", BusinessProfileView.as_view(), name="api-business-profile"),
