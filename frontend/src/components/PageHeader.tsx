@@ -15,18 +15,18 @@ export function PageHeader({
     <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
       <div className="min-w-0">
         {eyebrow ? (
-          <div className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-blue-600 dark:text-blue-400">
+          <div className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--tt-brand)]">
             {eyebrow}
           </div>
         ) : null}
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="truncate text-2xl font-semibold tracking-tight text-slate-950 dark:text-white sm:text-3xl">
+          <h1 className="truncate text-2xl font-semibold tracking-tight text-[var(--tt-text)] sm:text-3xl">
             {title}
           </h1>
           {meta}
         </div>
         {description ? (
-          <p className="mt-1.5 max-w-3xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+          <p className="mt-1.5 max-w-3xl text-sm leading-6 text-[var(--tt-text-muted)]">
             {description}
           </p>
         ) : null}
