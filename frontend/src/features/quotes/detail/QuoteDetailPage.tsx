@@ -124,7 +124,11 @@ export function QuoteDetailPage() {
               Emitir PDF
             </Button>
             {editable ? (
-              <Button type="button" variant="ghost" onClick={() => setEditOpen(true)}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setEditOpen(true)}
+              >
                 <Pencil className="h-4 w-4" />
                 Editar
               </Button>
