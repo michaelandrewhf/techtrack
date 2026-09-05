@@ -13,11 +13,13 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { EquipmentDetailPage } from "./pages/EquipmentDetailPage";
 import { EquipmentPage } from "./pages/EquipmentPage";
 import { FinancePage } from "./pages/FinancePage";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { QuoteCreatePage } from "./pages/QuoteCreatePage";
 import { QuoteDetailPage } from "./pages/QuoteDetailPage";
 import { QuotesPage } from "./pages/QuotesPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { WorkOrderCreatePage } from "./pages/WorkOrderCreatePage";
 import { WorkOrderDetailPage } from "./pages/WorkOrderDetailPage";
@@ -35,6 +37,11 @@ const queryClient = new QueryClient({
 function createRouter() {
   return createBrowserRouter([
     { path: "/login", element: <LoginPage /> },
+    { path: "/forgot-password", element: <ForgotPasswordPage /> },
+    {
+      path: "/reset-password/:uid/:token",
+      element: <ResetPasswordPage />,
+    },
     {
       element: <ProtectedRoute />,
       children: [
