@@ -35,7 +35,7 @@ export function FinanceTabs({
     return (
       <Panel
         title="Contas a receber"
-        subtitle="Cobrancas de OS, contratos e lancamentos manuais."
+        subtitle="Cobrancas pendentes ou parcialmente pagas de OS, contratos e lancamentos manuais."
         action={
           <Button size="sm" type="button" onClick={onOpenPayment}>
             Registrar pagamento
@@ -43,9 +43,9 @@ export function FinanceTabs({
         }
       >
         <DataTable<Receivable>
-          empty="Nenhuma conta a receber."
+          empty="Nenhuma conta em aberto."
           getRowKey={(row) => row.id}
-          rows={workspace.receivables.data?.results ?? []}
+          rows={workspace.openReceivables}
           columns={[
             {
               header: "Cliente",
