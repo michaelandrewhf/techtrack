@@ -216,11 +216,11 @@ describe("App", () => {
 
     render(<App />);
     await userEvent.type(
-      screen.getByLabelText(/^Nova senha/),
+      await screen.findByLabelText(/^Nova senha/),
       "NewSecurePassword!2026",
     );
     await userEvent.type(
-      screen.getByLabelText(/^Confirmar nova senha/),
+      await screen.findByLabelText(/^Confirmar nova senha/),
       "NewSecurePassword!2026",
     );
     await userEvent.click(
