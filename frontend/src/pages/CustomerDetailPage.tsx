@@ -91,7 +91,9 @@ export function CustomerDetailPage() {
         page_size: 100,
       }),
     enabled:
-      activeTab === "overview" || activeTab === "finance" || modal === "payment",
+      activeTab === "overview" ||
+      activeTab === "finance" ||
+      modal === "payment",
   });
   const paymentMethods = useQuery({
     queryKey: ["catalog", "payment-methods", "customer-workspace"],
