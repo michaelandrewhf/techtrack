@@ -23,7 +23,11 @@ export function NotFoundPage() {
           Volte para a pagina anterior ou acesse a central de trabalho.
         </p>
         <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
-          <Button type="button" variant="secondary" onClick={() => navigate(-1)}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => navigate(-1)}
+          >
             <ArrowLeft className="h-4 w-4" />
             Voltar
           </Button>
