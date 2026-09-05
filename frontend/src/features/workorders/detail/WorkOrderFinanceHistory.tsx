@@ -28,9 +28,7 @@ export function WorkOrderFinanceHistory({
   const isClosed = workOrder.status.kind !== "active";
   const { technicalTotal } = workOrderTotals(workOrder);
   const [chargeAmount, setChargeAmount] = useState("");
-  const [dueDate, setDueDate] = useState(
-    new Date().toISOString().slice(0, 10),
-  );
+  const [dueDate, setDueDate] = useState(new Date().toISOString().slice(0, 10));
 
   const createReceivable = useMutation({
     mutationFn: () =>
@@ -78,7 +76,8 @@ export function WorkOrderFinanceHistory({
                     {receivable.description}
                   </div>
                   <div className="mt-1 text-xs text-[var(--text-muted)]">
-                    Vence {formatDate(receivable.due_date)} · {receivable.status}
+                    Vence {formatDate(receivable.due_date)} ·{" "}
+                    {receivable.status}
                   </div>
                 </div>
                 <div className="text-right">
@@ -118,7 +117,9 @@ export function WorkOrderFinanceHistory({
             </Field>
             <div className="self-end">
               <Button
-                disabled={!chargeAmount || !dueDate || createReceivable.isPending}
+                disabled={
+                  !chargeAmount || !dueDate || createReceivable.isPending
+                }
                 type="button"
                 onClick={() => createReceivable.mutate()}
               >
@@ -151,7 +152,8 @@ export function WorkOrderFinanceHistory({
                 {event.status.name}
               </div>
               <div className="mt-1 text-xs text-[var(--text-muted)]">
-                {formatDateTime(event.changed_at)} · {event.changed_by?.username ?? "-"}
+                {formatDateTime(event.changed_at)} ·{" "}
+                {event.changed_by?.username ?? "-"}
               </div>
               {event.comment || event.description ? (
                 <p className="mt-1 text-sm text-[var(--text-muted)]">
