@@ -51,9 +51,7 @@ def _quote_amounts(quote):
     items_total = sum((item.total for item in items), Decimal("0.00"))
     total_amount = items_total - quote.discount
     if total_amount < 0:
-        raise ValidationError(
-            {"discount": "O desconto do orcamento nao pode superar o total dos itens."}
-        )
+        raise ValidationError({"discount": "O desconto do orcamento nao pode superar o total dos itens."})
     return items, items_total, total_amount
 
 
@@ -75,11 +73,7 @@ def quote_snapshot(quote):
     if quote.equipment_id:
         equipment = {
             "id": str(quote.equipment_id),
-            "type": (
-                quote.equipment.equipment_type.name
-                if quote.equipment.equipment_type_id
-                else ""
-            ),
+            "type": (quote.equipment.equipment_type.name if quote.equipment.equipment_type_id else ""),
             "manufacturer": quote.equipment.manufacturer,
             "model": quote.equipment.model,
             "serial_number": quote.equipment.serial_number,
@@ -132,20 +126,13 @@ def work_order_snapshot(work_order):
             "quantity": str(part.quantity),
             "unit_price": str(part.unit_price or Decimal("0.00")),
             "serial_number": part.serial_number,
-            "warranty_until": (
-                part.warranty_until.isoformat() if part.warranty_until else None
-            ),
+            "warranty_until": (part.warranty_until.isoformat() if part.warranty_until else None),
         }
         for part in work_order.parts.filter(voided_at__isnull=True)
     ]
-    labor_total = sum(
-        (Decimal(item["labor_price"]) for item in services), Decimal("0.00")
-    )
+    labor_total = sum((Decimal(item["labor_price"]) for item in services), Decimal("0.00"))
     parts_total = sum(
-        (
-            Decimal(item["quantity"]) * Decimal(item["unit_price"])
-            for item in parts
-        ),
+        (Decimal(item["quantity"]) * Decimal(item["unit_price"]) for item in parts),
         Decimal("0.00"),
     )
     financial = {
@@ -163,16 +150,8 @@ def work_order_snapshot(work_order):
         if billing_total is None:
             billing_total = labor_total + parts_total
         financial = {
-            "labor_total": str(
-                billing.labor_total
-                if billing.labor_total is not None
-                else labor_total
-            ),
-            "parts_total": str(
-                billing.parts_total
-                if billing.parts_total is not None
-                else parts_total
-            ),
+            "labor_total": str(billing.labor_total if billing.labor_total is not None else labor_total),
+            "parts_total": str(billing.parts_total if billing.parts_total is not None else parts_total),
             "discount": str(billing.discount or Decimal("0.00")),
             "total_amount": str(billing_total),
         }
@@ -188,17 +167,9 @@ def work_order_snapshot(work_order):
             "service_description": work_order.service_description,
             "solution": work_order.solution,
             "opened_at": work_order.opened_at.isoformat(),
-            "completed_at": (
-                work_order.completed_at.isoformat()
-                if work_order.completed_at
-                else None
-            ),
+            "completed_at": (work_order.completed_at.isoformat() if work_order.completed_at else None),
             "status": work_order.status.name,
-            "responsible": (
-                work_order.responsible_user.get_username()
-                if work_order.responsible_user
-                else ""
-            ),
+            "responsible": (work_order.responsible_user.get_username() if work_order.responsible_user else ""),
         },
         "customer": {
             "id": str(work_order.customer_id),
@@ -319,9 +290,7 @@ def approve_quote(*, quote, approved_by=None):
     quote.approved_at = timezone.now()
     quote.approved_by = approved_by
     quote.full_clean()
-    quote.save(
-        update_fields=["status", "approved_at", "approved_by", "updated_at"]
-    )
+    quote.save(update_fields=["status", "approved_at", "approved_by", "updated_at"])
     return quote
 
 
@@ -331,9 +300,7 @@ def set_quote_terminal_status(*, quote, status):
         raise ValidationError("Status terminal de orcamento invalido.")
     quote = Quote.objects.select_for_update().get(pk=quote.pk)
     if quote.status == QuoteStatus.APPROVED:
-        raise ValidationError(
-            "Orcamento aprovado nao pode ser rejeitado/cancelado pelo fluxo basico."
-        )
+        raise ValidationError("Orcamento aprovado nao pode ser rejeitado/cancelado pelo fluxo basico.")
     if quote.status in {QuoteStatus.REJECTED, QuoteStatus.CANCELLED}:
         return quote
     quote.status = status
@@ -356,9 +323,7 @@ def create_work_order_from_quote(*, quote, responsible_user=None):
         customer=quote.customer,
         equipment=quote.equipment,
         title=quote.title,
-        problem_description=(
-            quote.description or f"Servico aprovado no {quote.display_number}"
-        ),
+        problem_description=(quote.description or f"Servico aprovado no {quote.display_number}"),
         responsible_user=responsible_user,
     )
     quote.work_order = work_order
@@ -367,9 +332,7 @@ def create_work_order_from_quote(*, quote, responsible_user=None):
 
 
 @transaction.atomic
-def issue_document(
-    *, document_type, generated_by=None, quote=None, work_order=None
-):
+def issue_document(*, document_type, generated_by=None, quote=None, work_order=None):
     if document_type == DocumentType.QUOTE:
         if not quote:
             raise ValidationError("Informe o orcamento.")
@@ -379,19 +342,14 @@ def issue_document(
     elif document_type == DocumentType.WORK_ORDER:
         if not work_order:
             raise ValidationError("Informe a OS.")
-        work_order = work_order.__class__.objects.select_for_update().get(
-            pk=work_order.pk
-        )
+        work_order = work_order.__class__.objects.select_for_update().get(pk=work_order.pk)
         snapshot = work_order_snapshot(work_order)
         filter_kwargs = {"document_type": document_type, "work_order": work_order}
     else:
         raise ValidationError("Tipo de documento ainda nao suportado para emissao.")
 
     current = (
-        GeneratedDocument.objects.filter(**filter_kwargs).aggregate(
-            max_version=Max("version")
-        )["max_version"]
-        or 0
+        GeneratedDocument.objects.filter(**filter_kwargs).aggregate(max_version=Max("version"))["max_version"] or 0
     )
     document = GeneratedDocument(
         document_type=document_type,
