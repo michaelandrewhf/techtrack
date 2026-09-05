@@ -49,7 +49,10 @@ export function FinancePage() {
     setParams(next, { replace: true });
   };
 
-  if (workspace.dashboard.isLoading || workspace.activeAgreementSummary.isLoading)
+  if (
+    workspace.dashboard.isLoading ||
+    workspace.activeAgreementSummary.isLoading
+  )
     return <PageLoader label="Carregando financeiro" />;
 
   if (
