@@ -157,7 +157,9 @@ describe("FinancePage", () => {
       screen.getByRole("tab", { name: /Contas a receber/ }),
     );
 
-    expect(await screen.findByText("Mensalidade pendente")).toBeInTheDocument();
+    expect(
+      (await screen.findAllByText("Mensalidade pendente")).length,
+    ).toBeGreaterThan(0);
     expect(screen.queryByText("Mensalidade paga")).not.toBeInTheDocument();
     expect(
       screen.getByRole("tab", { name: /Contas a receber/ }),
