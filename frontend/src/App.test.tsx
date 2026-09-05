@@ -196,7 +196,7 @@ describe("App", () => {
     const fetchMock = setupFetch();
 
     render(<App />);
-    await userEvent.type(screen.getByLabelText("E-mail"), "user@example.com");
+    await userEvent.type(screen.getByLabelText(/^E-mail/), "user@example.com");
     await userEvent.click(
       screen.getByRole("button", { name: "Enviar link de recuperacao" }),
     );
@@ -216,11 +216,11 @@ describe("App", () => {
 
     render(<App />);
     await userEvent.type(
-      screen.getByLabelText("Nova senha"),
+      screen.getByLabelText(/^Nova senha/),
       "NewSecurePassword!2026",
     );
     await userEvent.type(
-      screen.getByLabelText("Confirmar nova senha"),
+      screen.getByLabelText(/^Confirmar nova senha/),
       "NewSecurePassword!2026",
     );
     await userEvent.click(
