@@ -145,8 +145,8 @@ export function CustomerOverviewTab({
                     </div>
                     <div className="mt-1 text-sm text-[var(--tt-text-muted)]">
                       Desde {formatDate(activeAgreement.starts_on)} ·{" "}
-                      {formatMoney(activeAgreement.amount)} por mes · vencimento dia{" "}
-                      {activeAgreement.billing_day}
+                      {formatMoney(activeAgreement.amount)} por mes · vencimento
+                      dia {activeAgreement.billing_day}
                     </div>
                   </div>
                   <Badge tone="success">Ativo</Badge>
