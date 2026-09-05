@@ -81,7 +81,8 @@ export function CustomerDetailPage() {
           ? (workspace.workOrders.data?.count ??
             workspace.recentWorkOrders.data?.count)
           : tab.id === "quotes"
-            ? (workspace.quotes.data?.count ?? workspace.recentQuotes.data?.count)
+            ? (workspace.quotes.data?.count ??
+              workspace.recentQuotes.data?.count)
             : undefined,
   }));
 
@@ -119,9 +120,7 @@ export function CustomerDetailPage() {
         description="Dados, patrimonio tecnico, atendimentos, orcamentos e financeiro em um unico contexto."
         meta={
           <div className="flex flex-wrap gap-2">
-            <Badge
-              tone={customer.status === "active" ? "success" : "neutral"}
-            >
+            <Badge tone={customer.status === "active" ? "success" : "neutral"}>
               {customerStatusLabel(customer.status)}
             </Badge>
             {!workspace.agreements.isLoading ? (
@@ -165,7 +164,11 @@ export function CustomerDetailPage() {
         }
       />
 
-      <Tabs items={tabItems} value={activeTab} onChange={(value) => selectTab(value as CustomerTabId)} />
+      <Tabs
+        items={tabItems}
+        value={activeTab}
+        onChange={(value) => selectTab(value as CustomerTabId)}
+      />
 
       <div className="mt-5">
         {activeTab === "overview" ? (
