@@ -5,13 +5,7 @@ import { catalogApi, customersApi, financeApi } from "../../api/endpoints";
 import type { Receivable } from "../../api/types";
 import { ErrorState, PageLoader } from "../../components/State";
 import { Modal } from "../../components/Modal";
-import {
-  Button,
-  Field,
-  Input,
-  Notice,
-  Select,
-} from "../../components/ui";
+import { Button, Field, Input, Notice, Select } from "../../components/ui";
 import { errorMessage } from "../../utils/errors";
 import { formatMoney } from "../../utils/format";
 
@@ -178,7 +172,11 @@ export function FinanceDialogs({
               <Notice tone="danger">{errorMessage(addPayment.error)}</Notice>
             ) : null}
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="secondary" onClick={onClosePayment}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={onClosePayment}
+              >
                 Cancelar
               </Button>
               <Button
@@ -319,7 +317,9 @@ export function FinanceDialogs({
                 : "A primeira mensalidade sera gerada somente no proximo mes."}
             </Notice>
             {createAgreement.error ? (
-              <Notice tone="danger">{errorMessage(createAgreement.error)}</Notice>
+              <Notice tone="danger">
+                {errorMessage(createAgreement.error)}
+              </Notice>
             ) : null}
             <div className="flex justify-end gap-2">
               <Button
