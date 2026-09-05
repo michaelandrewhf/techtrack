@@ -1,19 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  CircleDollarSign,
-  ClipboardList,
-  FileText,
-  Laptop,
-  Pencil,
-  Plus,
-  UserRound,
-  WalletCards,
-} from "lucide-react";
+import { ClipboardList, FileText, Pencil, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { z } from "zod";
 
 import {
   catalogApi,
@@ -23,136 +13,41 @@ import {
   quotesApi,
 } from "../api/endpoints";
 import { queryKeys } from "../api/queryKeys";
-import type {
-  Equipment,
-  Quote,
-  Receivable,
-  ServiceAgreement,
-  WorkOrder,
-} from "../api/types";
+import type { ServiceAgreement } from "../api/types";
 import { Breadcrumbs } from "../components/Breadcrumbs";
-import { CatalogSelect } from "../components/CatalogSelect";
-import { ConfirmDialog } from "../components/ConfirmDialog";
-import { DataTable } from "../components/DataTable";
-import { Modal } from "../components/Modal";
 import { PageHeader } from "../components/PageHeader";
 import { ErrorState, PageLoader } from "../components/State";
 import { Tabs } from "../components/Tabs";
+import { Badge, Button } from "../components/ui";
+import { CustomerAgreementDialog } from "../features/customer/CustomerAgreementDialog";
+import { CustomerEditDialog } from "../features/customer/CustomerEditDialog";
+import { CustomerEquipmentDialog } from "../features/customer/CustomerEquipmentDialog";
+import { CustomerEquipmentTab } from "../features/customer/CustomerEquipmentTab";
+import { CustomerFinanceTab } from "../features/customer/CustomerFinanceTab";
+import { CustomerOverviewTab } from "../features/customer/CustomerOverviewTab";
+import { CustomerPaymentDialog } from "../features/customer/CustomerPaymentDialog";
+import { CustomerQuotesTab } from "../features/customer/CustomerQuotesTab";
+import { CustomerWorkOrdersTab } from "../features/customer/CustomerWorkOrdersTab";
 import {
-  Badge,
-  Button,
-  DescriptionList,
-  Field,
-  Input,
-  MetricCard,
-  Notice,
-  Panel,
-  Select,
-  Textarea,
-} from "../components/ui";
-import { errorMessage } from "../utils/errors";
-import { formatDate, formatDateTime, formatMoney } from "../utils/format";
-
-const customerSchema = z.object({
-  name: z.string().min(1, "Informe o nome."),
-  phone: z.string().optional(),
-  whatsapp: z.string().optional(),
-  email: z.string().email("E-mail invalido.").or(z.literal("")).optional(),
-  notes: z.string().optional(),
-  status: z.string().min(1),
-});
-
-const equipmentSchema = z.object({
-  equipment_type_id: z.string().min(1, "Selecione o tipo."),
-  manufacturer: z.string().optional(),
-  model: z.string().optional(),
-  serial_number: z.string().optional(),
-  asset_tag: z.string().optional(),
-  operating_system: z.string().optional(),
-  notes: z.string().optional(),
-  status: z.string().default("active"),
-});
-
-const agreementSchema = z
-  .object({
-    name: z.string().min(1, "Informe o nome do contrato."),
-    description: z.string().optional(),
-    amount: z.string().min(1, "Informe o valor mensal."),
-    billing_day: z.string().min(1, "Informe o dia de vencimento."),
-    starts_on: z.string().min(1, "Informe a data de inicio."),
-    first_billing_mode: z.enum(["receive_now", "next_month"]),
-    first_payment_method: z.string().optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (
-      data.first_billing_mode === "receive_now" &&
-      !data.first_payment_method
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["first_payment_method"],
-        message: "Selecione o metodo de pagamento.",
-      });
-    }
-  });
-
-type CustomerForm = z.input<typeof customerSchema>;
-type EquipmentForm = z.input<typeof equipmentSchema>;
-type AgreementForm = z.input<typeof agreementSchema>;
-type ModalName = "edit" | "equipment" | "agreement" | "payment" | null;
-
-const tabs = [
-  { id: "overview", label: "Visao geral" },
-  { id: "equipment", label: "Equipamentos" },
-  { id: "work-orders", label: "Ordens de servico" },
-  { id: "quotes", label: "Orcamentos" },
-  { id: "finance", label: "Financeiro" },
-];
-
-function customerStatusLabel(status: string) {
-  return (
-    {
-      active: "Ativo",
-      inactive: "Inativo",
-      prospect: "Prospect",
-      blocked: "Bloqueado",
-    }[status] ?? status
-  );
-}
-
-function agreementStatusLabel(status: string) {
-  return (
-    {
-      active: "Ativo",
-      paused: "Pausado",
-      ended: "Encerrado",
-      cancelled: "Cancelado",
-    }[status] ?? status
-  );
-}
-
-function receivableTone(receivable: Receivable) {
-  if (receivable.is_overdue) return "danger" as const;
-  if (receivable.status === "paid") return "success" as const;
-  if (receivable.status === "partial") return "warning" as const;
-  return "neutral" as const;
-}
-
-function quoteTone(status: string) {
-  if (status === "approved") return "success" as const;
-  if (status === "sent") return "warning" as const;
-  if (status === "rejected" || status === "cancelled") return "danger" as const;
-  return "neutral" as const;
-}
+  agreementSchema,
+  customerSchema,
+  customerStatusLabel,
+  customerTabs,
+  equipmentSchema,
+  type AgreementForm,
+  type CustomerForm,
+  type CustomerModal,
+  type EquipmentForm,
+} from "../features/customer/detail";
 
 export function CustomerDetailPage() {
   const { id = "" } = useParams();
   const [params, setParams] = useSearchParams();
   const requestedTab = params.get("tab") ?? "overview";
-  const activeTab = tabs.some((tab) => tab.id === requestedTab)
+  const activeTab = customerTabs.some((tab) => tab.id === requestedTab)
     ? requestedTab
     : "overview";
-  const [modal, setModal] = useState<ModalName>(null);
+  const [modal, setModal] = useState<CustomerModal>(null);
   const [selectedReceivable, setSelectedReceivable] = useState("");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
@@ -165,15 +60,18 @@ export function CustomerDetailPage() {
   const equipment = useQuery({
     queryKey: queryKeys.customerEquipment(id),
     queryFn: () => customersApi.equipment(id),
+    enabled: activeTab === "equipment",
   });
   const workOrders = useQuery({
     queryKey: queryKeys.customerWorkOrders(id),
     queryFn: () => customersApi.workOrders(id),
+    enabled: activeTab === "overview" || activeTab === "work-orders",
   });
   const quotes = useQuery({
     queryKey: ["quotes", "customer", id],
     queryFn: () =>
       quotesApi.list({ customer: id, ordering: "-created_at", page_size: 100 }),
+    enabled: activeTab === "overview" || activeTab === "quotes",
   });
   const agreements = useQuery({
     queryKey: ["finance", "customer", id, "agreements"],
@@ -192,6 +90,8 @@ export function CustomerDetailPage() {
         ordering: "-due_date",
         page_size: 100,
       }),
+    enabled:
+      activeTab === "overview" || activeTab === "finance" || modal === "payment",
   });
   const paymentMethods = useQuery({
     queryKey: ["catalog", "payment-methods", "customer-workspace"],
@@ -352,17 +252,23 @@ export function CustomerDetailPage() {
     setParams(next, { replace: true });
   };
 
-  const tabItems = tabs.map((tab) => ({
+  const tabItems = customerTabs.map((tab) => ({
     ...tab,
     count:
       tab.id === "equipment"
-        ? equipment.data?.count
+        ? item.equipment_count
         : tab.id === "work-orders"
           ? workOrders.data?.count
           : tab.id === "quotes"
             ? quotes.data?.count
             : undefined,
   }));
+
+  const handleReceivableChange = (value: string) => {
+    setSelectedReceivable(value);
+    const row = openReceivables.find((candidate) => candidate.id === value);
+    setPaymentAmount(row?.balance ?? "");
+  };
 
   return (
     <div>
@@ -417,869 +323,102 @@ export function CustomerDetailPage() {
 
       <div className="mt-5">
         {activeTab === "overview" ? (
-          <div className="space-y-5">
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <MetricCard
-                icon={<UserRound className="h-5 w-5" />}
-                label="Relacionamento"
-                tone={activeAgreement ? "info" : "neutral"}
-                value={activeAgreement ? "Mensalista" : "Avulso"}
-                hint={
-                  activeAgreement
-                    ? `${formatMoney(activeAgreement.amount)} / mes · vence dia ${activeAgreement.billing_day}`
-                    : "Sem contrato recorrente ativo"
-                }
-              />
-              <MetricCard
-                icon={<Laptop className="h-5 w-5" />}
-                label="Equipamentos"
-                value={equipment.data?.count ?? 0}
-                hint="Patrimonio vinculado ao cliente"
-              />
-              <MetricCard
-                icon={<ClipboardList className="h-5 w-5" />}
-                label="OS abertas"
-                tone={
-                  (item.active_work_order_count ?? 0) > 0
-                    ? "warning"
-                    : "neutral"
-                }
-                value={item.active_work_order_count ?? 0}
-                hint={`Ultima OS: ${formatDateTime(item.latest_work_order_at)}`}
-              />
-              <MetricCard
-                icon={<WalletCards className="h-5 w-5" />}
-                label="Saldo pendente"
-                tone={
-                  overdue > 0 ? "danger" : pending > 0 ? "warning" : "success"
-                }
-                value={formatMoney(pending)}
-                hint={
-                  overdue > 0
-                    ? `${formatMoney(overdue)} em atraso`
-                    : "Sem atraso identificado"
-                }
-              />
-            </div>
-
-            <div className="grid gap-5 xl:grid-cols-[1fr_1.4fr]">
-              <Panel
-                title="Cadastro e contato"
-                action={
-                  <Button
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                    onClick={openEdit}
-                  >
-                    <Pencil className="h-4 w-4" />
-                    Editar
-                  </Button>
-                }
-              >
-                <DescriptionList
-                  items={[
-                    { label: "Telefone", value: item.phone || "-" },
-                    { label: "WhatsApp", value: item.whatsapp || "-" },
-                    { label: "E-mail", value: item.email || "-" },
-                    {
-                      label: "Cliente desde",
-                      value: formatDate(item.customer_since),
-                    },
-                    {
-                      label: "Status",
-                      value: customerStatusLabel(item.status),
-                    },
-                    {
-                      label: "Observacoes",
-                      value: item.notes || "Sem observacoes.",
-                    },
-                  ]}
-                />
-              </Panel>
-
-              <Panel
-                title="Contrato / mensalidade"
-                subtitle="O perfil avulso ou mensalista e derivado do contrato vigente, sem duplicar estado no cadastro."
-                action={
-                  !activeAgreement ? (
-                    <Button
-                      size="sm"
-                      type="button"
-                      onClick={() => setModal("agreement")}
-                    >
-                      <Plus className="h-4 w-4" />
-                      Tornar mensalista
-                    </Button>
-                  ) : undefined
-                }
-              >
-                {activeAgreement ? (
-                  <div className="space-y-4">
-                    <div className="rounded-xl bg-blue-50 p-4 dark:bg-blue-950/40">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <div className="font-semibold text-slate-950 dark:text-white">
-                            {activeAgreement.name}
-                          </div>
-                          <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                            Desde {formatDate(activeAgreement.starts_on)} ·{" "}
-                            {formatMoney(activeAgreement.amount)} por mes ·
-                            vencimento dia {activeAgreement.billing_day}
-                          </div>
-                        </div>
-                        <Badge tone="success">Ativo</Badge>
-                      </div>
-                    </div>
-                    <ConfirmDialog
-                      title="Encerrar contrato"
-                      description="O contrato sera encerrado hoje e permanecera no historico financeiro do cliente."
-                      confirmLabel="Encerrar contrato"
-                      onConfirm={() => endAgreement.mutate(activeAgreement)}
-                    >
-                      <Button type="button" variant="secondary">
-                        Encerrar mensalidade
-                      </Button>
-                    </ConfirmDialog>
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-dashed border-slate-300 p-5 text-center dark:border-slate-700">
-                    <p className="text-sm text-slate-500">
-                      Este cliente e atendido como avulso. O historico de
-                      contratos anteriores continua preservado.
-                    </p>
-                    <Button
-                      className="mt-4"
-                      type="button"
-                      onClick={() => setModal("agreement")}
-                    >
-                      Tornar mensalista
-                    </Button>
-                  </div>
-                )}
-              </Panel>
-            </div>
-
-            <div className="grid gap-5 xl:grid-cols-2">
-              <Panel
-                title="Atendimentos recentes"
-                action={
-                  <button
-                    className="text-sm font-medium text-blue-600"
-                    type="button"
-                    onClick={() => selectTab("work-orders")}
-                  >
-                    Ver todas
-                  </button>
-                }
-              >
-                <div className="space-y-2">
-                  {(workOrders.data?.results ?? []).slice(0, 4).map((row) => (
-                    <Link
-                      className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 p-3 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800"
-                      key={row.id}
-                      to={`/work-orders/${row.id}`}
-                    >
-                      <div className="min-w-0">
-                        <div className="font-medium text-slate-900 dark:text-white">
-                          {row.display_number} · {row.title}
-                        </div>
-                        <div className="mt-1 text-xs text-slate-500">
-                          {formatDateTime(row.opened_at)}
-                        </div>
-                      </div>
-                      <Badge>{row.status.name}</Badge>
-                    </Link>
-                  ))}
-                  {!workOrders.data?.results.length ? (
-                    <p className="text-sm text-slate-500">
-                      Nenhuma OS para este cliente.
-                    </p>
-                  ) : null}
-                </div>
-              </Panel>
-
-              <Panel
-                title="Orcamentos recentes"
-                action={
-                  <button
-                    className="text-sm font-medium text-blue-600"
-                    type="button"
-                    onClick={() => selectTab("quotes")}
-                  >
-                    Ver todos
-                  </button>
-                }
-              >
-                <div className="space-y-2">
-                  {(quotes.data?.results ?? []).slice(0, 4).map((row) => (
-                    <Link
-                      className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 p-3 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800"
-                      key={row.id}
-                      to={`/quotes/${row.id}`}
-                    >
-                      <div className="min-w-0">
-                        <div className="font-medium text-slate-900 dark:text-white">
-                          {row.display_number} · {row.title}
-                        </div>
-                        <div className="mt-1 text-xs text-slate-500">
-                          Total {formatMoney(row.total_amount)}
-                        </div>
-                      </div>
-                      <Badge tone={quoteTone(row.status)}>{row.status}</Badge>
-                    </Link>
-                  ))}
-                  {!quotes.data?.results.length ? (
-                    <p className="text-sm text-slate-500">
-                      Nenhum orcamento para este cliente.
-                    </p>
-                  ) : null}
-                </div>
-              </Panel>
-            </div>
-          </div>
+          <CustomerOverviewTab
+            activeAgreement={activeAgreement}
+            customer={item}
+            equipmentCount={item.equipment_count ?? 0}
+            overdue={overdue}
+            pending={pending}
+            quotes={quotes.data?.results ?? []}
+            workOrders={workOrders.data?.results ?? []}
+            onEdit={openEdit}
+            onEndAgreement={(agreement) => endAgreement.mutate(agreement)}
+            onOpenAgreement={() => setModal("agreement")}
+            onSelectTab={selectTab}
+          />
         ) : null}
 
         {activeTab === "equipment" ? (
-          <Panel
-            title="Equipamentos"
-            subtitle="Patrimonio tecnico vinculado ao cliente."
-            action={
-              <Button
-                size="sm"
-                type="button"
-                onClick={() => setModal("equipment")}
-              >
-                <Plus className="h-4 w-4" />
-                Adicionar
-              </Button>
-            }
-          >
-            <DataTable<Equipment>
-              empty="Nenhum equipamento vinculado."
-              getRowKey={(row) => row.id}
-              rows={equipment.data?.results ?? []}
-              columns={[
-                { header: "Tipo", cell: (row) => row.equipment_type.name },
-                {
-                  header: "Equipamento",
-                  cell: (row) => (
-                    <Link
-                      className="font-medium text-blue-700 dark:text-blue-300"
-                      to={`/equipment/${row.id}`}
-                    >
-                      {[row.manufacturer, row.model]
-                        .filter(Boolean)
-                        .join(" ") || row.equipment_type.name}
-                    </Link>
-                  ),
-                },
-                { header: "Serial", cell: (row) => row.serial_number || "-" },
-                { header: "Patrimonio", cell: (row) => row.asset_tag || "-" },
-                {
-                  header: "Status",
-                  cell: (row) => <Badge>{row.status}</Badge>,
-                },
-                {
-                  header: "Acao",
-                  cell: (row) => (
-                    <Link
-                      to={`/work-orders/new?customer=${id}&equipment=${row.id}`}
-                    >
-                      <Button size="sm" type="button" variant="secondary">
-                        Abrir OS
-                      </Button>
-                    </Link>
-                  ),
-                },
-              ]}
-            />
-          </Panel>
+          <CustomerEquipmentTab
+            customerId={id}
+            rows={equipment.data?.results ?? []}
+            onAdd={() => setModal("equipment")}
+          />
         ) : null}
 
         {activeTab === "work-orders" ? (
-          <Panel
-            title="Ordens de servico"
-            subtitle="Historico de atendimentos e manutencoes do cliente."
-            action={
-              <Link to={`/work-orders/new?customer=${id}`}>
-                <Button size="sm" type="button">
-                  <Plus className="h-4 w-4" />
-                  Nova OS
-                </Button>
-              </Link>
-            }
-          >
-            <DataTable<WorkOrder>
-              empty="Nenhuma OS para este cliente."
-              getRowKey={(row) => row.id}
-              rows={workOrders.data?.results ?? []}
-              columns={[
-                {
-                  header: "OS",
-                  cell: (row) => (
-                    <Link
-                      className="font-semibold text-blue-700 dark:text-blue-300"
-                      to={`/work-orders/${row.id}`}
-                    >
-                      {row.display_number}
-                    </Link>
-                  ),
-                },
-                { header: "Titulo", cell: (row) => row.title },
-                {
-                  header: "Equipamento",
-                  cell: (row) =>
-                    [row.equipment.manufacturer, row.equipment.model]
-                      .filter(Boolean)
-                      .join(" ") || row.equipment.equipment_type.name,
-                },
-                {
-                  header: "Status",
-                  cell: (row) => <Badge>{row.status.name}</Badge>,
-                },
-                {
-                  header: "Abertura",
-                  cell: (row) => formatDateTime(row.opened_at),
-                },
-              ]}
-            />
-          </Panel>
+          <CustomerWorkOrdersTab
+            customerId={id}
+            rows={workOrders.data?.results ?? []}
+          />
         ) : null}
 
         {activeTab === "quotes" ? (
-          <Panel
-            title="Orcamentos"
-            subtitle="Propostas comerciais criadas para este cliente."
-            action={
-              <Link to={`/quotes/new?customer=${id}`}>
-                <Button size="sm" type="button">
-                  <Plus className="h-4 w-4" />
-                  Novo orcamento
-                </Button>
-              </Link>
-            }
-          >
-            <DataTable<Quote>
-              empty="Nenhum orcamento para este cliente."
-              getRowKey={(row) => row.id}
-              rows={quotes.data?.results ?? []}
-              columns={[
-                {
-                  header: "Orcamento",
-                  cell: (row) => (
-                    <Link
-                      className="font-semibold text-blue-700 dark:text-blue-300"
-                      to={`/quotes/${row.id}`}
-                    >
-                      {row.display_number}
-                    </Link>
-                  ),
-                },
-                { header: "Titulo", cell: (row) => row.title },
-                {
-                  header: "Equipamento",
-                  cell: (row) => row.equipment_label || "-",
-                },
-                {
-                  header: "Total",
-                  cell: (row) => formatMoney(row.total_amount),
-                },
-                {
-                  header: "Status",
-                  cell: (row) => (
-                    <Badge tone={quoteTone(row.status)}>{row.status}</Badge>
-                  ),
-                },
-                {
-                  header: "Validade",
-                  cell: (row) => formatDate(row.valid_until),
-                },
-              ]}
-            />
-          </Panel>
+          <CustomerQuotesTab
+            customerId={id}
+            rows={quotes.data?.results ?? []}
+          />
         ) : null}
 
         {activeTab === "finance" ? (
-          <div className="space-y-5">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <MetricCard
-                label="Saldo pendente"
-                value={formatMoney(pending)}
-                tone={pending > 0 ? "warning" : "success"}
-              />
-              <MetricCard
-                label="Em atraso"
-                value={formatMoney(overdue)}
-                tone={overdue > 0 ? "danger" : "success"}
-              />
-              <MetricCard
-                label="Relacionamento"
-                value={activeAgreement ? "Mensalista" : "Avulso"}
-                tone={activeAgreement ? "info" : "neutral"}
-              />
-            </div>
-
-            <div className="grid gap-5 xl:grid-cols-[1.35fr_1fr]">
-              <Panel
-                title="Contas a receber"
-                subtitle="Cobrancas avulsas, de OS e mensalidades do cliente."
-                action={
-                  openReceivables.length ? (
-                    <Button
-                      size="sm"
-                      type="button"
-                      onClick={() => setModal("payment")}
-                    >
-                      <CircleDollarSign className="h-4 w-4" />
-                      Registrar pagamento
-                    </Button>
-                  ) : undefined
-                }
-              >
-                <DataTable<Receivable>
-                  empty="Nenhum lancamento financeiro."
-                  getRowKey={(row) => row.id}
-                  rows={receivables.data?.results ?? []}
-                  columns={[
-                    { header: "Descricao", cell: (row) => row.description },
-                    {
-                      header: "Vencimento",
-                      cell: (row) => formatDate(row.due_date),
-                    },
-                    { header: "Valor", cell: (row) => formatMoney(row.amount) },
-                    {
-                      header: "Saldo",
-                      cell: (row) => formatMoney(row.balance),
-                    },
-                    {
-                      header: "Status",
-                      cell: (row) => (
-                        <Badge tone={receivableTone(row)}>
-                          {row.is_overdue ? "Vencido" : row.status}
-                        </Badge>
-                      ),
-                    },
-                  ]}
-                />
-              </Panel>
-
-              <Panel
-                title="Historico de contratos"
-                action={
-                  !activeAgreement ? (
-                    <Button
-                      size="sm"
-                      type="button"
-                      onClick={() => setModal("agreement")}
-                    >
-                      <Plus className="h-4 w-4" />
-                      Criar contrato
-                    </Button>
-                  ) : undefined
-                }
-              >
-                <div className="space-y-3">
-                  {(agreements.data?.results ?? []).map((agreement) => (
-                    <div
-                      className="rounded-xl border border-slate-200 p-4 dark:border-slate-800"
-                      key={agreement.id}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="font-medium text-slate-950 dark:text-white">
-                            {agreement.name}
-                          </div>
-                          <div className="mt-1 text-xs text-slate-500">
-                            {formatDate(agreement.starts_on)} →{" "}
-                            {agreement.ends_on
-                              ? formatDate(agreement.ends_on)
-                              : "atual"}
-                          </div>
-                        </div>
-                        <Badge
-                          tone={
-                            agreement.status === "active"
-                              ? "success"
-                              : "neutral"
-                          }
-                        >
-                          {agreementStatusLabel(agreement.status)}
-                        </Badge>
-                      </div>
-                      <div className="mt-3 text-sm">
-                        {formatMoney(agreement.amount)} · vencimento dia{" "}
-                        {agreement.billing_day}
-                      </div>
-                    </div>
-                  ))}
-                  {!agreements.data?.results.length ? (
-                    <p className="text-sm text-slate-500">
-                      Nenhum contrato registrado.
-                    </p>
-                  ) : null}
-                </div>
-              </Panel>
-            </div>
-          </div>
+          <CustomerFinanceTab
+            activeAgreement={activeAgreement}
+            agreements={agreements.data?.results ?? []}
+            openReceivables={openReceivables}
+            overdue={overdue}
+            pending={pending}
+            receivables={receivables.data?.results ?? []}
+            onOpenAgreement={() => setModal("agreement")}
+            onOpenPayment={() => setModal("payment")}
+          />
         ) : null}
       </div>
 
-      <Modal
+      <CustomerEditDialog
+        error={updateCustomer.error}
+        form={customerForm}
         open={modal === "edit"}
-        title="Editar cliente"
-        description="Atualize os dados sem sair do contexto do cliente."
+        pending={updateCustomer.isPending}
         onClose={() => setModal(null)}
-      >
-        <form
-          className="grid gap-4 sm:grid-cols-2"
-          onSubmit={customerForm.handleSubmit((data) =>
-            updateCustomer.mutate(data),
-          )}
-        >
-          <Field
-            label="Nome"
-            required
-            error={customerForm.formState.errors.name?.message}
-          >
-            <Input
-              aria-invalid={Boolean(customerForm.formState.errors.name)}
-              {...customerForm.register("name")}
-            />
-          </Field>
-          <Field label="Status">
-            <Select {...customerForm.register("status")}>
-              <option value="active">Ativo</option>
-              <option value="inactive">Inativo</option>
-              <option value="prospect">Prospect</option>
-              <option value="blocked">Bloqueado</option>
-            </Select>
-          </Field>
-          <Field label="Telefone">
-            <Input {...customerForm.register("phone")} />
-          </Field>
-          <Field label="WhatsApp">
-            <Input {...customerForm.register("whatsapp")} />
-          </Field>
-          <div className="sm:col-span-2">
-            <Field
-              label="E-mail"
-              error={customerForm.formState.errors.email?.message}
-            >
-              <Input
-                aria-invalid={Boolean(customerForm.formState.errors.email)}
-                {...customerForm.register("email")}
-              />
-            </Field>
-          </div>
-          <div className="sm:col-span-2">
-            <Field label="Observacoes">
-              <Textarea {...customerForm.register("notes")} />
-            </Field>
-          </div>
-          {updateCustomer.error ? (
-            <div className="sm:col-span-2">
-              <Notice tone="danger">
-                {errorMessage(updateCustomer.error)}
-              </Notice>
-            </div>
-          ) : null}
-          <div className="flex justify-end gap-2 sm:col-span-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setModal(null)}
-            >
-              Cancelar
-            </Button>
-            <Button disabled={updateCustomer.isPending} type="submit">
-              Salvar alteracoes
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        onSubmit={(data) => updateCustomer.mutate(data)}
+      />
 
-      <Modal
+      <CustomerEquipmentDialog
+        customerName={item.name}
+        error={addEquipment.error}
+        form={equipmentForm}
         open={modal === "equipment"}
-        title="Adicionar equipamento"
-        description={`Novo patrimonio para ${item.name}.`}
-        size="lg"
+        pending={addEquipment.isPending}
         onClose={() => setModal(null)}
-      >
-        <form
-          className="grid gap-4 sm:grid-cols-2"
-          onSubmit={equipmentForm.handleSubmit((data) =>
-            addEquipment.mutate(data),
-          )}
-        >
-          <Controller
-            control={equipmentForm.control}
-            name="equipment_type_id"
-            render={({ field }) => (
-              <CatalogSelect
-                label="Tipo"
-                resource="equipment-types"
-                value={field.value}
-                onChange={field.onChange}
-              />
-            )}
-          />
-          <Field label="Status">
-            <Select {...equipmentForm.register("status")}>
-              <option value="active">Ativo</option>
-              <option value="inactive">Inativo</option>
-              <option value="under_maintenance">Em manutencao</option>
-              <option value="retired">Baixado</option>
-            </Select>
-          </Field>
-          <Field label="Fabricante">
-            <Input {...equipmentForm.register("manufacturer")} />
-          </Field>
-          <Field label="Modelo">
-            <Input {...equipmentForm.register("model")} />
-          </Field>
-          <Field label="Serial">
-            <Input {...equipmentForm.register("serial_number")} />
-          </Field>
-          <Field label="Patrimonio">
-            <Input {...equipmentForm.register("asset_tag")} />
-          </Field>
-          <div className="sm:col-span-2">
-            <Field label="Sistema operacional">
-              <Input {...equipmentForm.register("operating_system")} />
-            </Field>
-          </div>
-          <div className="sm:col-span-2">
-            <Field label="Observacoes">
-              <Textarea {...equipmentForm.register("notes")} />
-            </Field>
-          </div>
-          {addEquipment.error ? (
-            <div className="sm:col-span-2">
-              <Notice tone="danger">{errorMessage(addEquipment.error)}</Notice>
-            </div>
-          ) : null}
-          <div className="flex justify-end gap-2 sm:col-span-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setModal(null)}
-            >
-              Cancelar
-            </Button>
-            <Button disabled={addEquipment.isPending} type="submit">
-              Salvar equipamento
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        onSubmit={(data) => addEquipment.mutate(data)}
+      />
 
-      <Modal
+      <CustomerAgreementDialog
+        error={createAgreement.error}
+        firstBillingMode={firstBillingMode}
+        form={agreementForm}
         open={modal === "agreement"}
-        title="Tornar cliente mensalista"
-        description="Crie um contrato recorrente sem alterar o cadastro base do cliente."
+        paymentMethods={paymentMethods.data?.results ?? []}
+        pending={createAgreement.isPending}
         onClose={() => setModal(null)}
-      >
-        <form
-          className="space-y-4"
-          onSubmit={agreementForm.handleSubmit((data) =>
-            createAgreement.mutate(data),
-          )}
-        >
-          <Field
-            label="Nome do contrato"
-            required
-            error={agreementForm.formState.errors.name?.message}
-          >
-            <Input {...agreementForm.register("name")} />
-          </Field>
-          <Field label="Descricao">
-            <Textarea {...agreementForm.register("description")} />
-          </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field
-              label="Valor mensal"
-              required
-              error={agreementForm.formState.errors.amount?.message}
-            >
-              <Input
-                inputMode="decimal"
-                {...agreementForm.register("amount")}
-              />
-            </Field>
-            <Field
-              label="Dia de vencimento"
-              required
-              error={agreementForm.formState.errors.billing_day?.message}
-            >
-              <Input
-                max={31}
-                min={1}
-                type="number"
-                {...agreementForm.register("billing_day")}
-              />
-            </Field>
-          </div>
-          <Field
-            label="Inicio"
-            required
-            error={agreementForm.formState.errors.starts_on?.message}
-          >
-            <Input type="date" {...agreementForm.register("starts_on")} />
-          </Field>
-          <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-800">
-            <div className="font-medium text-slate-950 dark:text-white">
-              Primeira mensalidade
-            </div>
-            <div className="mt-3 space-y-3">
-              <label className="flex cursor-pointer items-start gap-3">
-                <input
-                  className="mt-1"
-                  type="radio"
-                  value="receive_now"
-                  {...agreementForm.register("first_billing_mode")}
-                />
-                <span>
-                  <strong className="block text-sm">Receber agora</strong>
-                  <span className="text-xs text-slate-500">
-                    Cria a primeira mensalidade com vencimento hoje e registra a
-                    baixa como paga.
-                  </span>
-                </span>
-              </label>
-              <label className="flex cursor-pointer items-start gap-3">
-                <input
-                  className="mt-1"
-                  type="radio"
-                  value="next_month"
-                  {...agreementForm.register("first_billing_mode")}
-                />
-                <span>
-                  <strong className="block text-sm">
-                    Cobrar no proximo mes
-                  </strong>
-                  <span className="text-xs text-slate-500">
-                    Nao gera cobranca no mes atual; o primeiro vencimento segue
-                    o dia cadastrado no proximo mes.
-                  </span>
-                </span>
-              </label>
-            </div>
-          </div>
-          {firstBillingMode === "receive_now" ? (
-            <Field
-              label="Metodo de pagamento da primeira mensalidade"
-              required
-              error={
-                agreementForm.formState.errors.first_payment_method?.message
-              }
-            >
-              <Select {...agreementForm.register("first_payment_method")}>
-                <option value="">Selecione</option>
-                {(paymentMethods.data?.results ?? []).map((method) => (
-                  <option key={method.id} value={method.id}>
-                    {method.name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          ) : null}
-          <Notice tone="info">
-            {firstBillingMode === "receive_now"
-              ? "A entrada sera registrada como recebida hoje. As proximas mensalidades seguirao o dia de vencimento a partir do proximo mes."
-              : "A primeira cobranca sera gerada somente no proximo mes, usando o dia de vencimento informado."}
-          </Notice>
-          {createAgreement.error ? (
-            <Notice tone="danger">{errorMessage(createAgreement.error)}</Notice>
-          ) : null}
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setModal(null)}
-            >
-              Cancelar
-            </Button>
-            <Button disabled={createAgreement.isPending} type="submit">
-              Criar contrato
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        onSubmit={(data) => createAgreement.mutate(data)}
+      />
 
-      <Modal
+      <CustomerPaymentDialog
+        error={addPayment.error}
         open={modal === "payment"}
-        title="Registrar pagamento"
-        description="Baixa contextual sem precisar abrir o Financeiro consolidado."
+        openReceivables={openReceivables}
+        paymentAmount={paymentAmount}
+        paymentMethod={paymentMethod}
+        paymentMethods={paymentMethods.data?.results ?? []}
+        pending={addPayment.isPending}
+        selectedReceivable={selectedReceivable}
         onClose={() => setModal(null)}
-      >
-        <div className="space-y-4">
-          <Field label="Conta a receber" required>
-            <Select
-              value={selectedReceivable}
-              onChange={(event) => {
-                const value = event.target.value;
-                setSelectedReceivable(value);
-                const row = openReceivables.find(
-                  (candidate) => candidate.id === value,
-                );
-                setPaymentAmount(row?.balance ?? "");
-              }}
-            >
-              <option value="">Selecione</option>
-              {openReceivables.map((row) => (
-                <option key={row.id} value={row.id}>
-                  {row.description} · {formatMoney(row.balance)}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Valor" required>
-            <Input
-              inputMode="decimal"
-              value={paymentAmount}
-              onChange={(event) => setPaymentAmount(event.target.value)}
-            />
-          </Field>
-          <Field label="Metodo de pagamento" required>
-            <Select
-              value={paymentMethod}
-              onChange={(event) => setPaymentMethod(event.target.value)}
-            >
-              <option value="">Selecione</option>
-              {(paymentMethods.data?.results ?? []).map((method) => (
-                <option key={method.id} value={method.id}>
-                  {method.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          {addPayment.error ? (
-            <Notice tone="danger">{errorMessage(addPayment.error)}</Notice>
-          ) : null}
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setModal(null)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              disabled={
-                !selectedReceivable ||
-                !paymentAmount ||
-                !paymentMethod ||
-                addPayment.isPending
-              }
-              type="button"
-              onClick={() => addPayment.mutate()}
-            >
-              Registrar pagamento
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        onPaymentAmountChange={setPaymentAmount}
+        onPaymentMethodChange={setPaymentMethod}
+        onSelectedReceivableChange={handleReceivableChange}
+        onSubmit={() => addPayment.mutate()}
+      />
     </div>
   );
 }
