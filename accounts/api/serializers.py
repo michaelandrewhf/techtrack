@@ -35,16 +35,10 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if attrs["new_password"] != attrs["confirm_password"]:
-            raise serializers.ValidationError(
-                {"confirm_password": ["As senhas informadas nao coincidem."]}
-            )
+            raise serializers.ValidationError({"confirm_password": ["As senhas informadas nao coincidem."]})
 
         user = self._resolve_user(attrs["uid"])
-        if (
-            user is None
-            or not user.is_active
-            or not default_token_generator.check_token(user, attrs["token"])
-        ):
+        if user is None or not user.is_active or not default_token_generator.check_token(user, attrs["token"]):
             raise serializers.ValidationError(
                 {"token": ["Este link de redefinicao e invalido, expirou ou ja foi utilizado."]}
             )
