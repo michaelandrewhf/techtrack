@@ -211,11 +211,7 @@ describe("App", () => {
   });
 
   it("resets the password and redirects to login with success feedback", async () => {
-    window.history.pushState(
-      {},
-      "",
-      "/reset-password/dXNlci0x/token-value",
-    );
+    window.history.pushState({}, "", "/reset-password/dXNlci0x/token-value");
     const fetchMock = setupFetch();
 
     render(<App />);
