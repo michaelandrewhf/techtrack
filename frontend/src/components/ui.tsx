@@ -85,10 +85,7 @@ export function Field({
       </span>
       {children}
       {error ? (
-        <span
-          className="block text-xs font-normal text-[var(--danger)]"
-          role="alert"
-        >
+        <span className="block text-xs font-normal text-[var(--danger)]" role="alert">
           {error}
         </span>
       ) : hint ? (
