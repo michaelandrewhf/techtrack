@@ -21,9 +21,7 @@ from .serializers import (
 
 logger = logging.getLogger(__name__)
 
-PASSWORD_RESET_RESPONSE = (
-    "Se existir uma conta ativa com esse e-mail, enviaremos as instrucoes para redefinir a senha."
-)
+PASSWORD_RESET_RESPONSE = "Se existir uma conta ativa com esse e-mail, enviaremos as instrucoes para redefinir a senha."
 
 
 class MeView(APIView):
@@ -54,11 +52,7 @@ class PasswordResetRequestView(APIView):
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data["email"]
 
-        users = (
-            get_user_model()
-            .objects.filter(email__iexact=email, is_active=True)
-            .exclude(email="")
-        )
+        users = get_user_model().objects.filter(email__iexact=email, is_active=True).exclude(email="")
         for user in users:
             if not user.has_usable_password():
                 continue
@@ -70,9 +64,7 @@ class PasswordResetRequestView(APIView):
     def _send_reset_email(user):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
-        reset_url = (
-            f"{settings.FRONTEND_URL.rstrip('/')}/reset-password/{uid}/{token}"
-        )
+        reset_url = f"{settings.FRONTEND_URL.rstrip('/')}/reset-password/{uid}/{token}"
         context = {
             "display_name": user.get_full_name().strip() or user.username,
             "reset_url": reset_url,
