@@ -1,6 +1,7 @@
 import {
   Boxes,
   ChevronDown,
+  CircleUserRound,
   ClipboardList,
   FileText,
   LayoutDashboard,
@@ -75,6 +76,11 @@ export function AppLayout() {
     setSidebarOpen(false);
     setCreateOpen(false);
   }, [location.pathname]);
+
+  const displayName =
+    [user?.first_name, user?.last_name].filter(Boolean).join(" ") ||
+    user?.username ||
+    "Usuario";
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -209,6 +215,7 @@ export function AppLayout() {
           <div className="flex items-center gap-1 sm:gap-2">
             <Button
               aria-label={dark ? "Usar tema claro" : "Usar tema escuro"}
+              aria-pressed={dark}
               size="sm"
               type="button"
               variant="ghost"
@@ -220,12 +227,21 @@ export function AppLayout() {
                 <Moon className="h-4 w-4" />
               )}
             </Button>
-            <div className="hidden border-l border-slate-200 pl-3 text-right dark:border-slate-800 sm:block">
-              <div className="text-sm font-medium text-slate-800 dark:text-slate-100">
-                {user?.username}
+            <Link
+              aria-label="Abrir meu perfil"
+              className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+              to="/profile"
+            >
+              <CircleUserRound className="h-4 w-4" />
+              <div className="hidden text-right sm:block">
+                <div className="max-w-40 truncate text-sm font-medium">
+                  {displayName}
+                </div>
+                <div className="max-w-40 truncate text-xs text-slate-500">
+                  @{user?.username}
+                </div>
               </div>
-              <div className="text-xs text-slate-500">Usuario autenticado</div>
-            </div>
+            </Link>
             <Button
               aria-label="Sair"
               size="sm"

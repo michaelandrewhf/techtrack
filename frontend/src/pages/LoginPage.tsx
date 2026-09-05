@@ -1,5 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle2, ClipboardList, ShieldCheck, Wrench } from "lucide-react";
+import {
+  CheckCircle2,
+  ClipboardList,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  Wrench,
+} from "lucide-react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -8,9 +16,12 @@ import { useAuth } from "../auth/AuthProvider";
 import { Button, Field, Input, Notice } from "../components/ui";
 import { errorMessage } from "../utils/errors";
 
+const REMEMBERED_USERNAME_KEY = "techtrack.rememberedUsername";
+
 const loginSchema = z.object({
   username: z.string().min(1, "Informe o usuario."),
   password: z.string().min(1, "Informe a senha."),
+  rememberUsername: z.boolean(),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -25,7 +36,18 @@ export function LoginPage() {
   const auth = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const form = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showRecoveryInfo, setShowRecoveryInfo] = useState(false);
+  const rememberedUsername =
+    localStorage.getItem(REMEMBERED_USERNAME_KEY) ?? "";
+  const form = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      username: rememberedUsername,
+      password: "",
+      rememberUsername: Boolean(rememberedUsername),
+    },
+  });
   const from =
     (location.state as { from?: Location } | null)?.from?.pathname ?? "/";
 
@@ -34,6 +56,11 @@ export function LoginPage() {
   const submit = form.handleSubmit(async (data) => {
     try {
       await auth.login(data.username, data.password);
+      if (data.rememberUsername) {
+        localStorage.setItem(REMEMBERED_USERNAME_KEY, data.username);
+      } else {
+        localStorage.removeItem(REMEMBERED_USERNAME_KEY);
+      }
       navigate(from, { replace: true });
     } catch (error) {
       form.setError("root", { message: errorMessage(error) });
@@ -126,7 +153,7 @@ export function LoginPage() {
                 <Input
                   aria-invalid={Boolean(form.formState.errors.username)}
                   autoComplete="username"
-                  autoFocus
+                  autoFocus={!rememberedUsername}
                   {...form.register("username")}
                 />
               </Field>
@@ -135,13 +162,55 @@ export function LoginPage() {
                 required
                 error={form.formState.errors.password?.message}
               >
-                <Input
-                  aria-invalid={Boolean(form.formState.errors.password)}
-                  autoComplete="current-password"
-                  type="password"
-                  {...form.register("password")}
-                />
+                <div className="relative">
+                  <Input
+                    aria-invalid={Boolean(form.formState.errors.password)}
+                    autoComplete="current-password"
+                    className="pr-11"
+                    type={showPassword ? "text" : "password"}
+                    {...form.register("password")}
+                  />
+                  <button
+                    aria-label={
+                      showPassword ? "Ocultar senha" : "Mostrar senha"
+                    }
+                    className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                    type="button"
+                    onClick={() => setShowPassword((value) => !value)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </Field>
+
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <label className="flex cursor-pointer items-center gap-2 text-slate-600 dark:text-slate-300">
+                  <input
+                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    type="checkbox"
+                    {...form.register("rememberUsername")}
+                  />
+                  Lembrar meu usuario
+                </label>
+                <button
+                  className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                  type="button"
+                  onClick={() => setShowRecoveryInfo(true)}
+                >
+                  Esqueci minha senha
+                </button>
+              </div>
+
+              {showRecoveryInfo ? (
+                <Notice>
+                  A recuperacao de senha sera disponibilizada em uma proxima
+                  etapa. O atalho ja esta reservado na tela de login.
+                </Notice>
+              ) : null}
               {form.formState.errors.root ? (
                 <Notice tone="danger">
                   {form.formState.errors.root.message}
