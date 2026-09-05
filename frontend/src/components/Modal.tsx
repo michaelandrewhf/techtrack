@@ -43,7 +43,8 @@ export function Modal({
     document.body.style.overflow = "hidden";
 
     const dialog = dialogRef.current;
-    const firstFocusable = dialog?.querySelector<HTMLElement>(focusableSelector);
+    const firstFocusable =
+      dialog?.querySelector<HTMLElement>(focusableSelector);
     (firstFocusable ?? dialog)?.focus();
 
     const handler = (event: KeyboardEvent) => {
@@ -110,11 +111,17 @@ export function Modal({
       >
         <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-[var(--border)] bg-[var(--surface)] px-5 py-4">
           <div>
-            <h2 className="text-lg font-semibold text-[var(--text)]" id={titleId}>
+            <h2
+              className="text-lg font-semibold text-[var(--text)]"
+              id={titleId}
+            >
               {title}
             </h2>
             {description ? (
-              <p className="mt-1 text-sm text-[var(--text-muted)]" id={descriptionId}>
+              <p
+                className="mt-1 text-sm text-[var(--text-muted)]"
+                id={descriptionId}
+              >
                 {description}
               </p>
             ) : null}
