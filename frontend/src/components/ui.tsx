@@ -77,7 +77,9 @@ export function Field({
     <label className="block space-y-1.5 text-sm font-medium text-[var(--tt-text)]">
       <span>
         {label}
-        {required ? <span className="ml-1 text-[var(--tt-danger)]">*</span> : null}
+        {required ? (
+          <span className="ml-1 text-[var(--tt-danger)]">*</span>
+        ) : null}
       </span>
       {children}
       {error ? (
@@ -112,8 +114,7 @@ export function Badge({
           "bg-[var(--tt-success-soft)] text-[var(--tt-success)]",
         tone === "warning" &&
           "bg-[var(--tt-warning-soft)] text-[var(--tt-warning)]",
-        tone === "info" &&
-          "bg-[var(--tt-brand-soft)] text-[var(--tt-brand)]",
+        tone === "info" && "bg-[var(--tt-brand-soft)] text-[var(--tt-brand)]",
         tone === "neutral" &&
           "bg-[var(--tt-surface-subtle)] text-[var(--tt-text-muted)]",
         className,
