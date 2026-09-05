@@ -12,7 +12,11 @@ import { DataTable } from "../../../components/DataTable";
 import { ErrorState, PageLoader } from "../../../components/State";
 import { Badge, Button, MetricCard, Panel } from "../../../components/ui";
 import { formatDate, formatDateTime, formatMoney } from "../../../utils/format";
-import { agreementStatusLabel, quoteTone, receivableTone } from "./presentation";
+import {
+  agreementStatusLabel,
+  quoteTone,
+  receivableTone,
+} from "./presentation";
 import type { CustomerTabId } from "./types";
 import type { CustomerWorkspace } from "./useCustomerWorkspace";
 
@@ -353,15 +357,20 @@ function FinanceTab({
                     </div>
                     <div className="mt-1 text-xs text-[var(--text-muted)]">
                       {formatDate(agreement.starts_on)} →{" "}
-                      {agreement.ends_on ? formatDate(agreement.ends_on) : "atual"}
+                      {agreement.ends_on
+                        ? formatDate(agreement.ends_on)
+                        : "atual"}
                     </div>
                   </div>
-                  <Badge tone={agreement.status === "active" ? "success" : "neutral"}>
+                  <Badge
+                    tone={agreement.status === "active" ? "success" : "neutral"}
+                  >
                     {agreementStatusLabel(agreement.status)}
                   </Badge>
                 </div>
                 <div className="mt-3 text-sm text-[var(--text)]">
-                  {formatMoney(agreement.amount)} · vencimento dia {agreement.billing_day}
+                  {formatMoney(agreement.amount)} · vencimento dia{" "}
+                  {agreement.billing_day}
                 </div>
               </div>
             ))}
