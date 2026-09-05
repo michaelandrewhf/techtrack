@@ -6,6 +6,8 @@ import { AuthProvider } from "./auth/AuthProvider";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { CustomerDetailPage } from "./features/customers/detail/CustomerDetailPage";
 import { FinancePage } from "./features/finance/FinancePage";
+import { QuoteDetailPage } from "./features/quotes/detail/QuoteDetailPage";
+import { WorkOrderDetailPage } from "./features/workorders/detail/WorkOrderDetailPage";
 import { AppLayout } from "./layout/AppLayout";
 import { BusinessProfilePage } from "./pages/BusinessProfilePage";
 import { CatalogPage } from "./pages/CatalogPage";
@@ -17,12 +19,10 @@ import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { QuoteCreatePage } from "./pages/QuoteCreatePage";
-import { QuoteDetailPage } from "./pages/QuoteDetailPage";
 import { QuotesPage } from "./pages/QuotesPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { WorkOrderCreatePage } from "./pages/WorkOrderCreatePage";
-import { WorkOrderDetailPage } from "./pages/WorkOrderDetailPage";
 import { WorkOrdersPage } from "./pages/WorkOrdersPage";
 
 const queryClient = new QueryClient({
