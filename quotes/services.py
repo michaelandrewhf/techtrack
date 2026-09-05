@@ -1,6 +1,5 @@
 import hashlib
 import json
-from datetime import date, datetime
 from decimal import Decimal
 
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
@@ -8,7 +7,6 @@ from django.db import IntegrityError, transaction
 from django.db.models import Max
 from django.utils import timezone
 
-from config.pdf import PdfDocument
 from finance.models import BusinessProfile
 from workorders.services import create_work_order
 
@@ -34,27 +32,6 @@ def _next_quote_number():
         sequence.current_number += 1
         sequence.save(update_fields=["current_number", "updated_at"])
         return sequence.current_number
-
-
-def _money(value):
-    value = Decimal(str(value or 0))
-    return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
-
-def _pt_date(value):
-    if not value:
-        return "-"
-    if isinstance(value, (date, datetime)):
-        parsed = value
-    else:
-        try:
-            parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-        except ValueError:
-            try:
-                parsed = date.fromisoformat(str(value))
-            except ValueError:
-                return str(value)
-    return parsed.strftime("%d/%m/%Y")
 
 
 def _profile_snapshot():
@@ -96,7 +73,7 @@ def quote_snapshot(quote):
     if quote.equipment_id:
         equipment = {
             "id": str(quote.equipment_id),
-            "type": quote.equipment.equipment_type.name if quote.equipment.equipment_type_id else "",
+            "type": (quote.equipment.equipment_type.name if quote.equipment.equipment_type_id else ""),
             "manufacturer": quote.equipment.manufacturer,
             "model": quote.equipment.model,
             "serial_number": quote.equipment.serial_number,
@@ -149,7 +126,7 @@ def work_order_snapshot(work_order):
             "quantity": str(part.quantity),
             "unit_price": str(part.unit_price or Decimal("0.00")),
             "serial_number": part.serial_number,
-            "warranty_until": part.warranty_until.isoformat() if part.warranty_until else None,
+            "warranty_until": (part.warranty_until.isoformat() if part.warranty_until else None),
         }
         for part in work_order.parts.filter(voided_at__isnull=True)
     ]
@@ -190,9 +167,9 @@ def work_order_snapshot(work_order):
             "service_description": work_order.service_description,
             "solution": work_order.solution,
             "opened_at": work_order.opened_at.isoformat(),
-            "completed_at": work_order.completed_at.isoformat() if work_order.completed_at else None,
+            "completed_at": (work_order.completed_at.isoformat() if work_order.completed_at else None),
             "status": work_order.status.name,
-            "responsible": work_order.responsible_user.get_username() if work_order.responsible_user else "",
+            "responsible": (work_order.responsible_user.get_username() if work_order.responsible_user else ""),
         },
         "customer": {
             "id": str(work_order.customer_id),
@@ -346,7 +323,7 @@ def create_work_order_from_quote(*, quote, responsible_user=None):
         customer=quote.customer,
         equipment=quote.equipment,
         title=quote.title,
-        problem_description=quote.description or f"Servico aprovado no {quote.display_number}",
+        problem_description=(quote.description or f"Servico aprovado no {quote.display_number}"),
         responsible_user=responsible_user,
     )
     quote.work_order = work_order
@@ -387,214 +364,3 @@ def issue_document(*, document_type, generated_by=None, quote=None, work_order=N
     document.full_clean()
     document.save()
     return document
-
-
-def _business_footer(business):
-    values = [
-        business.get("document"),
-        business.get("phone") or business.get("whatsapp"),
-        business.get("email"),
-    ]
-    return " · ".join(value for value in values if value)
-
-
-def _quote_status_label(status):
-    return {
-        "draft": "Rascunho",
-        "sent": "Enviado",
-        "approved": "Aprovado",
-        "rejected": "Rejeitado",
-        "cancelled": "Cancelado",
-    }.get(status, status or "-")
-
-
-def quote_pdf_from_snapshot(snapshot, revision=""):
-    business = snapshot["business"]
-    quote = snapshot["quote"]
-    customer = snapshot["customer"]
-    equipment = snapshot.get("equipment")
-    document = PdfDocument(
-        brand=business.get("name") or "TechTrack",
-        document_label="Orcamento",
-        document_number=quote["display_number"],
-        footer_left=_business_footer(business),
-        revision=revision,
-    )
-    document.metadata_row(
-        [
-            ("Data", _pt_date(quote.get("created_at"))),
-            ("Validade", _pt_date(quote.get("valid_until"))),
-            ("Status", _quote_status_label(quote.get("status"))),
-        ]
-    )
-    document.section_title("Prestador")
-    document.info_box(
-        [
-            ("Nome", business.get("name") or "TechTrack"),
-            ("Documento", business.get("document") or "-"),
-            ("Contato", business.get("phone") or business.get("whatsapp") or "-"),
-            ("E-mail", business.get("email") or "-"),
-            ("Endereco", business.get("address") or "-"),
-        ]
-    )
-    document.section_title("Cliente")
-    document.info_box(
-        [
-            ("Nome", customer.get("name") or "-"),
-            ("Contato", customer.get("whatsapp") or customer.get("phone") or "-"),
-            ("E-mail", customer.get("email") or "-"),
-        ]
-    )
-    if equipment:
-        document.section_title("Equipamento")
-        document.info_box(
-            [
-                ("Tipo", equipment.get("type") or "-"),
-                (
-                    "Marca / modelo",
-                    " ".join(filter(None, [equipment.get("manufacturer"), equipment.get("model")])) or "-",
-                ),
-                ("Identificacao", equipment.get("asset_tag") or "-"),
-                ("Serial", equipment.get("serial_number") or "-"),
-            ]
-        )
-    document.section_title("Solicitacao / escopo")
-    document.paragraph("Titulo", quote.get("title") or "Orcamento")
-    if quote.get("description"):
-        document.paragraph("Descricao", quote["description"])
-    document.section_title("Itens")
-    document.table(
-        headers=["Descricao", "Qtd.", "Unitario", "Desconto", "Total"],
-        rows=[
-            [
-                item.get("description") or "-",
-                item.get("quantity") or "0",
-                _money(item.get("unit_price")),
-                _money(item.get("discount")),
-                _money(item.get("total")),
-            ]
-            for item in snapshot.get("items", [])
-        ],
-        widths=[251, 50, 75, 65, 70],
-        aligns=["left", "right", "right", "right", "right"],
-    )
-    document.totals(
-        [
-            ("Subtotal", _money(quote.get("items_total"))),
-            ("Desconto", _money(quote.get("discount"))),
-            ("Total final", _money(quote.get("total_amount"))),
-        ]
-    )
-    if quote.get("notes"):
-        document.section_title("Observacoes")
-        document.note_box("Observacoes da proposta", quote["notes"])
-    return document.build()
-
-
-def work_order_pdf_from_snapshot(snapshot, revision=""):
-    business = snapshot["business"]
-    work_order = snapshot["work_order"]
-    customer = snapshot["customer"]
-    equipment = snapshot["equipment"]
-    financial = snapshot.get("financial") or {}
-    document = PdfDocument(
-        brand=business.get("name") or "TechTrack",
-        document_label="Ordem de Servico",
-        document_number=work_order["display_number"],
-        footer_left=_business_footer(business),
-        revision=revision,
-    )
-    document.metadata_row(
-        [
-            ("Abertura", _pt_date(work_order.get("opened_at"))),
-            ("Conclusao", _pt_date(work_order.get("completed_at"))),
-            ("Status", work_order.get("status") or "-"),
-            ("Responsavel", work_order.get("responsible") or "-"),
-        ]
-    )
-    document.section_title("Prestador")
-    document.info_box(
-        [
-            ("Nome", business.get("name") or "TechTrack"),
-            ("Documento", business.get("document") or "-"),
-            ("Contato", business.get("phone") or business.get("whatsapp") or "-"),
-            ("E-mail", business.get("email") or "-"),
-            ("Endereco", business.get("address") or "-"),
-        ]
-    )
-    document.section_title("Cliente")
-    document.info_box(
-        [
-            ("Nome", customer.get("name") or "-"),
-            ("Contato", customer.get("whatsapp") or customer.get("phone") or "-"),
-            ("E-mail", customer.get("email") or "-"),
-        ]
-    )
-    document.section_title("Equipamento")
-    document.info_box(
-        [
-            ("Tipo", equipment.get("type") or "-"),
-            ("Marca / modelo", " ".join(filter(None, [equipment.get("manufacturer"), equipment.get("model")])) or "-"),
-            ("Identificacao", equipment.get("asset_tag") or "-"),
-            ("Serial", equipment.get("serial_number") or "-"),
-        ]
-    )
-    document.section_title("Conteudo tecnico")
-    document.paragraph("Problema relatado", work_order.get("problem_description") or "-")
-    document.paragraph("Diagnostico", work_order.get("diagnosis") or "-")
-    if work_order.get("service_description"):
-        document.paragraph("Execucao", work_order["service_description"])
-    document.paragraph("Solucao", work_order.get("solution") or "-")
-
-    if snapshot.get("services"):
-        document.section_title("Servicos realizados")
-        document.table(
-            headers=["Servico", "Descricao", "Data", "Valor"],
-            rows=[
-                [
-                    service.get("name") or "-",
-                    service.get("description") or "-",
-                    _pt_date(service.get("performed_at")),
-                    _money(service.get("labor_price")),
-                ]
-                for service in snapshot["services"]
-            ],
-            widths=[150, 220, 70, 71],
-            aligns=["left", "left", "left", "right"],
-        )
-
-    if snapshot.get("parts"):
-        document.section_title("Pecas utilizadas")
-        part_rows = []
-        for part in snapshot["parts"]:
-            total = Decimal(str(part.get("quantity") or 0)) * Decimal(str(part.get("unit_price") or 0))
-            part_rows.append(
-                [
-                    part.get("description") or "-",
-                    part.get("quantity") or "0",
-                    _money(part.get("unit_price")),
-                    _money(total),
-                ]
-            )
-        document.table(
-            headers=["Descricao", "Qtd.", "Unitario", "Total"],
-            rows=part_rows,
-            widths=[280, 61, 85, 85],
-            aligns=["left", "right", "right", "right"],
-        )
-
-    total_amount = Decimal(str(financial.get("total_amount") or 0))
-    labor_total = Decimal(str(financial.get("labor_total") or 0))
-    parts_total = Decimal(str(financial.get("parts_total") or 0))
-    discount = Decimal(str(financial.get("discount") or 0))
-    if any(value != 0 for value in [total_amount, labor_total, parts_total, discount]):
-        document.section_title("Resumo financeiro")
-        document.totals(
-            [
-                ("Mao de obra", _money(labor_total)),
-                ("Pecas", _money(parts_total)),
-                ("Desconto", _money(discount)),
-                ("Total", _money(total_amount)),
-            ]
-        )
-    return document.build()

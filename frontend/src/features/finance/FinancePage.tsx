@@ -75,7 +75,9 @@ export function FinancePage() {
     ...tab,
     count:
       tab.id === "receivables"
-        ? workspace.receivables.data?.count
+        ? workspace.receivables.data
+          ? workspace.openReceivables.length
+          : undefined
         : tab.id === "payments"
           ? workspace.payments.data?.count
           : tab.id === "agreements"

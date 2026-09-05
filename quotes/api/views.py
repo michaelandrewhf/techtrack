@@ -4,6 +4,7 @@ from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from documents.renderers.quote import render_quote_pdf
 from workorders.api.serializers import WorkOrderDetailSerializer
 
 from ..models import DocumentType, GeneratedDocument, Quote, QuoteStatus
@@ -14,7 +15,6 @@ from ..services import (
     create_work_order_from_quote,
     issue_document,
     mark_quote_sent,
-    quote_pdf_from_snapshot,
     quote_snapshot,
     set_quote_terminal_status,
 )
@@ -144,7 +144,7 @@ class QuoteViewSet(viewsets.ModelViewSet):
             suffix = "-preview"
             revision = "PREVIA"
         response = HttpResponse(
-            quote_pdf_from_snapshot(snapshot, revision=revision),
+            render_quote_pdf(snapshot, revision=revision),
             content_type="application/pdf",
         )
         response["Content-Disposition"] = f'attachment; filename="orcamento-{quote.number:06d}{suffix}.pdf"'
@@ -161,7 +161,7 @@ class QuoteViewSet(viewsets.ModelViewSet):
         except DjangoValidationError as exc:
             _raise_validation(exc)
         response = HttpResponse(
-            quote_pdf_from_snapshot(document.snapshot, revision=f"v{document.version}"),
+            render_quote_pdf(document.snapshot, revision=f"v{document.version}"),
             content_type="application/pdf",
         )
         response["Content-Disposition"] = (
