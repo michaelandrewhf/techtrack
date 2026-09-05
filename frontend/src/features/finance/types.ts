@@ -1,5 +1,2 @@
 export type FinanceTabId =
-  | "overview"
-  | "receivables"
-  | "payments"
-  | "agreements";
+  "overview" | "receivables" | "payments" | "agreements";
