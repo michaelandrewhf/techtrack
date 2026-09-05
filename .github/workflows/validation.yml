@@ -75,6 +75,10 @@ jobs:
       - run: corepack enable
       - run: corepack prepare pnpm@11.25.0 --activate
       - run: pnpm install --frozen-lockfile
+      - name: Inspect customer workspace formatting
+        run: |
+          pnpm exec prettier --write src/features/customers/detail
+          git diff -- src/features/customers/detail
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm test
