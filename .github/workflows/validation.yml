@@ -75,6 +75,10 @@ jobs:
       - run: corepack enable
       - run: corepack prepare pnpm@11.25.0 --activate
       - run: pnpm install --frozen-lockfile
+      - name: Inspect equipment detail formatting
+        run: |
+          pnpm exec prettier --write src/features/equipment/detail
+          git diff -- src/features/equipment/detail
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm test
