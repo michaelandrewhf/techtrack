@@ -43,7 +43,8 @@ export function QuoteItems({
   });
   const parts = useQuery({
     queryKey: ["catalog", "parts", "quote-composer"],
-    queryFn: () => catalogApi("parts").list({ is_active: true, page_size: 100 }),
+    queryFn: () =>
+      catalogApi("parts").list({ is_active: true, page_size: 100 }),
     enabled: composerOpen && editable && itemType === "part",
   });
 
@@ -176,7 +177,9 @@ export function QuoteItems({
                   onChange={(event) => {
                     const value = event.target.value;
                     setCatalogId(value);
-                    const selected = source?.find((entry) => entry.id === value);
+                    const selected = source?.find(
+                      (entry) => entry.id === value,
+                    );
                     if (selected) {
                       setDescription(selected.name);
                       setUnitPrice(String(selected.default_price ?? ""));
