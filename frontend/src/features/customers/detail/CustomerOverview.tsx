@@ -1,6 +1,5 @@
 import {
   ClipboardList,
-  FileText,
   Laptop,
   Pencil,
   Plus,
@@ -73,7 +72,9 @@ export function CustomerOverview({
         <MetricCard
           icon={<ClipboardList className="h-5 w-5" />}
           label="OS abertas"
-          tone={(customer.active_work_order_count ?? 0) > 0 ? "warning" : "neutral"}
+          tone={
+            (customer.active_work_order_count ?? 0) > 0 ? "warning" : "neutral"
+          }
           value={customer.active_work_order_count ?? 0}
           hint={`Ultima OS: ${formatDateTime(customer.latest_work_order_at)}`}
         />
@@ -143,8 +144,8 @@ export function CustomerOverview({
                     </div>
                     <div className="mt-1 text-sm text-[var(--text-muted)]">
                       Desde {formatDate(activeAgreement.starts_on)} ·{" "}
-                      {formatMoney(activeAgreement.amount)} por mes · vencimento dia{" "}
-                      {activeAgreement.billing_day}
+                      {formatMoney(activeAgreement.amount)} por mes · vencimento
+                      dia {activeAgreement.billing_day}
                     </div>
                   </div>
                   <Badge tone="success">Ativo</Badge>
@@ -167,7 +168,11 @@ export function CustomerOverview({
                 Este cliente e atendido como avulso. O historico de contratos
                 anteriores continua preservado.
               </p>
-              <Button className="mt-4" type="button" onClick={onCreateAgreement}>
+              <Button
+                className="mt-4"
+                type="button"
+                onClick={onCreateAgreement}
+              >
                 Tornar mensalista
               </Button>
             </div>
