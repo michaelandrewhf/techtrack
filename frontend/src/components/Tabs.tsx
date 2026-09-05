@@ -16,7 +16,7 @@ export function Tabs({
   onChange: (value: string) => void;
 }) {
   return (
-    <div className="overflow-x-auto border-b border-slate-200 dark:border-slate-800">
+    <div className="overflow-x-auto border-b border-[var(--tt-border)]">
       <div className="flex min-w-max gap-1" role="tablist">
         {items.map((item) => {
           const active = item.id === value;
@@ -26,8 +26,8 @@ export function Tabs({
               className={clsx(
                 "border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
                 active
-                  ? "border-blue-600 text-blue-700 dark:text-blue-300"
-                  : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100",
+                  ? "border-[var(--tt-brand)] text-[var(--tt-brand)]"
+                  : "border-transparent text-[var(--tt-text-muted)] hover:border-[var(--tt-border-strong)] hover:text-[var(--tt-text)]",
               )}
               key={item.id}
               role="tab"
@@ -36,7 +36,7 @@ export function Tabs({
             >
               {item.label}
               {item.count !== undefined ? (
-                <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                <span className="ml-2 rounded-full bg-[var(--tt-surface-subtle)] px-2 py-0.5 text-xs text-[var(--tt-text-muted)]">
                   {item.count}
                 </span>
               ) : null}
