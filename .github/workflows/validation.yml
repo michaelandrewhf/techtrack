@@ -75,6 +75,16 @@ jobs:
       - run: corepack enable
       - run: corepack prepare pnpm@11.25.0 --activate
       - run: pnpm install --frozen-lockfile
+      - name: Format UX files for review
+        run: >-
+          pnpm exec prettier --write
+          src/components/Modal.test.tsx
+          src/components/ui.tsx
+          src/index.css
+          src/pages/NotFoundPage.test.tsx
+          src/pages/NotFoundPage.tsx
+      - name: Show formatting diff
+        run: git diff -- src/components/Modal.test.tsx src/components/ui.tsx src/index.css src/pages/NotFoundPage.test.tsx src/pages/NotFoundPage.tsx
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm test
