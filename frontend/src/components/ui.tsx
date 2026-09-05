@@ -85,7 +85,10 @@ export function Field({
       </span>
       {children}
       {error ? (
-        <span className="block text-xs font-normal text-[var(--danger)]" role="alert">
+        <span
+          className="block text-xs font-normal text-[var(--danger)]"
+          role="alert"
+        >
           {error}
         </span>
       ) : hint ? (
@@ -110,12 +113,9 @@ export function Badge({
     <span
       className={clsx(
         "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
-        tone === "danger" &&
-          "bg-[var(--danger-soft)] text-[var(--danger)]",
-        tone === "success" &&
-          "bg-[var(--success-soft)] text-[var(--success)]",
-        tone === "warning" &&
-          "bg-[var(--warning-soft)] text-[var(--warning)]",
+        tone === "danger" && "bg-[var(--danger-soft)] text-[var(--danger)]",
+        tone === "success" && "bg-[var(--success-soft)] text-[var(--success)]",
+        tone === "warning" && "bg-[var(--warning-soft)] text-[var(--warning)]",
         tone === "info" && "bg-[var(--info-soft)] text-[var(--info)]",
         tone === "neutral" &&
           "bg-[var(--surface-subtle)] text-[var(--text-muted)]",
@@ -198,8 +198,7 @@ export function MetricCard({
                 "bg-[var(--success-soft)] text-[var(--success)]",
               tone === "warning" &&
                 "bg-[var(--warning-soft)] text-[var(--warning)]",
-              tone === "info" &&
-                "bg-[var(--info-soft)] text-[var(--info)]",
+              tone === "info" && "bg-[var(--info-soft)] text-[var(--info)]",
               tone === "neutral" &&
                 "bg-[var(--surface-subtle)] text-[var(--text-muted)]",
             )}
