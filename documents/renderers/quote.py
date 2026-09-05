@@ -53,7 +53,10 @@ def render_quote_pdf(snapshot: dict, revision: str = "") -> bytes:
         )
 
     document.section_title("Escopo da proposta")
-    document.lead_block(quote.get("title") or "Proposta de serviço", quote.get("description") or "")
+    document.lead_block(
+        quote.get("title") or "Proposta de serviço",
+        quote.get("description") or "",
+    )
 
     document.section_title("Itens e valores")
     document.table(
@@ -83,6 +86,4 @@ def render_quote_pdf(snapshot: dict, revision: str = "") -> bytes:
         document.section_title("Condições e observações")
         document.note_box("Observações da proposta", quote["notes"])
 
-    document.section_title("Aceite")
-    document.signature_area(["Aprovação do cliente", "Data"])
     return document.build()
