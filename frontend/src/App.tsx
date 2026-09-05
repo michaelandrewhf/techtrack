@@ -4,10 +4,10 @@ import { RouterProvider, createBrowserRouter } from "react-router-dom";
 
 import { AuthProvider } from "./auth/AuthProvider";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
+import { CustomerDetailPage } from "./features/customers/detail/CustomerDetailPage";
 import { AppLayout } from "./layout/AppLayout";
 import { BusinessProfilePage } from "./pages/BusinessProfilePage";
 import { CatalogPage } from "./pages/CatalogPage";
-import { CustomerDetailPage } from "./pages/CustomerDetailPage";
 import { CustomersPage } from "./pages/CustomersPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { EquipmentDetailPage } from "./pages/EquipmentDetailPage";
