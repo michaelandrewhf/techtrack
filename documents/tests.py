@@ -1,6 +1,4 @@
-from documents.renderers.quote import render_quote_pdf
-from documents.renderers.work_order import render_work_order_pdf
-
+from documents.renderers import render_quote_pdf, render_work_order_pdf
 
 BUSINESS = {
     "name": "TechTrack",
