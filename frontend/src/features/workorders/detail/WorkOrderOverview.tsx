@@ -9,11 +9,7 @@ import {
   Panel,
 } from "../../../components/ui";
 import { formatDateTime, formatMoney } from "../../../utils/format";
-import {
-  equipmentName,
-  priorityLabel,
-  workOrderTotals,
-} from "./presentation";
+import { equipmentName, priorityLabel, workOrderTotals } from "./presentation";
 
 export function WorkOrderOverview({
   workOrder,
@@ -31,7 +27,10 @@ export function WorkOrderOverview({
   return (
     <>
       <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Mao de obra" value={formatMoney(totals.laborTotal)} />
+        <MetricCard
+          label="Mao de obra"
+          value={formatMoney(totals.laborTotal)}
+        />
         <MetricCard label="Pecas" value={formatMoney(totals.partsTotal)} />
         <MetricCard
           label="Valor tecnico"
