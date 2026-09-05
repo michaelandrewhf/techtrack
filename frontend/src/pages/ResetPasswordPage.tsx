@@ -6,6 +6,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 
 import { confirmPasswordReset } from "../api/passwordReset";
+import { useAuth } from "../auth/AuthProvider";
 import { Button, Field, Input, Notice } from "../components/ui";
 import { errorMessage } from "../utils/errors";
 
@@ -24,6 +25,7 @@ type FormData = z.infer<typeof schema>;
 export function ResetPasswordPage() {
   const { uid, token } = useParams();
   const navigate = useNavigate();
+  const auth = useAuth();
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const form = useForm<FormData>({
@@ -42,6 +44,7 @@ export function ResetPasswordPage() {
         new_password: data.newPassword,
         confirm_password: data.confirmPassword,
       });
+      auth.logout();
       navigate("/login", {
         replace: true,
         state: { passwordResetSuccess: true },
@@ -110,7 +113,9 @@ export function ResetPasswordPage() {
                   />
                   <button
                     aria-label={
-                      showNewPassword ? "Ocultar nova senha" : "Mostrar nova senha"
+                      showNewPassword
+                        ? "Ocultar nova senha"
+                        : "Mostrar nova senha"
                     }
                     className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white"
                     type="button"
