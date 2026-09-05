@@ -25,7 +25,12 @@ export function ErrorState({
         {message}
       </div>
       {onRetry ? (
-        <Button className="mt-3" type="button" variant="danger" onClick={onRetry}>
+        <Button
+          className="mt-3"
+          type="button"
+          variant="danger"
+          onClick={onRetry}
+        >
           Tentar novamente
         </Button>
       ) : null}
