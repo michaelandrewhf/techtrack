@@ -15,8 +15,7 @@ export function useFinanceWorkspace(
 
   const activeAgreementSummary = useQuery({
     queryKey: ["finance", "agreements", "active-summary"],
-    queryFn: () =>
-      financeApi.agreements({ status: "active", ordering: "customer__name", page_size: 1 }),
+    queryFn: () => financeApi.agreements({ status: "active", page_size: 1 }),
   });
 
   const receivables = useQuery({
