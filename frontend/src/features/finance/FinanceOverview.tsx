@@ -37,7 +37,11 @@ export function FinanceMetrics({
   );
 }
 
-export function FinanceOverview({ dashboard }: { dashboard: FinanceDashboard }) {
+export function FinanceOverview({
+  dashboard,
+}: {
+  dashboard: FinanceDashboard;
+}) {
   return (
     <div className="grid gap-5 xl:grid-cols-2">
       <Panel
