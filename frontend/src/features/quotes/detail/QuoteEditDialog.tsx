@@ -7,13 +7,7 @@ import { z } from "zod";
 import { quotesApi } from "../../../api/endpoints";
 import type { Quote } from "../../../api/types";
 import { Modal } from "../../../components/Modal";
-import {
-  Button,
-  Field,
-  Input,
-  Notice,
-  Textarea,
-} from "../../../components/ui";
+import { Button, Field, Input, Notice, Textarea } from "../../../components/ui";
 import { errorMessage } from "../../../utils/errors";
 
 const editSchema = z.object({
