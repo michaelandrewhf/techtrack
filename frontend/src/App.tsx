@@ -15,6 +15,7 @@ import { EquipmentPage } from "./pages/EquipmentPage";
 import { FinancePage } from "./pages/FinancePage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { LoginPage } from "./pages/LoginPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { QuoteCreatePage } from "./pages/QuoteCreatePage";
 import { QuoteDetailPage } from "./pages/QuoteDetailPage";
@@ -71,6 +72,7 @@ function createRouter() {
         },
       ],
     },
+    { path: "*", element: <NotFoundPage /> },
   ]);
 }
 
