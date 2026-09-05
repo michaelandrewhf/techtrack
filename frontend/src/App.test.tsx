@@ -42,6 +42,15 @@ function setupFetch() {
       const url = String(input);
       if (url.endsWith("/api/token/"))
         return json({ access: "access-token", refresh: "refresh-token" });
+      if (url.endsWith("/api/v1/auth/password-reset/")) {
+        return json({
+          message:
+            "Se existir uma conta ativa com esse e-mail, enviaremos as instrucoes para redefinir a senha.",
+        });
+      }
+      if (url.endsWith("/api/v1/auth/password-reset/confirm/")) {
+        return json({ message: "Senha redefinida com sucesso." });
+      }
       if (url.endsWith("/api/v1/me/")) {
         if (init?.method === "PATCH") {
           return json({ ...user, first_name: "Michael" });
@@ -161,7 +170,7 @@ describe("App", () => {
     expect(screen.getByText("2")).toBeInTheDocument();
   });
 
-  it("shows the password, remembers the username and exposes password recovery", async () => {
+  it("shows the password, remembers the username and opens password recovery", async () => {
     window.history.pushState({}, "", "/login");
     setupFetch();
 
@@ -174,21 +183,60 @@ describe("App", () => {
     );
     expect(password.type).toBe("text");
 
-    await userEvent.type(screen.getByLabelText(/Usuario/), "tech");
-    await userEvent.type(password, "secret");
     await userEvent.click(
-      screen.getByRole("checkbox", { name: "Lembrar meu usuario" }),
-    );
-    await userEvent.click(
-      screen.getByRole("button", { name: "Esqueci minha senha" }),
+      screen.getByRole("link", { name: "Esqueci minha senha" }),
     );
     expect(
-      screen.getByText(/A recuperacao de senha sera disponibilizada/),
+      await screen.findByRole("heading", { name: "Recuperar senha" }),
     ).toBeInTheDocument();
+  });
 
-    await userEvent.click(screen.getByRole("button", { name: "Entrar" }));
-    expect(await screen.findByText("Clientes ativos")).toBeInTheDocument();
-    expect(localStorage.getItem("techtrack.rememberedUsername")).toBe("tech");
+  it("requests a password reset without exposing whether the email exists", async () => {
+    window.history.pushState({}, "", "/forgot-password");
+    const fetchMock = setupFetch();
+
+    render(<App />);
+    await userEvent.type(screen.getByLabelText(/^E-mail/), "user@example.com");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Enviar link de recuperacao" }),
+    );
+
+    expect(
+      await screen.findByText(/Se existir uma conta ativa com esse e-mail/),
+    ).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/auth/password-reset/",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  it("resets the password and redirects to login with success feedback", async () => {
+    window.history.pushState({}, "", "/reset-password/dXNlci0x/token-value");
+    const fetchMock = setupFetch();
+
+    render(<App />);
+    await userEvent.type(
+      screen.getByLabelText(/^Nova senha/),
+      "NewSecurePassword!2026",
+    );
+    await userEvent.type(
+      screen.getByLabelText(/^Confirmar nova senha/),
+      "NewSecurePassword!2026",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Redefinir senha" }),
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Entrar no sistema" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Senha redefinida com sucesso/),
+    ).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/auth/password-reset/confirm/",
+      expect.objectContaining({ method: "POST" }),
+    );
   });
 
   it("switches dark mode and persists the preference", async () => {

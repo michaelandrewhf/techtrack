@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
 import { useAuth } from "../auth/AuthProvider";
@@ -37,7 +37,6 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
-  const [showRecoveryInfo, setShowRecoveryInfo] = useState(false);
   const rememberedUsername =
     localStorage.getItem(REMEMBERED_USERNAME_KEY) ?? "";
   const form = useForm<LoginForm>({
@@ -50,6 +49,10 @@ export function LoginPage() {
   });
   const from =
     (location.state as { from?: Location } | null)?.from?.pathname ?? "/";
+  const passwordResetSuccess = Boolean(
+    (location.state as { passwordResetSuccess?: boolean } | null)
+      ?.passwordResetSuccess,
+  );
 
   if (auth.isAuthenticated) return <Navigate to="/" replace />;
 
@@ -145,6 +148,11 @@ export function LoginPage() {
             </div>
 
             <form className="space-y-4" onSubmit={submit}>
+              {passwordResetSuccess ? (
+                <Notice tone="success">
+                  Senha redefinida com sucesso. Entre com a nova senha.
+                </Notice>
+              ) : null}
               <Field
                 label="Usuario"
                 required
@@ -196,21 +204,14 @@ export function LoginPage() {
                   />
                   Lembrar meu usuario
                 </label>
-                <button
+                <Link
                   className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                  type="button"
-                  onClick={() => setShowRecoveryInfo(true)}
+                  to="/forgot-password"
                 >
                   Esqueci minha senha
-                </button>
+                </Link>
               </div>
 
-              {showRecoveryInfo ? (
-                <Notice>
-                  A recuperacao de senha sera disponibilizada em uma proxima
-                  etapa. O atalho ja esta reservado na tela de login.
-                </Notice>
-              ) : null}
               {form.formState.errors.root ? (
                 <Notice tone="danger">
                   {form.formState.errors.root.message}
