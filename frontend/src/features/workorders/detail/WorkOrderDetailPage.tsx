@@ -1,10 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  CheckCircle,
-  CircleX,
-  Download,
-  FileCheck2,
-} from "lucide-react";
+import { CheckCircle, CircleX, Download, FileCheck2 } from "lucide-react";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 
@@ -15,23 +10,13 @@ import { Breadcrumbs } from "../../../components/Breadcrumbs";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import { PageHeader } from "../../../components/PageHeader";
 import { ErrorState, PageLoader } from "../../../components/State";
-import {
-  Badge,
-  Button,
-  Notice,
-  Panel,
-  Select,
-} from "../../../components/ui";
+import { Badge, Button, Notice, Panel, Select } from "../../../components/ui";
 import { errorMessage } from "../../../utils/errors";
 import { WorkOrderFinanceHistory } from "./WorkOrderFinanceHistory";
 import { WorkOrderOperations } from "./WorkOrderOperations";
 import { WorkOrderOverview } from "./WorkOrderOverview";
 import { WorkOrderTechnicalDialog } from "./WorkOrderTechnicalDialog";
-import {
-  equipmentName,
-  priorityLabel,
-  priorityTone,
-} from "./presentation";
+import { equipmentName, priorityLabel, priorityTone } from "./presentation";
 
 export function WorkOrderDetailPage() {
   const { id = "" } = useParams();
@@ -111,6 +96,19 @@ export function WorkOrderDetailPage() {
 
   const item = workOrder.data;
   const isClosed = item.status.kind !== "active";
+
+  if (!isClosed && statuses.isLoading) {
+    return <PageLoader label="Carregando fluxo da ordem de servico" />;
+  }
+  if (!isClosed && statuses.error) {
+    return (
+      <ErrorState
+        message="Nao foi possivel carregar os status disponiveis da OS."
+        onRetry={statuses.refetch}
+      />
+    );
+  }
+
   const equipment = equipmentName(item);
   const rows = receivables.data?.results ?? [];
   const openBalance = rows.reduce(
@@ -181,7 +179,7 @@ export function WorkOrderDetailPage() {
           <Select
             aria-label="Alterar status"
             className="w-auto min-w-48"
-            disabled={isClosed || changeStatus.isPending || statuses.isLoading}
+            disabled={isClosed || changeStatus.isPending}
             onChange={(event) =>
               event.target.value && changeStatus.mutate(event.target.value)
             }
