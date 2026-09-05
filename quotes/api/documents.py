@@ -4,10 +4,11 @@ from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
+from documents.renderers.work_order import render_work_order_pdf
 from workorders.models import WorkOrder
 
 from ..models import DocumentType, GeneratedDocument
-from ..services import issue_document, work_order_pdf_from_snapshot, work_order_snapshot
+from ..services import issue_document, work_order_snapshot
 
 
 class WorkOrderPdfView(APIView):
@@ -38,7 +39,7 @@ class WorkOrderPdfView(APIView):
             revision = "PREVIA"
 
         response = HttpResponse(
-            work_order_pdf_from_snapshot(snapshot, revision=revision),
+            render_work_order_pdf(snapshot, revision=revision),
             content_type="application/pdf",
         )
         response["Content-Disposition"] = f'attachment; filename="os-{work_order.number:06d}{suffix}.pdf"'
@@ -65,7 +66,7 @@ class WorkOrderIssuePdfView(APIView):
             raise serializers.ValidationError(exc.messages if hasattr(exc, "messages") else str(exc)) from exc
 
         response = HttpResponse(
-            work_order_pdf_from_snapshot(document.snapshot, revision=f"v{document.version}"),
+            render_work_order_pdf(document.snapshot, revision=f"v{document.version}"),
             content_type="application/pdf",
         )
         response["Content-Disposition"] = f'attachment; filename="os-{work_order.number:06d}-v{document.version}.pdf"'
