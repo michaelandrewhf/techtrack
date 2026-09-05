@@ -257,7 +257,9 @@ export function CustomerDialogs({
           </div>
           {updateCustomer.error ? (
             <div className="sm:col-span-2">
-              <Notice tone="danger">{errorMessage(updateCustomer.error)}</Notice>
+              <Notice tone="danger">
+                {errorMessage(updateCustomer.error)}
+              </Notice>
             </div>
           ) : null}
           <DialogActions
@@ -364,7 +366,10 @@ export function CustomerDialogs({
               required
               error={agreementForm.formState.errors.amount?.message}
             >
-              <Input inputMode="decimal" {...agreementForm.register("amount")} />
+              <Input
+                inputMode="decimal"
+                {...agreementForm.register("amount")}
+              />
             </Field>
             <Field
               label="Dia de vencimento"
@@ -387,7 +392,9 @@ export function CustomerDialogs({
             <Input type="date" {...agreementForm.register("starts_on")} />
           </Field>
           <div className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4">
-            <div className="font-medium text-[var(--text)]">Primeira mensalidade</div>
+            <div className="font-medium text-[var(--text)]">
+              Primeira mensalidade
+            </div>
             <div className="mt-3 space-y-3">
               <label className="flex cursor-pointer items-start gap-3">
                 <input
@@ -412,10 +419,12 @@ export function CustomerDialogs({
                   {...agreementForm.register("first_billing_mode")}
                 />
                 <span>
-                  <strong className="block text-sm">Cobrar no proximo mes</strong>
+                  <strong className="block text-sm">
+                    Cobrar no proximo mes
+                  </strong>
                   <span className="text-xs text-[var(--text-muted)]">
-                    Nao gera cobranca no mes atual; o primeiro vencimento segue o
-                    dia cadastrado no proximo mes.
+                    Nao gera cobranca no mes atual; o primeiro vencimento segue
+                    o dia cadastrado no proximo mes.
                   </span>
                 </span>
               </label>
@@ -425,7 +434,9 @@ export function CustomerDialogs({
             <Field
               label="Metodo de pagamento da primeira mensalidade"
               required
-              error={agreementForm.formState.errors.first_payment_method?.message}
+              error={
+                agreementForm.formState.errors.first_payment_method?.message
+              }
             >
               <Select {...agreementForm.register("first_payment_method")}>
                 <option value="">Selecione</option>
