@@ -13,7 +13,7 @@ export function Pagination({
 }) {
   const totalPages = Math.max(1, Math.ceil(count / pageSize));
   return (
-    <div className="flex items-center justify-between gap-3 text-sm text-slate-600 dark:text-slate-300">
+    <div className="flex items-center justify-between gap-3 text-sm text-[var(--tt-text-muted)]">
       <span>
         Pagina {page} de {totalPages}
       </span>
