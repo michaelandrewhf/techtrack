@@ -8,6 +8,7 @@ from rest_framework.test import APIClient
 
 from catalog.models import ServiceType
 from customers.models import Customer
+from documents.renderers.quote import render_quote_pdf
 from inventory.models import Equipment, EquipmentType
 from quotes.models import DocumentType, GeneratedDocument, QuoteStatus
 from quotes.services import (
@@ -17,7 +18,6 @@ from quotes.services import (
     create_work_order_from_quote,
     issue_document,
     mark_quote_sent,
-    quote_pdf_from_snapshot,
 )
 
 
@@ -100,7 +100,12 @@ def test_quote_workflow_and_create_work_order(customer, equipment, service_type,
 
 
 def test_issued_quote_document_is_snapshot(customer, equipment, service_type, user):
-    quote = create_quote(customer=customer, equipment=equipment, title="Orcamento original", created_by=user)
+    quote = create_quote(
+        customer=customer,
+        equipment=equipment,
+        title="Orcamento original",
+        created_by=user,
+    )
     add_quote_item(
         quote=quote,
         item_type="service",
@@ -109,7 +114,11 @@ def test_issued_quote_document_is_snapshot(customer, equipment, service_type, us
         quantity=1,
         unit_price="100.00",
     )
-    document = issue_document(document_type=DocumentType.QUOTE, quote=quote, generated_by=user)
+    document = issue_document(
+        document_type=DocumentType.QUOTE,
+        quote=quote,
+        generated_by=user,
+    )
     assert document.version == 1
     assert document.snapshot["quote"]["title"] == "Orcamento original"
 
@@ -131,13 +140,18 @@ def test_quote_pdf_is_valid_pdf(customer, equipment, service_type):
         unit_price="120.00",
     )
     document = issue_document(document_type=DocumentType.QUOTE, quote=quote)
-    pdf = quote_pdf_from_snapshot(document.snapshot)
+    pdf = render_quote_pdf(document.snapshot)
     assert pdf.startswith(b"%PDF-1.4")
     assert len(pdf) > 300
 
 
 def test_quote_api_pdf_download(user, customer, equipment, service_type):
-    quote = create_quote(customer=customer, equipment=equipment, title="API PDF", created_by=user)
+    quote = create_quote(
+        customer=customer,
+        equipment=equipment,
+        title="API PDF",
+        created_by=user,
+    )
     add_quote_item(
         quote=quote,
         item_type="service",
