@@ -12,18 +12,18 @@ export function Button({
   return (
     <button
       className={clsx(
-        "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:focus-visible:ring-offset-slate-950",
-        size === "sm" && "px-2.5 py-1.5 text-xs",
-        size === "md" && "px-3.5 py-2 text-sm",
-        size === "lg" && "px-4 py-2.5 text-sm",
+        "inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] font-medium transition-[background-color,border-color,color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--app-bg)] disabled:cursor-not-allowed disabled:opacity-50",
+        size === "sm" && "min-h-8 px-2.5 py-1.5 text-xs",
+        size === "md" && "min-h-10 px-3.5 py-2 text-sm",
+        size === "lg" && "min-h-11 px-4 py-2.5 text-sm",
         variant === "primary" &&
-          "bg-blue-600 text-white shadow-sm hover:bg-blue-700",
+          "bg-[var(--primary)] text-white shadow-[var(--shadow-sm)] hover:bg-[var(--primary-hover)]",
         variant === "secondary" &&
-          "border border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800",
+          "border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] shadow-[var(--shadow-sm)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-subtle)]",
         variant === "danger" &&
-          "bg-red-600 text-white shadow-sm hover:bg-red-700",
+          "bg-[var(--danger)] text-white shadow-[var(--shadow-sm)] hover:brightness-95",
         variant === "ghost" &&
-          "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white",
+          "text-[var(--text-muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--text)]",
         className,
       )}
       {...props}
@@ -32,7 +32,7 @@ export function Button({
 }
 
 const controlClass =
-  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 aria-[invalid=true]:border-red-500 aria-[invalid=true]:ring-red-500/15 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500";
+  "w-full rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text)] shadow-[var(--shadow-sm)] transition-[border-color,box-shadow,background-color] placeholder:text-[var(--text-subtle)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--primary)_18%,transparent)] aria-[invalid=true]:border-[var(--danger)] aria-[invalid=true]:ring-[color-mix(in_srgb,var(--danger)_14%,transparent)]";
 
 export function Input({
   className,
@@ -74,18 +74,25 @@ export function Field({
   required?: boolean;
 }) {
   return (
-    <label className="block space-y-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
+    <label className="block space-y-1.5 text-sm font-medium text-[var(--text)]">
       <span>
         {label}
-        {required ? <span className="ml-1 text-red-500">*</span> : null}
+        {required ? (
+          <span className="ml-1 text-[var(--danger)]" aria-hidden="true">
+            *
+          </span>
+        ) : null}
       </span>
       {children}
       {error ? (
-        <span className="block text-xs font-normal text-red-600 dark:text-red-400">
+        <span
+          className="block text-xs font-normal text-[var(--danger)]"
+          role="alert"
+        >
           {error}
         </span>
       ) : hint ? (
-        <span className="block text-xs font-normal text-slate-500 dark:text-slate-400">
+        <span className="block text-xs font-normal text-[var(--text-muted)]">
           {hint}
         </span>
       ) : null}
@@ -107,15 +114,14 @@ export function Badge({
       className={clsx(
         "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
         tone === "danger" &&
-          "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200",
+          "bg-[var(--danger-soft)] text-[var(--danger)]",
         tone === "success" &&
-          "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200",
+          "bg-[var(--success-soft)] text-[var(--success)]",
         tone === "warning" &&
-          "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200",
-        tone === "info" &&
-          "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200",
+          "bg-[var(--warning-soft)] text-[var(--warning)]",
+        tone === "info" && "bg-[var(--info-soft)] text-[var(--info)]",
         tone === "neutral" &&
-          "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
+          "bg-[var(--surface-subtle)] text-[var(--text-muted)]",
         className,
       )}
     >
@@ -140,7 +146,7 @@ export function Panel({
   return (
     <section
       className={clsx(
-        "rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5",
+        "rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-sm)] sm:p-5",
         className,
       )}
     >
@@ -148,12 +154,12 @@ export function Panel({
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             {title ? (
-              <h2 className="text-base font-semibold text-slate-950 dark:text-white">
+              <h2 className="text-base font-semibold text-[var(--text)]">
                 {title}
               </h2>
             ) : null}
             {subtitle ? (
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              <p className="mt-1 text-sm text-[var(--text-muted)]">
                 {subtitle}
               </p>
             ) : null}
@@ -180,33 +186,37 @@ export function MetricCard({
   tone?: "neutral" | "danger" | "success" | "warning" | "info";
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-sm)]">
       <div className="flex items-start justify-between gap-3">
-        <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
+        <div className="text-sm font-medium text-[var(--text-muted)]">
           {label}
         </div>
         {icon ? (
           <div
             className={clsx(
-              "rounded-lg p-2",
-              tone === "danger" && "bg-red-50 text-red-600 dark:bg-red-950",
+              "rounded-[var(--radius-md)] p-2",
+              tone === "danger" &&
+                "bg-[var(--danger-soft)] text-[var(--danger)]",
               tone === "success" &&
-                "bg-emerald-50 text-emerald-600 dark:bg-emerald-950",
+                "bg-[var(--success-soft)] text-[var(--success)]",
               tone === "warning" &&
-                "bg-amber-50 text-amber-600 dark:bg-amber-950",
-              tone === "info" && "bg-blue-50 text-blue-600 dark:bg-blue-950",
+                "bg-[var(--warning-soft)] text-[var(--warning)]",
+              tone === "info" &&
+                "bg-[var(--info-soft)] text-[var(--info)]",
               tone === "neutral" &&
-                "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+                "bg-[var(--surface-subtle)] text-[var(--text-muted)]",
             )}
           >
             {icon}
           </div>
         ) : null}
       </div>
-      <div className="mt-3 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">
+      <div className="mt-3 text-2xl font-semibold tracking-tight text-[var(--text)]">
         {value}
       </div>
-      {hint ? <div className="mt-1 text-xs text-slate-500">{hint}</div> : null}
+      {hint ? (
+        <div className="mt-1 text-xs text-[var(--text-muted)]">{hint}</div>
+      ) : null}
     </div>
   );
 }
@@ -221,15 +231,15 @@ export function Notice({
   return (
     <div
       className={clsx(
-        "rounded-lg border px-3 py-2.5 text-sm",
+        "rounded-[var(--radius-md)] border px-3 py-2.5 text-sm",
         tone === "info" &&
-          "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200",
+          "border-[color-mix(in_srgb,var(--info)_28%,var(--border))] bg-[var(--info-soft)] text-[var(--info)]",
         tone === "success" &&
-          "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200",
+          "border-[color-mix(in_srgb,var(--success)_28%,var(--border))] bg-[var(--success-soft)] text-[var(--success)]",
         tone === "warning" &&
-          "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200",
+          "border-[color-mix(in_srgb,var(--warning)_28%,var(--border))] bg-[var(--warning-soft)] text-[var(--warning)]",
         tone === "danger" &&
-          "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200",
+          "border-[color-mix(in_srgb,var(--danger)_28%,var(--border))] bg-[var(--danger-soft)] text-[var(--danger)]",
       )}
     >
       {children}
@@ -246,12 +256,10 @@ export function DescriptionList({
     <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
       {items.map((item) => (
         <div key={item.label}>
-          <dt className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <dt className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
             {item.label}
           </dt>
-          <dd className="mt-1 text-slate-800 dark:text-slate-100">
-            {item.value}
-          </dd>
+          <dd className="mt-1 text-[var(--text)]">{item.value}</dd>
         </div>
       ))}
     </dl>
