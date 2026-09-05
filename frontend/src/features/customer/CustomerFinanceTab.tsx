@@ -109,7 +109,9 @@ export function CustomerFinanceTab({
                     </div>
                     <div className="mt-1 text-xs text-[var(--tt-text-muted)]">
                       {formatDate(agreement.starts_on)} →{" "}
-                      {agreement.ends_on ? formatDate(agreement.ends_on) : "atual"}
+                      {agreement.ends_on
+                        ? formatDate(agreement.ends_on)
+                        : "atual"}
                     </div>
                   </div>
                   <Badge
