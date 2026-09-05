@@ -25,21 +25,33 @@ export function useCustomerWorkspace(
   const equipment = useQuery({
     queryKey: ["equipment", "customer", id, "workspace"],
     queryFn: () =>
-      equipmentApi.list({ customer: id, ordering: "-created_at", page_size: 100 }),
+      equipmentApi.list({
+        customer: id,
+        ordering: "-created_at",
+        page_size: 100,
+      }),
     enabled: Boolean(id) && activeTab === "equipment",
   });
 
   const recentWorkOrders = useQuery({
     queryKey: ["work-orders", "customer", id, "recent"],
     queryFn: () =>
-      workOrdersApi.list({ customer: id, ordering: "-opened_at", page_size: 4 }),
+      workOrdersApi.list({
+        customer: id,
+        ordering: "-opened_at",
+        page_size: 4,
+      }),
     enabled: Boolean(id) && activeTab === "overview",
   });
 
   const workOrders = useQuery({
     queryKey: ["work-orders", "customer", id, "workspace"],
     queryFn: () =>
-      workOrdersApi.list({ customer: id, ordering: "-opened_at", page_size: 100 }),
+      workOrdersApi.list({
+        customer: id,
+        ordering: "-opened_at",
+        page_size: 100,
+      }),
     enabled: Boolean(id) && activeTab === "work-orders",
   });
 
@@ -78,7 +90,9 @@ export function useCustomerWorkspace(
       }),
     enabled:
       Boolean(id) &&
-      (activeTab === "overview" || activeTab === "finance" || modal === "payment"),
+      (activeTab === "overview" ||
+        activeTab === "finance" ||
+        modal === "payment"),
   });
 
   const activeAgreement = useMemo(
