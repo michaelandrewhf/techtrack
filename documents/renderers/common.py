@@ -45,6 +45,4 @@ def quote_status_label(status: str | None) -> str:
 
 
 def equipment_model(equipment: dict) -> str:
-    return " ".join(
-        value for value in [equipment.get("manufacturer"), equipment.get("model")] if value
-    ) or "-"
+    return " ".join(value for value in [equipment.get("manufacturer"), equipment.get("model")] if value) or "-"
