@@ -43,7 +43,10 @@ export function EquipmentOverview({ equipment }: { equipment: Equipment }) {
               { label: "Serial", value: equipment.serial_number || "-" },
               { label: "Patrimonio", value: equipment.asset_tag || "-" },
               { label: "Sistema", value: equipment.operating_system || "-" },
-              { label: "Status", value: equipmentStatusLabel(equipment.status) },
+              {
+                label: "Status",
+                value: equipmentStatusLabel(equipment.status),
+              },
             ]}
           />
         </Panel>
@@ -74,7 +77,8 @@ export function EquipmentOverview({ equipment }: { equipment: Equipment }) {
                     {latestWorkOrder.display_number} · {latestWorkOrder.title}
                   </Link>
                   <div className="mt-1 text-xs text-[var(--text-muted)]">
-                    {formatDateTime(latestWorkOrder.opened_at)} · {latestWorkOrder.status.name}
+                    {formatDateTime(latestWorkOrder.opened_at)} ·{" "}
+                    {latestWorkOrder.status.name}
                   </div>
                 </div>
               ) : (
