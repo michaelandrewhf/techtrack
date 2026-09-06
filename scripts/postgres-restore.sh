@@ -94,7 +94,10 @@ echo "Restoring PostgreSQL database from: $backup_path"
 
 if [[ "$RESTORE_RUN_MIGRATIONS" == "true" ]]; then
   echo "Applying migrations after restore..."
-  "${compose[@]}" run --rm --no-deps backend python manage.py migrate --noinput
+  # The production image entrypoint always starts Gunicorn after migrations,
+  # so bypass it for this one-shot maintenance command.
+  "${compose[@]}" run --rm --no-deps --entrypoint python backend \
+    manage.py migrate --noinput
 fi
 
 echo "Starting application services..."
