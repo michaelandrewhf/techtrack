@@ -71,6 +71,7 @@ finance
 - [Financeiro](docs/finance.md)
 - [Orcamentos](docs/quotes.md)
 - [Deploy, runtime offline e seguranca operacional](docs/deployment.md)
+- [Backup e restore do PostgreSQL](docs/backups.md)
 - [Frontend](frontend/README.md)
 
 ## Requisitos
@@ -179,6 +180,20 @@ docker compose -f compose.prod.yaml up -d
 
 A stack exige `POSTGRES_PASSWORD`, `DJANGO_SECRET_KEY` e `DJANGO_ALLOWED_HOSTS` configurados explicitamente.
 
+Backup operacional:
+
+```bash
+bash scripts/postgres-backup.sh
+```
+
+Restore deliberadamente destrutivo:
+
+```bash
+bash scripts/postgres-restore.sh backups/techtrack_YYYYMMDDTHHMMSSZ.dump --yes
+```
+
+Consulte [docs/backups.md](docs/backups.md) antes de automatizar retencao, copia off-site ou restore.
+
 ## Backend sem Docker
 
 Sincronize o ambiente:
@@ -235,6 +250,7 @@ Endpoints basicos:
 GET  /api/health/
 POST /api/token/
 POST /api/token/refresh/
+POST /api/token/logout/
 GET  /api/schema/
 GET  /api/docs/
 ```
@@ -246,6 +262,8 @@ Endpoints autenticados usam:
 ```http
 Authorization: Bearer <access_token>
 ```
+
+O access token permanece apenas em memoria no frontend; o refresh token fica em cookie `HttpOnly`.
 
 ## Validacao do backend
 
@@ -339,6 +357,7 @@ O workflow de validacao cobre:
 - frontend (lint, formato, testes e build);
 - smoke test do Docker Compose de desenvolvimento;
 - novo startup da stack preconstruida em rede sem acesso a internet;
-- smoke test da stack de producao com Gunicorn e Nginx.
+- smoke test da stack de producao com Gunicorn e Nginx;
+- ciclo real de backup/restore em PostgreSQL efemero de CI.
 
 O objetivo e detectar erros de aplicacao, diferencas entre SQLite/PostgreSQL, problemas de integracao e dependencias acidentais de rede durante o runtime.
