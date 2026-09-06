@@ -7,7 +7,10 @@ COPY --from=uv /uv /uvx /bin/
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_PROJECT_ENVIRONMENT=/opt/venv \
-    PATH="/opt/venv/bin:$PATH"
+    PATH="/opt/venv/bin:$PATH" \
+    HOME=/home/appuser
+
+RUN useradd --create-home --uid 10001 appuser
 
 WORKDIR /app
 
@@ -15,7 +18,9 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project \
     && uv pip install --python /opt/venv/bin/python gunicorn==23.0.0
 
-COPY . .
+COPY --chown=appuser:appuser . .
+
+USER appuser
 
 EXPOSE 8000
 
