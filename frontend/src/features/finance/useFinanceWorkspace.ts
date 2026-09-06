@@ -8,7 +8,7 @@ const PAGE_SIZE = 25;
 export function useFinanceWorkspace(activeTab: FinanceTabId, page: number) {
   const dashboard = useQuery({
     queryKey: ["finance", "dashboard"],
-    queryFn: financeApi.dashboard,
+    queryFn: () => financeApi.dashboard(),
   });
 
   const activeAgreementSummary = useQuery({
