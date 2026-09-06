@@ -36,7 +36,7 @@ describe("FinancePage", () => {
     vi.unstubAllGlobals();
   });
 
-  it("loads finance lists only when their tab or action is opened", async () => {
+  it("loads finance lists only when their tab or searchable action is used", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.endsWith("/api/v1/finance/dashboard/")) {
@@ -88,17 +88,27 @@ describe("FinancePage", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "Registrar pagamento" }),
     );
+    const receivableSearch = screen.getByRole("combobox", {
+      name: "Conta a receber",
+    });
+    await userEvent.type(receivableSearch, "Cliente A");
 
     await waitFor(() => {
       expect(
-        fetchMock.mock.calls.some(([input]) =>
-          String(input).includes("/api/v1/receivables/"),
-        ),
+        fetchMock.mock.calls.some(([input]) => {
+          const url = String(input);
+          return (
+            url.includes("/api/v1/receivables/") &&
+            url.includes("open=true") &&
+            url.includes("search=Cliente%20A") &&
+            url.includes("page_size=10")
+          );
+        }),
       ).toBe(true);
     });
   });
 
-  it("shows only unsettled entries in accounts receivable", async () => {
+  it("uses the server open filter for accounts receivable", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.endsWith("/api/v1/finance/dashboard/")) {
@@ -112,22 +122,10 @@ describe("FinancePage", () => {
       }
       if (url.includes("/api/v1/receivables/")) {
         return json({
-          count: 2,
+          count: 1,
           next: null,
           previous: null,
           results: [
-            {
-              id: "r-paid",
-              customer: "c1",
-              customer_name: "Cliente A",
-              description: "Mensalidade paga",
-              origin: "agreement",
-              due_date: "2026-09-03",
-              amount: "300.00",
-              balance: "0.00",
-              status: "paid",
-              is_overdue: false,
-            },
             {
               id: "r-open",
               customer: "c2",
@@ -160,9 +158,18 @@ describe("FinancePage", () => {
     expect(
       (await screen.findAllByText("Mensalidade pendente")).length,
     ).toBeGreaterThan(0);
-    expect(screen.queryByText("Mensalidade paga")).not.toBeInTheDocument();
     expect(
       screen.getByRole("tab", { name: /Contas a receber/ }),
     ).toHaveTextContent("1");
+    expect(
+      fetchMock.mock.calls.some(([input]) => {
+        const url = String(input);
+        return (
+          url.includes("/api/v1/receivables/") &&
+          url.includes("open=true") &&
+          url.includes("page_size=25")
+        );
+      }),
+    ).toBe(true);
   });
 });
