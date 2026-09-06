@@ -34,7 +34,10 @@ it("links tabs to panels and supports arrow, home and end navigation", async () 
   const finance = screen.getByRole("tab", { name: "Financeiro" });
 
   expect(overview).toHaveAttribute("aria-selected", "true");
-  expect(overview).toHaveAttribute("aria-controls", "customer-tabs-panel-overview");
+  expect(overview).toHaveAttribute(
+    "aria-controls",
+    "customer-tabs-panel-overview",
+  );
   expect(screen.getByRole("tabpanel")).toHaveAttribute(
     "aria-labelledby",
     "customer-tabs-tab-overview",
