@@ -96,7 +96,7 @@ export const financeApi = {
 export const quotesApi = {
   list: (filters: Filters = {}) =>
     apiRequest<Paginated<Quote>>(`/v1/quotes/${toQueryString(filters)}`),
-  detail: (id: string) => apiRequest<Quote>(`/v1/quotes/${id}/`),
+  get: (id: string) => apiRequest<Quote>(`/v1/quotes/${id}/`),
   create: (body: Record<string, unknown>) =>
     apiRequest<Quote>("/v1/quotes/", { method: "POST", body }),
   update: (id: string, body: Record<string, unknown>) =>
@@ -106,70 +106,78 @@ export const quotesApi = {
       method: "POST",
       body,
     }),
-  updateItem: (id: string, itemId: string, body: Record<string, unknown>) =>
-    apiRequest<QuoteItem>(`/v1/quotes/${id}/items/${itemId}/`, {
-      method: "PATCH",
-      body,
+  markSent: (id: string) =>
+    apiRequest<Quote>(`/v1/quotes/${id}/mark-sent/`, {
+      method: "POST",
+      body: {},
     }),
-  removeItem: (id: string, itemId: string) =>
-    apiRequest<void>(`/v1/quotes/${id}/items/${itemId}/`, {
-      method: "DELETE",
-    }),
-  submit: (id: string) =>
-    apiRequest<Quote>(`/v1/quotes/${id}/submit/`, { method: "POST" }),
   approve: (id: string) =>
-    apiRequest<Quote>(`/v1/quotes/${id}/approve/`, { method: "POST" }),
+    apiRequest<Quote>(`/v1/quotes/${id}/approve/`, {
+      method: "POST",
+      body: {},
+    }),
   reject: (id: string) =>
-    apiRequest<Quote>(`/v1/quotes/${id}/reject/`, { method: "POST" }),
-  expire: (id: string) =>
-    apiRequest<Quote>(`/v1/quotes/${id}/expire/`, { method: "POST" }),
+    apiRequest<Quote>(`/v1/quotes/${id}/reject/`, {
+      method: "POST",
+      body: {},
+    }),
   cancel: (id: string) =>
-    apiRequest<Quote>(`/v1/quotes/${id}/cancel/`, { method: "POST" }),
-  convert: (id: string) =>
-    apiRequest<WorkOrder>(`/v1/quotes/${id}/convert/`, { method: "POST" }),
-  downloadPdf: (id: string) => apiDownload(`/v1/quotes/${id}/pdf/`),
+    apiRequest<Quote>(`/v1/quotes/${id}/cancel/`, {
+      method: "POST",
+      body: {},
+    }),
+  createWorkOrder: (id: string) =>
+    apiRequest<WorkOrder>(`/v1/quotes/${id}/create-work-order/`, {
+      method: "POST",
+      body: {},
+    }),
+  previewPdf: (id: string, version?: number) =>
+    apiDownload(`/v1/quotes/${id}/pdf/${version ? `?version=${version}` : ""}`),
   issuePdf: (id: string) =>
-    apiDownload(`/v1/quotes/${id}/issue-pdf/`, { method: "POST" }),
+    apiDownload(`/v1/quotes/${id}/issue-pdf/`, { method: "POST", body: {} }),
 };
 
 export const customersApi = {
   list: (filters: Filters = {}) =>
     apiRequest<Paginated<Customer>>(`/v1/customers/${toQueryString(filters)}`),
-  detail: (id: string) => apiRequest<Customer>(`/v1/customers/${id}/`),
-  create: (body: Record<string, unknown>) =>
+  get: (id: string) => apiRequest<Customer>(`/v1/customers/${id}/`),
+  create: (body: Partial<Customer>) =>
     apiRequest<Customer>("/v1/customers/", { method: "POST", body }),
-  update: (id: string, body: Record<string, unknown>) =>
+  update: (id: string, body: Partial<Customer>) =>
     apiRequest<Customer>(`/v1/customers/${id}/`, { method: "PATCH", body }),
+  remove: (id: string) =>
+    apiRequest<null>(`/v1/customers/${id}/`, { method: "DELETE" }),
+  equipment: (id: string) =>
+    apiRequest<Paginated<Equipment>>(`/v1/customers/${id}/equipment/`),
+  workOrders: (id: string) =>
+    apiRequest<Paginated<WorkOrder>>(`/v1/customers/${id}/work-orders/`),
 };
 
 export const equipmentApi = {
   list: (filters: Filters = {}) =>
     apiRequest<Paginated<Equipment>>(`/v1/equipment/${toQueryString(filters)}`),
-  detail: (id: string) => apiRequest<Equipment>(`/v1/equipment/${id}/`),
+  get: (id: string) => apiRequest<Equipment>(`/v1/equipment/${id}/`),
   create: (body: Record<string, unknown>) =>
     apiRequest<Equipment>("/v1/equipment/", { method: "POST", body }),
   update: (id: string, body: Record<string, unknown>) =>
     apiRequest<Equipment>(`/v1/equipment/${id}/`, { method: "PATCH", body }),
   components: (id: string) =>
-    apiRequest<EquipmentComponent[]>(`/v1/equipment/${id}/components/`),
+    apiRequest<Paginated<EquipmentComponent>>(
+      `/v1/equipment/${id}/components/`,
+    ),
   addComponent: (id: string, body: Record<string, unknown>) =>
     apiRequest<EquipmentComponent>(`/v1/equipment/${id}/components/`, {
       method: "POST",
       body,
     }),
-  updateComponent: (
-    id: string,
-    componentId: string,
-    body: Record<string, unknown>,
-  ) =>
-    apiRequest<EquipmentComponent>(
-      `/v1/equipment/${id}/components/${componentId}/`,
-      { method: "PATCH", body },
-    ),
   removeComponent: (id: string, componentId: string) =>
-    apiRequest<void>(`/v1/equipment/${id}/components/${componentId}/`, {
-      method: "DELETE",
-    }),
+    apiRequest<EquipmentComponent>(
+      `/v1/equipment/${id}/components/${componentId}/remove/`,
+      {
+        method: "POST",
+        body: {},
+      },
+    ),
   maintenance: (id: string) =>
     apiRequest<MaintenanceItem[]>(`/v1/equipment/${id}/maintenance/`),
 };
@@ -179,75 +187,84 @@ export const workOrdersApi = {
     apiRequest<Paginated<WorkOrder>>(
       `/v1/work-orders/${toQueryString(filters)}`,
     ),
-  detail: (id: string) => apiRequest<WorkOrder>(`/v1/work-orders/${id}/`),
+  get: (id: string) => apiRequest<WorkOrder>(`/v1/work-orders/${id}/`),
   create: (body: Record<string, unknown>) =>
     apiRequest<WorkOrder>("/v1/work-orders/", { method: "POST", body }),
   update: (id: string, body: Record<string, unknown>) =>
-    apiRequest<WorkOrder>(`/v1/work-orders/${id}/`, {
-      method: "PATCH",
-      body,
-    }),
-  changeStatus: (id: string, body: Record<string, unknown>) =>
+    apiRequest<WorkOrder>(`/v1/work-orders/${id}/`, { method: "PATCH", body }),
+  timeline: (id: string) =>
+    apiRequest<Paginated<WorkOrderTimeline>>(`/v1/work-orders/${id}/timeline/`),
+  changeStatus: (
+    id: string,
+    body: { status_id: string; comment?: string; description?: string },
+  ) =>
     apiRequest<WorkOrder>(`/v1/work-orders/${id}/change-status/`, {
       method: "POST",
       body,
     }),
-  timeline: (id: string) =>
-    apiRequest<WorkOrderTimeline>(`/v1/work-orders/${id}/timeline/`),
+  complete: (id: string, body: Record<string, unknown>) =>
+    apiRequest<WorkOrder>(`/v1/work-orders/${id}/complete/`, {
+      method: "POST",
+      body,
+    }),
+  cancel: (id: string, body: { comment?: string; description?: string }) =>
+    apiRequest<WorkOrder>(`/v1/work-orders/${id}/cancel/`, {
+      method: "POST",
+      body,
+    }),
   addService: (id: string, body: Record<string, unknown>) =>
     apiRequest<WorkOrderService>(`/v1/work-orders/${id}/services/`, {
       method: "POST",
       body,
     }),
-  updateService: (
-    id: string,
-    serviceId: string,
-    body: Record<string, unknown>,
-  ) =>
+  voidService: (id: string, serviceId: string, reason: string) =>
     apiRequest<WorkOrderService>(
-      `/v1/work-orders/${id}/services/${serviceId}/`,
-      { method: "PATCH", body },
+      `/v1/work-orders/${id}/services/${serviceId}/void/`,
+      {
+        method: "POST",
+        body: { reason },
+      },
     ),
-  removeService: (id: string, serviceId: string) =>
-    apiRequest<void>(`/v1/work-orders/${id}/services/${serviceId}/`, {
-      method: "DELETE",
-    }),
   addPart: (id: string, body: Record<string, unknown>) =>
     apiRequest<WorkOrderPart>(`/v1/work-orders/${id}/parts/`, {
       method: "POST",
       body,
     }),
-  updatePart: (id: string, partId: string, body: Record<string, unknown>) =>
-    apiRequest<WorkOrderPart>(`/v1/work-orders/${id}/parts/${partId}/`, {
-      method: "PATCH",
-      body,
+  voidPart: (id: string, partId: string, reason: string) =>
+    apiRequest<WorkOrderPart>(`/v1/work-orders/${id}/parts/${partId}/void/`, {
+      method: "POST",
+      body: { reason },
     }),
-  removePart: (id: string, partId: string) =>
-    apiRequest<void>(`/v1/work-orders/${id}/parts/${partId}/`, {
-      method: "DELETE",
-    }),
-  billing: (id: string) =>
+  getBilling: (id: string) =>
     apiRequest<Billing>(`/v1/work-orders/${id}/billing/`),
-  updateBilling: (id: string, body: Record<string, unknown>) =>
+  saveBilling: (id: string, body: Record<string, unknown>) =>
     apiRequest<Billing>(`/v1/work-orders/${id}/billing/`, {
-      method: "PATCH",
+      method: "PUT",
       body,
     }),
-  downloadPdf: (id: string) => apiDownload(`/v1/work-orders/${id}/pdf/`),
+  previewPdf: (id: string, version?: number) =>
+    apiDownload(
+      `/v1/work-orders/${id}/pdf/${version ? `?version=${version}` : ""}`,
+    ),
   issuePdf: (id: string) =>
-    apiDownload(`/v1/work-orders/${id}/issue-pdf/`, { method: "POST" }),
+    apiDownload(`/v1/work-orders/${id}/issue-pdf/`, {
+      method: "POST",
+      body: {},
+    }),
 };
 
-export const catalogApi = {
-  list: (resource: string, filters: Filters = {}) =>
-    apiRequest<Paginated<CatalogItem>>(
-      `/v1/${resource}/${toQueryString(filters)}`,
-    ),
-  create: (resource: string, body: Record<string, unknown>) =>
-    apiRequest<CatalogItem>(`/v1/${resource}/`, { method: "POST", body }),
-  update: (resource: string, id: string, body: Record<string, unknown>) =>
-    apiRequest<CatalogItem>(`/v1/${resource}/${id}/`, {
-      method: "PATCH",
-      body,
-    }),
-};
+export function catalogApi(resource: string) {
+  return {
+    list: (filters: Filters = {}) =>
+      apiRequest<Paginated<CatalogItem>>(
+        `/v1/${resource}/${toQueryString(filters)}`,
+      ),
+    create: (body: Record<string, unknown>) =>
+      apiRequest<CatalogItem>(`/v1/${resource}/`, { method: "POST", body }),
+    update: (id: string, body: Record<string, unknown>) =>
+      apiRequest<CatalogItem>(`/v1/${resource}/${id}/`, {
+        method: "PATCH",
+        body,
+      }),
+  };
+}
