@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { App } from "../App";
-import { tokenStore } from "../api/client";
+import { accessTokenStore } from "../api/client";
 
 function json(data: unknown) {
   return new Response(JSON.stringify(data), {
@@ -14,11 +14,11 @@ function json(data: unknown) {
 beforeEach(() => {
   vi.restoreAllMocks();
   localStorage.clear();
-  tokenStore.clear();
+  accessTokenStore.clear();
 });
 
 it("shows recovery actions for an unknown authenticated route", async () => {
-  tokenStore.set("access-token", "refresh-token");
+  accessTokenStore.set("access-token");
   window.history.pushState({}, "", "/rota-que-nao-existe");
   vi.stubGlobal(
     "fetch",

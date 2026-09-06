@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "./App";
-import { tokenStore } from "./api/client";
+import { accessTokenStore } from "./api/client";
 
 const user = {
   id: "user-1",
@@ -40,8 +40,11 @@ function setupFetch() {
   const fetchMock = vi.fn(
     async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
-      if (url.endsWith("/api/token/"))
-        return json({ access: "access-token", refresh: "refresh-token" });
+      if (url.endsWith("/api/token/refresh/"))
+        return json({ detail: "Sessao expirada." }, 401);
+      if (url.endsWith("/api/token/")) return json({ access: "access-token" });
+      if (url.endsWith("/api/token/logout/"))
+        return new Response(null, { status: 204 });
       if (url.endsWith("/api/v1/auth/password-reset/")) {
         return json({
           message:
@@ -142,7 +145,7 @@ describe("App", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     localStorage.clear();
-    tokenStore.clear();
+    accessTokenStore.clear();
     document.documentElement.classList.remove("dark");
   });
 
@@ -157,7 +160,7 @@ describe("App", () => {
     ).toBeInTheDocument();
   });
 
-  it("logs in and opens the dashboard", async () => {
+  it("logs in and opens the dashboard without persisting JWTs", async () => {
     window.history.pushState({}, "", "/login");
     setupFetch();
 
@@ -169,6 +172,8 @@ describe("App", () => {
 
     expect(await screen.findByText("Clientes ativos")).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
+    expect(localStorage.getItem("techtrack.access")).toBeNull();
+    expect(localStorage.getItem("techtrack.refresh")).toBeNull();
   });
 
   it("shows the password, remembers the username and opens password recovery", async () => {
@@ -242,7 +247,7 @@ describe("App", () => {
   });
 
   it("switches dark mode and persists the preference", async () => {
-    tokenStore.set("access-token", "refresh-token");
+    accessTokenStore.set("access-token");
     window.history.pushState({}, "", "/");
     setupFetch();
 
@@ -257,7 +262,7 @@ describe("App", () => {
   });
 
   it("updates the authenticated profile", async () => {
-    tokenStore.set("access-token", "refresh-token");
+    accessTokenStore.set("access-token");
     window.history.pushState({}, "", "/profile");
     const fetchMock = setupFetch();
 
@@ -284,7 +289,7 @@ describe("App", () => {
   });
 
   it("calls the change-status action from the work order detail screen", async () => {
-    tokenStore.set("access-token", "refresh-token");
+    accessTokenStore.set("access-token");
     window.history.pushState({}, "", "/work-orders/wo-1");
     const fetchMock = setupFetch();
 

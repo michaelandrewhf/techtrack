@@ -28,10 +28,16 @@ export type Filters = Record<
 
 export const authApi = {
   login: (body: { username: string; password: string }) =>
-    apiRequest<{ access: string; refresh: string }>("/token/", {
+    apiRequest<{ access: string }>("/token/", {
       method: "POST",
       body,
       skipAuth: true,
+    }),
+  logout: () =>
+    apiRequest<void>("/token/logout/", {
+      method: "POST",
+      skipAuth: true,
+      keepalive: true,
     }),
   me: () => apiRequest<User>("/v1/me/"),
 };

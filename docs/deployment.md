@@ -67,6 +67,32 @@ docker compose -f compose.prod.yaml up -d
 
 Por padrão o frontend é publicado na porta `8080`. Altere com `PROD_FRONTEND_PORT` quando necessário.
 
+## Sessão JWT
+
+O navegador não persiste mais JWTs em `localStorage` ou `sessionStorage`.
+
+A sessão funciona em duas camadas:
+
+1. o **access token** é retornado pelo login e mantido apenas em memória pelo frontend;
+2. o **refresh token** é emitido em cookie `HttpOnly`, limitado ao path `/api/token/` e inacessível ao JavaScript.
+
+Quando a página é recarregada, o frontend chama `POST /api/token/refresh/`. O backend lê o refresh token diretamente do cookie e devolve um novo access token. O corpo da requisição de refresh não aceita o refresh token como credencial alternativa.
+
+O logout chama `POST /api/token/logout/`, remove o access token da memória e expira o cookie de refresh.
+
+Configurações disponíveis:
+
+```dotenv
+AUTH_ACCESS_TOKEN_MINUTES=5
+AUTH_REFRESH_TOKEN_DAYS=1
+AUTH_REFRESH_COOKIE_NAME=techtrack_refresh
+AUTH_REFRESH_COOKIE_SAMESITE=Lax
+```
+
+Em desenvolvimento, `AUTH_REFRESH_COOKIE_SECURE=False`. O `compose.prod.yaml` usa `AUTH_REFRESH_COOKIE_SECURE=True` por padrão e essa configuração deve permanecer ativa quando a aplicação estiver publicada via HTTPS.
+
+A implantação desta mudança invalida intencionalmente as sessões antigas que ainda dependiam de tokens no `localStorage`. O frontend remove as chaves legadas e o usuário precisa autenticar novamente uma vez.
+
 ## HTTPS e reverse proxy
 
 O cenário recomendado é terminar TLS no proxy da plataforma (Traefik, Caddy, Nginx externo, EasyPanel etc.) e encaminhar o tráfego para o container frontend.
@@ -80,6 +106,7 @@ DJANGO_SECURE_SSL_REDIRECT=True
 DJANGO_SESSION_COOKIE_SECURE=True
 DJANGO_CSRF_COOKIE_SECURE=True
 DJANGO_CSRF_TRUSTED_ORIGINS=https://techtrack.seudominio.com
+AUTH_REFRESH_COOKIE_SECURE=True
 ```
 
 HSTS deve ser habilitado somente depois de HTTPS estar estável:
@@ -117,7 +144,7 @@ Django aplica baseline de segurança incluindo `nosniff`, `DENY` para framing e 
 
 ## Próximos hardenings
 
-A estratégia JWT atual ainda mantém access/refresh token no `localStorage`. A migração do refresh token para cookie `HttpOnly` deve ser tratada em uma mudança separada porque altera o contrato de autenticação entre frontend e backend.
+A persistência de refresh JWT no navegador foi removida. Como evolução posterior de segurança de sessão, pode-se adicionar blacklist/rotação de refresh tokens para revogação server-side imediata, caso a aplicação passe a exigir esse nível de controle.
 
 Também permanecem como etapas operacionais posteriores:
 
