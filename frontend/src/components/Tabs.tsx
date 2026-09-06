@@ -1,10 +1,5 @@
 import clsx from "clsx";
-import {
-  type KeyboardEvent,
-  type ReactNode,
-  useId,
-  useRef,
-} from "react";
+import { type KeyboardEvent, type ReactNode, useId, useRef } from "react";
 
 export type TabItem = {
   id: string;
