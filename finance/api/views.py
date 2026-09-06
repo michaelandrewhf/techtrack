@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q, Sum
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
@@ -74,6 +75,19 @@ class ReceivableViewSet(viewsets.ModelViewSet):
             queryset = queryset.exclude(status__in=[ReceivableStatus.PAID, ReceivableStatus.CANCELLED])
         return queryset
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="open",
+                type=bool,
+                location=OpenApiParameter.QUERY,
+                description="Retorna somente cobrancas pendentes ou parcialmente pagas.",
+            )
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
@@ -125,28 +139,46 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
 class FinanceDashboardView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="customer",
+                type=str,
+                location=OpenApiParameter.QUERY,
+                description="Limita os totais e historicos financeiros a um cliente.",
+            )
+        ]
+    )
     def get(self, request):
         today = timezone.localdate()
         month_start = today.replace(day=1)
+        customer_id = request.query_params.get("customer")
+
+        receivables = Receivable.objects.all()
+        payments = Payment.objects.valid()
+        if customer_id:
+            receivables = receivables.filter(customer_id=customer_id)
+            payments = payments.filter(receivable__customer_id=customer_id)
 
         open_rows = list(
-            Receivable.objects.with_amounts()
+            receivables.with_amounts()
             .exclude(status__in=[ReceivableStatus.PAID, ReceivableStatus.CANCELLED])
             .only("id", "amount", "status", "due_date")
         )
         pending_total = sum((row.balance for row in open_rows), Decimal("0.00"))
         overdue_total = sum((row.balance for row in open_rows if row.due_date < today), Decimal("0.00"))
-        received_month = Payment.objects.valid().filter(
+        received_month = payments.filter(
             paid_at__date__gte=month_start, paid_at__date__lte=today
         ).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+
         upcoming = (
-            Receivable.objects.with_list_data()
+            receivables.with_list_data()
             .exclude(status__in=[ReceivableStatus.PAID, ReceivableStatus.CANCELLED])
             .filter(Q(due_date__gte=today))
             .prefetch_related("payments__payment_method")
             .order_by("due_date")[:8]
         )
-        recent_payments = Payment.objects.valid().with_list_data().order_by("-paid_at")[:8]
+        recent_payments = payments.with_list_data().order_by("-paid_at")[:8]
         return Response(
             {
                 "pending_total": pending_total,
