@@ -3,9 +3,10 @@ from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework.permissions import AllowAny
 from rest_framework.routers import DefaultRouter
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
+from rest_framework_simplejwt.views import TokenVerifyView
 
-from accounts.api.throttles import LoginRateThrottle, TokenRefreshRateThrottle, TokenVerifyRateThrottle
+from accounts.api.auth_views import CookieTokenObtainPairView, CookieTokenRefreshView, TokenLogoutView
+from accounts.api.throttles import TokenVerifyRateThrottle
 from accounts.api.views import (
     MeView,
     PasswordResetConfirmView,
@@ -45,14 +46,6 @@ class PublicSpectacularSwaggerView(SpectacularSwaggerView):
     permission_classes = [AllowAny]
 
 
-class ThrottledTokenObtainPairView(TokenObtainPairView):
-    throttle_classes = [LoginRateThrottle]
-
-
-class ThrottledTokenRefreshView(TokenRefreshView):
-    throttle_classes = [TokenRefreshRateThrottle]
-
-
 class ThrottledTokenVerifyView(TokenVerifyView):
     throttle_classes = [TokenVerifyRateThrottle]
 
@@ -76,8 +69,9 @@ router.register("payments", PaymentViewSet, basename="payment")
 
 urlpatterns = [
     path("health/", health_check, name="api-health"),
-    path("token/", ThrottledTokenObtainPairView.as_view(), name="token-obtain-pair"),
-    path("token/refresh/", ThrottledTokenRefreshView.as_view(), name="token-refresh"),
+    path("token/", CookieTokenObtainPairView.as_view(), name="token-obtain-pair"),
+    path("token/refresh/", CookieTokenRefreshView.as_view(), name="token-refresh"),
+    path("token/logout/", TokenLogoutView.as_view(), name="token-logout"),
     path("token/verify/", ThrottledTokenVerifyView.as_view(), name="token-verify"),
     path("schema/", PublicSpectacularAPIView.as_view(), name="api-schema"),
     path("docs/", PublicSpectacularSwaggerView.as_view(url_name="api-schema"), name="api-docs"),
