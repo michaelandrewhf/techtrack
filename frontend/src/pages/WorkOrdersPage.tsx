@@ -63,10 +63,7 @@ export function WorkOrdersPage() {
     setParams(next, { replace: true });
   }, [params, search, setParams, urlSearch]);
 
-  const updateParam = (
-    key: "status" | "priority" | "page",
-    value: string,
-  ) => {
+  const updateParam = (key: "status" | "priority" | "page", value: string) => {
     const next = new URLSearchParams(params);
     if (value && value !== "1") next.set(key, value);
     else next.delete(key);
@@ -199,9 +196,7 @@ export function WorkOrdersPage() {
           <Pagination
             count={query.data.count}
             page={page}
-            onPageChange={(nextPage) =>
-              updateParam("page", String(nextPage))
-            }
+            onPageChange={(nextPage) => updateParam("page", String(nextPage))}
           />
         </div>
       ) : null}
