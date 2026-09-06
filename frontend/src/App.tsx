@@ -120,10 +120,7 @@ function createRouter() {
             },
             {
               path: "/quotes",
-              lazy: lazyPage(
-                () => import("./pages/QuotesPage"),
-                "QuotesPage",
-              ),
+              lazy: lazyPage(() => import("./pages/QuotesPage"), "QuotesPage"),
             },
             {
               path: "/quotes/new",
