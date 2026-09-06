@@ -8,7 +8,7 @@ import type { ServiceAgreement } from "../../../api/types";
 import { Breadcrumbs } from "../../../components/Breadcrumbs";
 import { PageHeader } from "../../../components/PageHeader";
 import { ErrorState, PageLoader } from "../../../components/State";
-import { Tabs } from "../../../components/Tabs";
+import { TabPanel, Tabs } from "../../../components/Tabs";
 import { Badge, Button } from "../../../components/ui";
 import { CustomerDialogs } from "./CustomerDialogs";
 import { CustomerOverview } from "./CustomerOverview";
@@ -16,6 +16,8 @@ import { CustomerTabs } from "./CustomerTabs";
 import { customerStatusLabel } from "./presentation";
 import type { CustomerModalName, CustomerTabId } from "./types";
 import { useCustomerWorkspace } from "./useCustomerWorkspace";
+
+const CUSTOMER_TABS_ID = "customer-detail-tabs";
 
 const tabs: Array<{ id: CustomerTabId; label: string }> = [
   { id: "overview", label: "Visao geral" },
@@ -189,12 +191,17 @@ export function CustomerDetailPage() {
       />
 
       <Tabs
+        id={CUSTOMER_TABS_ID}
         items={tabItems}
         value={activeTab}
         onChange={(value) => selectTab(value as CustomerTabId)}
       />
 
-      <div className="mt-5">
+      <TabPanel
+        className="mt-5"
+        tabId={activeTab}
+        tabsId={CUSTOMER_TABS_ID}
+      >
         {activeTab === "overview" ? (
           overviewLoading ? (
             <PageLoader label="Carregando resumo do cliente" />
@@ -240,7 +247,7 @@ export function CustomerDetailPage() {
             onResourcePageChange={(page) => selectPage("page", page)}
           />
         )}
-      </div>
+      </TabPanel>
 
       <CustomerDialogs
         customer={customer}
