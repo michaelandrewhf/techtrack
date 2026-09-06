@@ -47,6 +47,4 @@ def test_finance_dashboard_can_scope_totals_to_customer():
 
     assert response.status_code == 200
     assert Decimal(response.data["pending_total"]) == Decimal("120.00")
-    assert [row["customer"] for row in response.data["upcoming"]] == [
-        str(customer_a.pk)
-    ]
+    assert [row["customer"] for row in response.data["upcoming"]] == [customer_a.pk]
