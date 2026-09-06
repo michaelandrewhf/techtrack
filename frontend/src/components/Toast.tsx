@@ -70,7 +70,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     };
 
     listeners.add(listener);
-    return () => listeners.delete(listener);
+    return () => {
+      listeners.delete(listener);
+    };
   }, []);
 
   return (
