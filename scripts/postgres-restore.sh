@@ -88,6 +88,7 @@ echo "Restoring PostgreSQL database from: $backup_path"
     --if-exists \
     --no-owner \
     --no-privileges \
+    --single-transaction \
     --exit-on-error
 ' < "$backup_path"
 
