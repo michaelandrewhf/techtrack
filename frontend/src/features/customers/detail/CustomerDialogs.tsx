@@ -10,8 +10,9 @@ import {
   equipmentApi,
   financeApi,
 } from "../../../api/endpoints";
-import type { Customer, Receivable } from "../../../api/types";
+import type { Customer } from "../../../api/types";
 import { CatalogSelect } from "../../../components/CatalogSelect";
+import { ReceivableCombobox } from "../../../components/EntityComboboxes";
 import { Modal } from "../../../components/Modal";
 import {
   Button,
@@ -22,7 +23,6 @@ import {
   Textarea,
 } from "../../../components/ui";
 import { errorMessage } from "../../../utils/errors";
-import { formatMoney } from "../../../utils/format";
 import type { CustomerModalName } from "./types";
 
 const customerSchema = z.object({
@@ -88,14 +88,12 @@ export function CustomerDialogs({
   customer,
   customerId,
   modal,
-  openReceivables,
   onClose,
   onChanged,
 }: {
   customer: Customer;
   customerId: string;
   modal: CustomerModalName;
-  openReceivables: Receivable[];
   onClose: () => void;
   onChanged: () => Promise<void> | void;
 }) {
@@ -470,29 +468,19 @@ export function CustomerDialogs({
       <Modal
         open={modal === "payment"}
         title="Registrar pagamento"
-        description="Baixa contextual sem precisar abrir o Financeiro consolidado."
+        description="Busque uma conta em aberto deste cliente sem sair do contexto."
         onClose={onClose}
       >
         <div className="space-y-4">
           <Field label="Conta a receber" required>
-            <Select
+            <ReceivableCombobox
+              customerId={customerId}
               value={selectedReceivable}
-              onChange={(event) => {
-                const value = event.target.value;
+              onChange={(value, receivable) => {
                 setSelectedReceivable(value);
-                const row = openReceivables.find(
-                  (candidate) => candidate.id === value,
-                );
-                setPaymentAmount(row?.balance ?? "");
+                setPaymentAmount(receivable?.balance ?? "");
               }}
-            >
-              <option value="">Selecione</option>
-              {openReceivables.map((row) => (
-                <option key={row.id} value={row.id}>
-                  {row.description} · {formatMoney(row.balance)}
-                </option>
-              ))}
-            </Select>
+            />
           </Field>
           <Field label="Valor" required>
             <Input
