@@ -197,11 +197,7 @@ export function CustomerDetailPage() {
         onChange={(value) => selectTab(value as CustomerTabId)}
       />
 
-      <TabPanel
-        className="mt-5"
-        tabId={activeTab}
-        tabsId={CUSTOMER_TABS_ID}
-      >
+      <TabPanel className="mt-5" tabId={activeTab} tabsId={CUSTOMER_TABS_ID}>
         {activeTab === "overview" ? (
           overviewLoading ? (
             <PageLoader label="Carregando resumo do cliente" />
