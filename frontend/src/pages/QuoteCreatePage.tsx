@@ -12,7 +12,14 @@ import {
   EquipmentCombobox,
 } from "../components/EntityComboboxes";
 import { PageHeader } from "../components/PageHeader";
-import { Button, Field, Input, Notice, Panel, Textarea } from "../components/ui";
+import {
+  Button,
+  Field,
+  Input,
+  Notice,
+  Panel,
+  Textarea,
+} from "../components/ui";
 import { errorMessage } from "../utils/errors";
 
 const schema = z.object({
