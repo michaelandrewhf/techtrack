@@ -18,8 +18,11 @@ export type QuickCreateItem = {
 
 export function QuickCreateMenu({ items }: { items: QuickCreateItem[] }) {
   const [open, setOpen] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+
+  const trigger = () =>
+    rootRef.current?.querySelector<HTMLButtonElement>("[aria-haspopup='menu']");
 
   const menuItems = () =>
     Array.from(
@@ -39,7 +42,7 @@ export function QuickCreateMenu({ items }: { items: QuickCreateItem[] }) {
 
   const closeAndRestoreFocus = () => {
     setOpen(false);
-    window.setTimeout(() => buttonRef.current?.focus(), 0);
+    window.setTimeout(() => trigger()?.focus(), 0);
   };
 
   useEffect(() => {
@@ -47,12 +50,7 @@ export function QuickCreateMenu({ items }: { items: QuickCreateItem[] }) {
 
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
-      if (
-        !menuRef.current?.contains(target) &&
-        !buttonRef.current?.contains(target)
-      ) {
-        setOpen(false);
-      }
+      if (!rootRef.current?.contains(target)) setOpen(false);
     };
 
     document.addEventListener("pointerdown", handlePointerDown);
@@ -84,12 +82,11 @@ export function QuickCreateMenu({ items }: { items: QuickCreateItem[] }) {
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={rootRef}>
       <Button
         aria-controls="quick-create-menu"
         aria-expanded={open}
         aria-haspopup="menu"
-        ref={buttonRef}
         type="button"
         onClick={() => setOpen((value) => !value)}
         onKeyDown={(event) => {
