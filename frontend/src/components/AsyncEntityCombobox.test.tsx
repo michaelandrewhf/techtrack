@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { expect, it, vi } from "vitest";
 
 import { AsyncEntityCombobox } from "./AsyncEntityCombobox";
@@ -10,20 +11,28 @@ it("searches remotely and returns only the selected entity id", async () => {
     defaultOptions: { queries: { retry: false } },
   });
   const loadOptions = vi.fn(async (search: string) =>
-    search
-      ? [{ id: "customer-1", label: "Acme Tecnologia" }]
-      : [],
+    search ? [{ id: "customer-1", label: "Acme Tecnologia" }] : [],
   );
   const onChange = vi.fn();
 
-  render(
-    <QueryClientProvider client={client}>
+  function Harness() {
+    const [value, setValue] = useState("");
+    return (
       <AsyncEntityCombobox
         loadOptions={loadOptions}
         queryKey={["test", "customers"]}
-        value=""
-        onChange={onChange}
+        value={value}
+        onChange={(nextValue) => {
+          onChange(nextValue);
+          setValue(nextValue);
+        }}
       />
+    );
+  }
+
+  render(
+    <QueryClientProvider client={client}>
+      <Harness />
     </QueryClientProvider>,
   );
 
