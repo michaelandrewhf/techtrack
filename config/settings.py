@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -134,6 +135,25 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
+
+AUTH_ACCESS_TOKEN_MINUTES = int(os.environ.get("AUTH_ACCESS_TOKEN_MINUTES", "5"))
+AUTH_REFRESH_TOKEN_DAYS = int(os.environ.get("AUTH_REFRESH_TOKEN_DAYS", "1"))
+AUTH_REFRESH_COOKIE_NAME = os.environ.get("AUTH_REFRESH_COOKIE_NAME", "techtrack_refresh")
+AUTH_REFRESH_COOKIE_PATH = "/api/token/"
+AUTH_REFRESH_COOKIE_SECURE = env_bool("AUTH_REFRESH_COOKIE_SECURE", not DEBUG)
+AUTH_REFRESH_COOKIE_SAMESITE = os.environ.get("AUTH_REFRESH_COOKIE_SAMESITE", "Lax")
+if AUTH_REFRESH_COOKIE_SAMESITE not in {"Lax", "Strict", "None"}:
+    raise ImproperlyConfigured("AUTH_REFRESH_COOKIE_SAMESITE must be Lax, Strict or None.")
+if AUTH_REFRESH_COOKIE_SAMESITE == "None" and not AUTH_REFRESH_COOKIE_SECURE:
+    raise ImproperlyConfigured("SameSite=None requires AUTH_REFRESH_COOKIE_SECURE=True.")
+AUTH_REFRESH_COOKIE_MAX_AGE = int(timedelta(days=AUTH_REFRESH_TOKEN_DAYS).total_seconds())
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=AUTH_ACCESS_TOKEN_MINUTES),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=AUTH_REFRESH_TOKEN_DAYS),
+    "ROTATE_REFRESH_TOKENS": False,
+    "BLACKLIST_AFTER_ROTATION": False,
+}
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
