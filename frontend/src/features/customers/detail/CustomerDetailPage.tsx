@@ -113,14 +113,14 @@ export function CustomerDetailPage() {
   const overviewLoading =
     activeTab === "overview" &&
     (workspace.activeAgreementSummary.isLoading ||
-      workspace.summaryReceivables.isLoading ||
+      workspace.financeSummary.isLoading ||
       workspace.recentWorkOrders.isLoading ||
       workspace.recentQuotes.isLoading);
 
   const overviewError =
     activeTab === "overview" &&
     (workspace.activeAgreementSummary.error ||
-      workspace.summaryReceivables.error ||
+      workspace.financeSummary.error ||
       workspace.recentWorkOrders.error ||
       workspace.recentQuotes.error);
 
@@ -203,7 +203,7 @@ export function CustomerDetailPage() {
               message="Nao foi possivel carregar todo o resumo do cliente."
               onRetry={() => {
                 void workspace.activeAgreementSummary.refetch();
-                void workspace.summaryReceivables.refetch();
+                void workspace.financeSummary.refetch();
                 void workspace.recentWorkOrders.refetch();
                 void workspace.recentQuotes.refetch();
               }}
