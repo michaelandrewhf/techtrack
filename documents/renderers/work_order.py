@@ -44,7 +44,7 @@ def render_work_order_pdf(snapshot: dict, revision: str = "") -> bytes:
         ],
     )
 
-    document.section_title("Equipamento")
+    document.section_title("Equipamento", keep_with=70)
     document.info_box(
         [
             ("Tipo", equipment.get("type") or "-"),
@@ -55,7 +55,7 @@ def render_work_order_pdf(snapshot: dict, revision: str = "") -> bytes:
         columns=4,
     )
 
-    document.section_title("Atendimento técnico")
+    document.section_title("Atendimento técnico", keep_with=80)
     document.lead_block(
         work_order.get("title") or "Atendimento técnico",
         work_order.get("problem_description") or "-",
@@ -66,7 +66,7 @@ def render_work_order_pdf(snapshot: dict, revision: str = "") -> bytes:
     document.note_box("Solução", work_order.get("solution") or "-")
 
     if snapshot.get("services"):
-        document.section_title("Serviços realizados")
+        document.section_title("Serviços realizados", keep_with=70)
         document.table(
             headers=["Serviço", "Descrição", "Data", "Valor"],
             rows=[
@@ -83,7 +83,7 @@ def render_work_order_pdf(snapshot: dict, revision: str = "") -> bytes:
         )
 
     if snapshot.get("parts"):
-        document.section_title("Peças utilizadas")
+        document.section_title("Peças utilizadas", keep_with=70)
         part_rows = []
         for part in snapshot["parts"]:
             total = Decimal(str(part.get("quantity") or 0)) * Decimal(str(part.get("unit_price") or 0))
@@ -107,7 +107,7 @@ def render_work_order_pdf(snapshot: dict, revision: str = "") -> bytes:
     parts_total = Decimal(str(financial.get("parts_total") or 0))
     discount = Decimal(str(financial.get("discount") or 0))
     if any(value != 0 for value in [total_amount, labor_total, parts_total, discount]):
-        document.section_title("Resumo financeiro")
+        document.section_title("Resumo financeiro", keep_with=120)
         document.totals(
             [
                 ("Mão de obra", money(labor_total)),
@@ -117,6 +117,6 @@ def render_work_order_pdf(snapshot: dict, revision: str = "") -> bytes:
             ]
         )
 
-    document.section_title("Confirmação do atendimento")
+    document.section_title("Confirmação do atendimento", keep_with=80)
     document.signature_area(["Responsável pelo cliente", "Responsável técnico"])
     return document.build()

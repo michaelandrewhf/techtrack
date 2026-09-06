@@ -41,7 +41,7 @@ def render_quote_pdf(snapshot: dict, revision: str = "") -> bytes:
     )
 
     if equipment:
-        document.section_title("Equipamento")
+        document.section_title("Equipamento", keep_with=70)
         document.info_box(
             [
                 ("Tipo", equipment.get("type") or "-"),
@@ -52,13 +52,13 @@ def render_quote_pdf(snapshot: dict, revision: str = "") -> bytes:
             columns=4,
         )
 
-    document.section_title("Escopo da proposta")
+    document.section_title("Escopo da proposta", keep_with=80)
     document.lead_block(
         quote.get("title") or "Proposta de serviço",
         quote.get("description") or "",
     )
 
-    document.section_title("Itens e valores")
+    document.section_title("Itens e valores", keep_with=70)
     document.table(
         headers=["Descrição", "Qtd.", "Unitário", "Desconto", "Total"],
         rows=[
@@ -83,7 +83,7 @@ def render_quote_pdf(snapshot: dict, revision: str = "") -> bytes:
     )
 
     if quote.get("notes"):
-        document.section_title("Condições e observações")
+        document.section_title("Condições e observações", keep_with=60)
         document.note_box("Observações da proposta", quote["notes"])
 
     return document.build()
