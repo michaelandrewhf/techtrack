@@ -88,8 +88,9 @@ class ClientPdfDocument(PdfDocument):
     def metadata_row(self, items: list[tuple[str, str]]) -> None:
         if not items:
             return
-        self._ensure_space(58)
         height = 46
+        after_gap = 16
+        self._ensure_space(height + after_gap)
         bottom = self.y - height
         self._draw_rect(MARGIN_X, bottom, CONTENT_WIDTH, height, fill=TINT, stroke=BORDER)
         self._draw_rect(MARGIN_X, bottom, 3, height, fill=PRIMARY, stroke=PRIMARY)
@@ -99,18 +100,23 @@ class ClientPdfDocument(PdfDocument):
         for index, (label, value) in enumerate(items):
             x = MARGIN_X + index * width + 12
             self._draw_text(label.upper(), x, self.y - 15, size=6.8, bold=True, color=MUTED)
-            self._draw_text(value or "-", x, self.y - 32, size=9.2, bold=True, color=INK)
+            value_lines = self._wrapped_lines(value or "-", width - 24, 9.2)[:2]
+            value_y = self.y - 32
+            for line in value_lines:
+                self._draw_text(line, x, value_y, size=9.2, bold=True, color=INK)
+                value_y -= 10
             if index:
                 divider_x = MARGIN_X + index * width
                 self._draw_line(divider_x, bottom + 10, divider_x, self.y - 10, color=BORDER)
-        self.y = bottom - 16
+        self.y = bottom - after_gap
 
-    def section_title(self, title: str) -> None:
-        self._ensure_space(34)
+    def section_title(self, title: str, *, keep_with: float = 0) -> None:
+        height = 36
+        self._ensure_space(height + max(0, keep_with))
         self._draw_rect(MARGIN_X, self.y - 18, 3, 18, fill=PRIMARY, stroke=PRIMARY)
         self._draw_text(title.upper(), MARGIN_X + 11, self.y - 14, size=8.5, bold=True, color=INK)
         self._draw_line(MARGIN_X, self.y - 25, 553, self.y - 25, color=BORDER)
-        self.y -= 36
+        self.y -= height
 
     def info_box(self, fields: list[tuple[str, str]], *, columns: int = 2) -> None:
         if not fields:
@@ -119,7 +125,8 @@ class ClientPdfDocument(PdfDocument):
         rows = (len(fields) + columns - 1) // columns
         row_height = 44
         height = rows * row_height + 12
-        self._ensure_space(height + 8)
+        after_gap = 14
+        self._ensure_space(height + after_gap)
         bottom = self.y - height
         self._draw_rect(MARGIN_X, bottom, CONTENT_WIDTH, height, fill=WHITE_SOFT, stroke=BORDER)
         column_width = CONTENT_WIDTH / columns
@@ -136,7 +143,7 @@ class ClientPdfDocument(PdfDocument):
                 self._draw_text(line, x, line_y, size=8.8, bold=True, color=INK)
                 line_y -= 11
 
-        self.y = bottom - 14
+        self.y = bottom - after_gap
 
     def paired_cards(
         self,
@@ -147,9 +154,10 @@ class ClientPdfDocument(PdfDocument):
         right_fields: list[tuple[str, str]],
     ) -> None:
         height = 124
+        after_gap = 16
         gap = 12
         card_width = (CONTENT_WIDTH - gap) / 2
-        self._ensure_space(height + 10)
+        self._ensure_space(height + after_gap)
         bottom = self.y - height
 
         def draw_card(x: float, title: str, fields: list[tuple[str, str]]) -> None:
@@ -171,39 +179,218 @@ class ClientPdfDocument(PdfDocument):
 
         draw_card(MARGIN_X, left_title, left_fields)
         draw_card(MARGIN_X + card_width + gap, right_title, right_fields)
-        self.y = bottom - 16
+        self.y = bottom - after_gap
 
     def lead_block(self, title: str, text: str = "") -> None:
-        title_lines = self._wrapped_lines(title or "-", 475, 12)[:3]
         body_lines = self._wrapped_lines(text, 475, 9) if text else []
-        height = 24 + len(title_lines) * 15 + (12 + len(body_lines) * 12 if body_lines else 0) + 14
-        self._ensure_space(height + 8)
-        bottom = self.y - height
-        self._draw_rect(MARGIN_X, bottom, CONTENT_WIDTH, height, fill=PRIMARY_SOFT, stroke=BORDER)
-        self._draw_rect(MARGIN_X, bottom, 4, height, fill=PRIMARY, stroke=PRIMARY)
-        y = self.y - 22
-        for line in title_lines:
-            self._draw_text(line, MARGIN_X + 14, y, size=12, bold=True, color=NAVY)
-            y -= 15
-        if body_lines:
-            y -= 3
-            for line in body_lines:
-                self._draw_text(line, MARGIN_X + 14, y, size=9, color=INK)
-                y -= 12
-        self.y = bottom - 14
+        remaining = body_lines[:]
+        continuation = False
+
+        while True:
+            display_title = f"{title} · continuação" if continuation else title
+            title_lines = self._wrapped_lines(display_title or "-", 475, 12)[:3]
+            body_overhead = 12 if remaining else 0
+            base_height = 24 + len(title_lines) * 15 + body_overhead + 14
+            after_gap = 14
+
+            if remaining:
+                max_lines = self._lines_that_fit(
+                    base_height=base_height,
+                    line_height=12,
+                    after_gap=after_gap,
+                )
+                chunk = remaining[:max_lines]
+            else:
+                self._ensure_space(base_height + after_gap)
+                chunk = []
+
+            height = base_height + len(chunk) * 12
+            bottom = self.y - height
+            self._draw_rect(MARGIN_X, bottom, CONTENT_WIDTH, height, fill=PRIMARY_SOFT, stroke=BORDER)
+            self._draw_rect(MARGIN_X, bottom, 4, height, fill=PRIMARY, stroke=PRIMARY)
+            y = self.y - 22
+            for line in title_lines:
+                self._draw_text(line, MARGIN_X + 14, y, size=12, bold=True, color=NAVY)
+                y -= 15
+            if chunk:
+                y -= 3
+                for line in chunk:
+                    self._draw_text(line, MARGIN_X + 14, y, size=9, color=INK)
+                    y -= 12
+            self.y = bottom - after_gap
+
+            if not remaining:
+                return
+            remaining = remaining[len(chunk) :]
+            if not remaining:
+                return
+            continuation = True
+            self._start_new_page()
 
     def note_box(self, title: str, text: str) -> None:
-        lines = self._wrapped_lines(text or "-", 475, 8.8)
-        height = 32 + len(lines) * 12
-        self._ensure_space(height + 8)
-        bottom = self.y - height
-        self._draw_rect(MARGIN_X, bottom, CONTENT_WIDTH, height, fill=TINT, stroke=BORDER)
-        self._draw_text(title.upper(), MARGIN_X + 12, self.y - 18, size=7.2, bold=True, color=PRIMARY)
-        y = self.y - 34
-        for line in lines:
-            self._draw_text(line, MARGIN_X + 12, y, size=8.8, color=INK)
-            y -= 12
-        self.y = bottom - 12
+        remaining = self._wrapped_lines(text or "-", 475, 8.8)
+        continuation = False
+
+        while remaining:
+            display_title = f"{title} · continuação" if continuation else title
+            base_height = 32
+            after_gap = 12
+            max_lines = self._lines_that_fit(
+                base_height=base_height,
+                line_height=12,
+                after_gap=after_gap,
+            )
+            chunk = remaining[:max_lines]
+            height = base_height + len(chunk) * 12
+            bottom = self.y - height
+            self._draw_rect(MARGIN_X, bottom, CONTENT_WIDTH, height, fill=TINT, stroke=BORDER)
+            self._draw_text(
+                display_title.upper(),
+                MARGIN_X + 12,
+                self.y - 18,
+                size=7.2,
+                bold=True,
+                color=PRIMARY,
+            )
+            y = self.y - 34
+            for line in chunk:
+                self._draw_text(line, MARGIN_X + 12, y, size=8.8, color=INK)
+                y -= 12
+            self.y = bottom - after_gap
+            remaining = remaining[len(chunk) :]
+            if remaining:
+                continuation = True
+                self._start_new_page()
+
+    def table(
+        self,
+        *,
+        headers: list[str],
+        rows: list[list[str]],
+        widths: list[float],
+        aligns: list[str] | None = None,
+    ) -> None:
+        if not rows:
+            self.paragraph("Itens", "Nenhum item registrado.")
+            return
+        if abs(sum(widths) - CONTENT_WIDTH) > 0.5:
+            raise ValueError("PDF table widths must sum to 511 points.")
+        aligns = aligns or ["left"] * len(headers)
+
+        def draw_header() -> None:
+            self._ensure_space(56)
+            self._draw_rect(MARGIN_X, self.y - 26, CONTENT_WIDTH, 26, fill=NAVY, stroke=NAVY)
+            x = MARGIN_X
+            for index, header in enumerate(headers):
+                text_x = x + 7
+                if aligns[index] == "right":
+                    text_x = x + widths[index] - 7
+                self._draw_cell_text(
+                    header.upper(),
+                    text_x,
+                    self.y - 17,
+                    width=widths[index] - 14,
+                    size=7,
+                    bold=True,
+                    color=WHITE,
+                    align=aligns[index],
+                )
+                x += widths[index]
+            self.y -= 26
+
+        def start_table_page() -> None:
+            self._start_new_page()
+            draw_header()
+
+        def draw_row_segment(
+            *,
+            cell_lines: list[list[str]],
+            offset: int,
+            line_count: int,
+            row_index: int,
+        ) -> None:
+            row_height = max(30, line_count * 12 + 12)
+            fill = TINT if row_index % 2 else WHITE_SOFT
+            self._draw_rect(
+                MARGIN_X,
+                self.y - row_height,
+                CONTENT_WIDTH,
+                row_height,
+                fill=fill,
+                stroke=BORDER,
+            )
+            x = MARGIN_X
+            for index, lines in enumerate(cell_lines):
+                segment = lines[offset : offset + line_count]
+                line_y = self.y - 18
+                for line in segment:
+                    text_x = x + 7 if aligns[index] != "right" else x + widths[index] - 7
+                    self._draw_cell_text(
+                        line,
+                        text_x,
+                        line_y,
+                        width=widths[index] - 14,
+                        size=8.4,
+                        align=aligns[index],
+                    )
+                    line_y -= 12
+                x += widths[index]
+            self.y -= row_height
+
+        draw_header()
+        for row_index, row in enumerate(rows):
+            cell_lines = [
+                self._wrapped_lines(value, widths[index] - 14, 8.4)
+                for index, value in enumerate(row)
+            ]
+            total_lines = max(len(lines) for lines in cell_lines)
+            full_height = max(30, total_lines * 12 + 12)
+
+            if full_height > self.y - CONTENT_BOTTOM:
+                start_table_page()
+
+            if full_height <= self.y - CONTENT_BOTTOM:
+                draw_row_segment(
+                    cell_lines=cell_lines,
+                    offset=0,
+                    line_count=total_lines,
+                    row_index=row_index,
+                )
+                continue
+
+            offset = 0
+            while offset < total_lines:
+                available = self.y - CONTENT_BOTTOM
+                if available < 30:
+                    start_table_page()
+                    available = self.y - CONTENT_BOTTOM
+
+                max_lines = max(1, int((available - 12) // 12))
+                if max_lines == 1 and available < 30:
+                    start_table_page()
+                    continue
+
+                line_count = min(total_lines - offset, max_lines)
+                row_height = max(30, line_count * 12 + 12)
+                while row_height > self.y - CONTENT_BOTTOM and line_count > 1:
+                    line_count -= 1
+                    row_height = max(30, line_count * 12 + 12)
+
+                if row_height > self.y - CONTENT_BOTTOM:
+                    start_table_page()
+                    continue
+
+                draw_row_segment(
+                    cell_lines=cell_lines,
+                    offset=offset,
+                    line_count=line_count,
+                    row_index=row_index,
+                )
+                offset += line_count
+                if offset < total_lines:
+                    start_table_page()
+
+        self.y = max(CONTENT_BOTTOM, self.y - 12)
 
     def totals(self, rows: list[tuple[str, str]], *, highlight_last: bool = True) -> None:
         if not rows:
@@ -212,7 +399,8 @@ class ClientPdfDocument(PdfDocument):
         box_width = 240
         x = 553 - box_width
         height = len(rows) * row_height
-        self._ensure_space(height + 10)
+        after_gap = 15
+        self._ensure_space(height + after_gap)
         bottom = self.y - height
 
         for index, (label, value) in enumerate(rows):
@@ -243,12 +431,13 @@ class ClientPdfDocument(PdfDocument):
                 align="right",
             )
 
-        self.y = bottom - 15
+        self.y = bottom - after_gap
 
     def signature_area(self, labels: list[str]) -> None:
         if not labels:
             return
-        self._ensure_space(78)
+        height = 70
+        self._ensure_space(height)
         width = (CONTENT_WIDTH - 28 * (len(labels) - 1)) / len(labels)
         x = MARGIN_X
         line_y = self.y - 38
@@ -256,11 +445,30 @@ class ClientPdfDocument(PdfDocument):
             self._draw_line(x, line_y, x + width, line_y, color=MUTED)
             self._draw_text(label, x, line_y - 14, size=7.2, color=MUTED)
             x += width + 28
-        self.y -= 70
+        self.y -= height
+
+    def _lines_that_fit(
+        self,
+        *,
+        base_height: float,
+        line_height: float,
+        after_gap: float,
+    ) -> int:
+        available = self.y - CONTENT_BOTTOM - base_height - after_gap
+        lines = int(available // line_height)
+        if lines >= 1:
+            return lines
+
+        self._start_new_page()
+        available = self.y - CONTENT_BOTTOM - base_height - after_gap
+        return max(1, int(available // line_height))
+
+    def _start_new_page(self) -> None:
+        self.pages.append([])
+        self.y = CONTENT_TOP
+        self._draw_header(first_page=False)
 
     def _ensure_space(self, height: float) -> None:
         if self.y - height >= CONTENT_BOTTOM:
             return
-        self.pages.append([])
-        self.y = CONTENT_TOP
-        self._draw_header(first_page=False)
+        self._start_new_page()
