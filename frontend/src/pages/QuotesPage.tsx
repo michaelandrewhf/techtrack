@@ -60,7 +60,7 @@ export function QuotesPage() {
       <Panel className="mb-5">
         <div className="grid gap-3 md:grid-cols-[1fr_220px]">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-[var(--text-subtle)]" />
             <Input
               className="pl-9"
               placeholder="Buscar cliente, titulo, descricao ou numero"
@@ -107,7 +107,7 @@ export function QuotesPage() {
                 header: "Orcamento",
                 cell: (row) => (
                   <Link
-                    className="font-semibold text-blue-700 dark:text-blue-300"
+                    className="font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)]"
                     to={`/quotes/${row.id}`}
                   >
                     {row.display_number}
@@ -118,7 +118,7 @@ export function QuotesPage() {
                 header: "Cliente",
                 cell: (row) => (
                   <Link
-                    className="text-slate-800 hover:text-blue-600 dark:text-slate-100"
+                    className="text-[var(--text)] hover:text-[var(--primary)]"
                     to={`/customers/${row.customer}?tab=quotes`}
                   >
                     {row.customer_name}
@@ -133,7 +133,11 @@ export function QuotesPage() {
               },
               {
                 header: "Total",
-                cell: (row) => <strong>{formatMoney(row.total_amount)}</strong>,
+                cell: (row) => (
+                  <strong className="text-[var(--text)]">
+                    {formatMoney(row.total_amount)}
+                  </strong>
+                ),
               },
               {
                 header: "Validade",

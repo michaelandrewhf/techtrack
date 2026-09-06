@@ -48,6 +48,17 @@ function statusTone(status: string) {
   return "neutral" as const;
 }
 
+function statusLabel(status: string) {
+  return (
+    {
+      active: "Ativo",
+      inactive: "Inativo",
+      under_maintenance: "Em manutencao",
+      retired: "Baixado",
+    }[status] ?? status
+  );
+}
+
 export function EquipmentPage() {
   const [params] = useSearchParams();
   const [search, setSearch] = useState("");
@@ -99,7 +110,7 @@ export function EquipmentPage() {
       <Panel className="mb-5">
         <div className="grid gap-3 md:grid-cols-[1fr_220px]">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-[var(--text-subtle)]" />
             <Input
               className="pl-9"
               placeholder="Buscar cliente, tipo, modelo, serial ou patrimonio"
@@ -145,7 +156,7 @@ export function EquipmentPage() {
                 header: "Cliente",
                 cell: (row) => (
                   <Link
-                    className="text-blue-700 dark:text-blue-300"
+                    className="text-[var(--primary)] hover:text-[var(--primary-hover)]"
                     to={`/customers/${row.customer.id}?tab=equipment`}
                   >
                     {row.customer.name}
@@ -157,7 +168,7 @@ export function EquipmentPage() {
                 header: "Equipamento",
                 cell: (row) => (
                   <Link
-                    className="font-semibold text-blue-700 dark:text-blue-300"
+                    className="font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)]"
                     to={`/equipment/${row.id}`}
                   >
                     {[row.manufacturer, row.model].filter(Boolean).join(" ") ||
@@ -174,7 +185,9 @@ export function EquipmentPage() {
               {
                 header: "Status",
                 cell: (row) => (
-                  <Badge tone={statusTone(row.status)}>{row.status}</Badge>
+                  <Badge tone={statusTone(row.status)}>
+                    {statusLabel(row.status)}
+                  </Badge>
                 ),
               },
             ]}
@@ -260,7 +273,7 @@ export function EquipmentPage() {
               <Notice tone="danger">{errorMessage(mutation.error)}</Notice>
             </div>
           ) : null}
-          <div className="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-800 sm:col-span-2">
+          <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-4 sm:col-span-2">
             <Button
               type="button"
               variant="secondary"

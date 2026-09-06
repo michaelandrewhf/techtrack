@@ -162,7 +162,8 @@ describe("App", () => {
     setupFetch();
 
     render(<App />);
-    await userEvent.type(screen.getByLabelText(/Usuario/), "tech");
+    const username = await screen.findByLabelText(/Usuario/);
+    await userEvent.type(username, "tech");
     await userEvent.type(screen.getByLabelText(/Senha/), "secret");
     await userEvent.click(screen.getByRole("button", { name: "Entrar" }));
 
@@ -175,7 +176,9 @@ describe("App", () => {
     setupFetch();
 
     render(<App />);
-    const password = screen.getByLabelText(/Senha/) as HTMLInputElement;
+    const password = (await screen.findByLabelText(
+      /Senha/,
+    )) as HTMLInputElement;
     expect(password.type).toBe("password");
 
     await userEvent.click(
@@ -196,7 +199,8 @@ describe("App", () => {
     const fetchMock = setupFetch();
 
     render(<App />);
-    await userEvent.type(screen.getByLabelText(/^E-mail/), "user@example.com");
+    const email = await screen.findByLabelText(/^E-mail/);
+    await userEvent.type(email, "user@example.com");
     await userEvent.click(
       screen.getByRole("button", { name: "Enviar link de recuperacao" }),
     );
@@ -215,10 +219,8 @@ describe("App", () => {
     const fetchMock = setupFetch();
 
     render(<App />);
-    await userEvent.type(
-      screen.getByLabelText(/^Nova senha/),
-      "NewSecurePassword!2026",
-    );
+    const newPassword = await screen.findByLabelText(/^Nova senha/);
+    await userEvent.type(newPassword, "NewSecurePassword!2026");
     await userEvent.type(
       screen.getByLabelText(/^Confirmar nova senha/),
       "NewSecurePassword!2026",

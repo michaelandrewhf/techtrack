@@ -8,7 +8,7 @@ export function Breadcrumbs({
 }) {
   return (
     <nav aria-label="Breadcrumb" className="mb-3 overflow-x-auto">
-      <ol className="flex min-w-max items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+      <ol className="flex min-w-max items-center gap-1 text-xs text-[var(--text-muted)]">
         {items.map((item, index) => (
           <li
             className="flex items-center gap-1"
@@ -19,7 +19,7 @@ export function Breadcrumbs({
             ) : null}
             {item.to ? (
               <Link
-                className="hover:text-slate-900 dark:hover:text-white"
+                className="transition-colors hover:text-[var(--text)]"
                 to={item.to}
               >
                 {item.label}
