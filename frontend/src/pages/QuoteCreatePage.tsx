@@ -4,19 +4,15 @@ import { useForm } from "react-hook-form";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 
-import { customersApi, equipmentApi, quotesApi } from "../api/endpoints";
+import { customersApi, quotesApi } from "../api/endpoints";
 import { queryKeys } from "../api/queryKeys";
 import { Breadcrumbs } from "../components/Breadcrumbs";
-import { PageHeader } from "../components/PageHeader";
 import {
-  Button,
-  Field,
-  Input,
-  Notice,
-  Panel,
-  Select,
-  Textarea,
-} from "../components/ui";
+  CustomerCombobox,
+  EquipmentCombobox,
+} from "../components/EntityComboboxes";
+import { PageHeader } from "../components/PageHeader";
+import { Button, Field, Input, Notice, Panel, Textarea } from "../components/ui";
 import { errorMessage } from "../utils/errors";
 
 const schema = z.object({
@@ -45,14 +41,11 @@ export function QuoteCreatePage() {
     },
   });
   const customerId = form.watch("customer");
+  const equipmentId = form.watch("equipment") ?? "";
 
-  const customers = useQuery({
-    queryKey: queryKeys.customers({ status: "active", page_size: 100 }),
-    queryFn: () => customersApi.list({ status: "active", page_size: 100 }),
-  });
-  const equipment = useQuery({
-    queryKey: queryKeys.equipment({ customer: customerId, page_size: 100 }),
-    queryFn: () => equipmentApi.list({ customer: customerId, page_size: 100 }),
+  const selectedCustomer = useQuery({
+    queryKey: queryKeys.customer(customerId),
+    queryFn: () => customersApi.get(customerId),
     enabled: Boolean(customerId),
   });
 
@@ -69,20 +62,16 @@ export function QuoteCreatePage() {
     onSuccess: (quote) => navigate(`/quotes/${quote.id}`),
   });
 
-  const selectedCustomer = customers.data?.results.find(
-    (customer) => customer.id === customerId,
-  );
-
   return (
     <div className="mx-auto max-w-4xl">
       <Breadcrumbs
         items={[
           { label: "Orcamentos", to: "/quotes" },
-          ...(selectedCustomer
+          ...(selectedCustomer.data
             ? [
                 {
-                  label: selectedCustomer.name,
-                  to: `/customers/${selectedCustomer.id}?tab=quotes`,
+                  label: selectedCustomer.data.name,
+                  to: `/customers/${selectedCustomer.data.id}?tab=quotes`,
                 },
               ]
             : []),
@@ -105,44 +94,25 @@ export function QuoteCreatePage() {
             required
             error={form.formState.errors.customer?.message}
           >
-            <Select
-              aria-invalid={Boolean(form.formState.errors.customer)}
+            <CustomerCombobox
+              ariaInvalid={Boolean(form.formState.errors.customer)}
               value={customerId}
-              onChange={(event) => {
-                form.setValue("customer", event.target.value, {
-                  shouldValidate: true,
-                });
+              onChange={(value) => {
+                form.setValue("customer", value, { shouldValidate: true });
                 form.setValue("equipment", "");
               }}
-            >
-              <option value="">Selecione</option>
-              {(customers.data?.results ?? []).map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.name}
-                </option>
-              ))}
-            </Select>
+            />
           </Field>
 
           <Field
             label="Equipamento"
             hint="Opcional enquanto a proposta ainda nao estiver ligada a um equipamento especifico."
           >
-            <Select disabled={!customerId} {...form.register("equipment")}>
-              <option value="">Sem equipamento definido</option>
-              {(equipment.data?.results ?? []).map((item) => (
-                <option key={item.id} value={item.id}>
-                  {[
-                    item.equipment_type?.name,
-                    item.manufacturer,
-                    item.model,
-                    item.serial_number,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </option>
-              ))}
-            </Select>
+            <EquipmentCombobox
+              customerId={customerId}
+              value={equipmentId}
+              onChange={(value) => form.setValue("equipment", value)}
+            />
           </Field>
 
           <div className="md:col-span-2">
@@ -187,7 +157,7 @@ export function QuoteCreatePage() {
             </div>
           ) : null}
 
-          <div className="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-800 md:col-span-2">
+          <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-4 md:col-span-2">
             <Button
               type="button"
               variant="secondary"
