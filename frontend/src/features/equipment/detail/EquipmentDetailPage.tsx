@@ -144,11 +144,7 @@ export function EquipmentDetailPage() {
         onChange={(value) => selectTab(value as EquipmentTabId)}
       />
 
-      <TabPanel
-        className="mt-5"
-        tabId={activeTab}
-        tabsId={EQUIPMENT_TABS_ID}
-      >
+      <TabPanel className="mt-5" tabId={activeTab} tabsId={EQUIPMENT_TABS_ID}>
         {activeTab === "overview" ? (
           <EquipmentOverview equipment={equipment} />
         ) : null}
