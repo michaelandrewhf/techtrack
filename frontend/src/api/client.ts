@@ -3,8 +3,8 @@ import type { paths } from "./schema";
 export type ApiPath = keyof paths;
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
-const ACCESS_TOKEN_KEY = "techtrack.access";
-const REFRESH_TOKEN_KEY = "techtrack.refresh";
+const LEGACY_ACCESS_TOKEN_KEY = "techtrack.access";
+const LEGACY_REFRESH_TOKEN_KEY = "techtrack.refresh";
 export const AUTH_EXPIRED_EVENT = "techtrack:auth-expired";
 
 export class ApiError extends Error {
@@ -18,19 +18,22 @@ export class ApiError extends Error {
   }
 }
 
-export const tokenStore = {
-  getAccess: () => localStorage.getItem(ACCESS_TOKEN_KEY),
-  getRefresh: () => localStorage.getItem(REFRESH_TOKEN_KEY),
-  set: (access: string, refresh: string) => {
-    localStorage.setItem(ACCESS_TOKEN_KEY, access);
-    localStorage.setItem(REFRESH_TOKEN_KEY, refresh);
+let accessToken: string | null = null;
+
+export const accessTokenStore = {
+  get: () => accessToken,
+  set: (token: string) => {
+    accessToken = token;
   },
-  setAccess: (access: string) => localStorage.setItem(ACCESS_TOKEN_KEY, access),
   clear: () => {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    accessToken = null;
   },
 };
+
+export function clearLegacyTokenStorage() {
+  localStorage.removeItem(LEGACY_ACCESS_TOKEN_KEY);
+  localStorage.removeItem(LEGACY_REFRESH_TOKEN_KEY);
+}
 
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
@@ -45,27 +48,47 @@ async function parseResponse(response: Response) {
   return response.text();
 }
 
-async function refreshAccessToken() {
-  const refresh = tokenStore.getRefresh();
-  if (!refresh) return false;
+let refreshPromise: Promise<boolean> | null = null;
+
+async function performRefresh() {
   const response = await fetch(`${API_BASE_URL}/token/refresh/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh }),
+    credentials: "same-origin",
   });
   if (!response.ok) {
-    tokenStore.clear();
+    accessTokenStore.clear();
     window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
     return false;
   }
-  const data = (await response.json()) as { access: string };
-  tokenStore.setAccess(data.access);
+
+  const data = (await response.json()) as { access?: unknown };
+  if (typeof data.access !== "string" || !data.access) {
+    accessTokenStore.clear();
+    window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+    return false;
+  }
+
+  accessTokenStore.set(data.access);
   return true;
+}
+
+export function refreshAccessToken() {
+  if (!refreshPromise) {
+    refreshPromise = performRefresh().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
+export async function restoreAccessToken() {
+  if (accessTokenStore.get()) return true;
+  return refreshAccessToken();
 }
 
 function authHeaders(headersInit?: HeadersInit) {
   const headers = new Headers(headersInit);
-  const token = tokenStore.getAccess();
+  const token = accessTokenStore.get();
   if (token) headers.set("Authorization", `Bearer ${token}`);
   return headers;
 }
@@ -78,12 +101,13 @@ export async function apiRequest<T>(
   if (options.body !== undefined)
     headers.set("Content-Type", "application/json");
   if (!options.skipAuth) {
-    const token = tokenStore.getAccess();
+    const token = accessTokenStore.get();
     if (token) headers.set("Authorization", `Bearer ${token}`);
   }
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
+    credentials: options.credentials ?? "same-origin",
     headers,
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
   });
@@ -108,6 +132,7 @@ export async function apiDownload(
       headers.set("Content-Type", "application/json");
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
+      credentials: options.credentials ?? "same-origin",
       headers,
       body:
         options.body === undefined ? undefined : JSON.stringify(options.body),
