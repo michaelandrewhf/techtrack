@@ -6,27 +6,43 @@ from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
+def env_bool(name: str, default: bool = False) -> bool:
+    raw_value = os.environ.get(name)
+    if raw_value is None:
+        return default
+    return raw_value.lower() in {"1", "true", "yes", "on"}
+
+
+def env_list(name: str, default: str = "") -> list[str]:
+    return [value.strip() for value in os.environ.get(name, default).split(",") if value.strip()]
+
+
 SECRET_KEY = os.environ.get(
     "DJANGO_SECRET_KEY",
     "dev-only-insecure-secret-key-for-local-development",
 )
-DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() in {
-    "1",
-    "true",
-    "yes",
-    "on",
-}
+DEBUG = env_bool("DJANGO_DEBUG", True)
 if not DEBUG and SECRET_KEY == "dev-only-insecure-secret-key-for-local-development":
     raise ImproperlyConfigured("DJANGO_SECRET_KEY must be configured when DJANGO_DEBUG is False.")
 
-ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.environ.get(
-        "DJANGO_ALLOWED_HOSTS",
-        "localhost,127.0.0.1",
-    ).split(",")
-    if host.strip()
-]
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+
+TRUST_X_FORWARDED_PROTO = env_bool("DJANGO_TRUST_X_FORWARDED_PROTO")
+if TRUST_X_FORWARDED_PROTO:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+USE_X_FORWARDED_HOST = env_bool("DJANGO_USE_X_FORWARDED_HOST")
+SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT")
+SESSION_COOKIE_SECURE = env_bool("DJANGO_SESSION_COOKIE_SECURE")
+CSRF_COOKIE_SECURE = env_bool("DJANGO_CSRF_COOKIE_SECURE")
+SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_SECURE_HSTS_SECONDS", "0"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS")
+SECURE_HSTS_PRELOAD = env_bool("DJANGO_SECURE_HSTS_PRELOAD")
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+X_FRAME_OPTIONS = "DENY"
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -114,6 +130,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
@@ -134,6 +151,13 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 25,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_THROTTLE_RATES": {
+        "login": os.environ.get("THROTTLE_LOGIN_RATE", "10/min"),
+        "token_refresh": os.environ.get("THROTTLE_TOKEN_REFRESH_RATE", "30/min"),
+        "token_verify": os.environ.get("THROTTLE_TOKEN_VERIFY_RATE", "30/min"),
+        "password_reset": os.environ.get("THROTTLE_PASSWORD_RESET_RATE", "20/hour"),
+        "password_reset_confirm": os.environ.get("THROTTLE_PASSWORD_RESET_CONFIRM_RATE", "30/hour"),
+    },
 }
 
 SPECTACULAR_SETTINGS = {
@@ -168,18 +192,8 @@ EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
-EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True").lower() in {
-    "1",
-    "true",
-    "yes",
-    "on",
-}
-EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "False").lower() in {
-    "1",
-    "true",
-    "yes",
-    "on",
-}
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
+EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL")
 DEFAULT_FROM_EMAIL = os.environ.get(
     "DEFAULT_FROM_EMAIL",
     "TechTrack <noreply@techtrack.local>",

@@ -18,6 +18,7 @@ from .serializers import (
     PasswordResetRequestSerializer,
     UserProfileSerializer,
 )
+from .throttles import PasswordResetConfirmRateThrottle, PasswordResetRateThrottle
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,7 @@ class MeView(APIView):
 class PasswordResetRequestView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
+    throttle_classes = [PasswordResetRateThrottle]
 
     @extend_schema(
         request=PasswordResetRequestSerializer,
@@ -90,6 +92,7 @@ class PasswordResetRequestView(APIView):
 class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
+    throttle_classes = [PasswordResetConfirmRateThrottle]
 
     @extend_schema(
         request=PasswordResetConfirmSerializer,
