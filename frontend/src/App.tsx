@@ -1,29 +1,23 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ComponentType } from "react";
 import { useEffect } from "react";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
 
 import { AuthProvider } from "./auth/AuthProvider";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
-import { CustomerDetailPage } from "./features/customers/detail/CustomerDetailPage";
-import { EquipmentDetailPage } from "./features/equipment/detail/EquipmentDetailPage";
-import { FinancePage } from "./features/finance/FinancePage";
-import { QuoteDetailPage } from "./features/quotes/detail/QuoteDetailPage";
-import { WorkOrderDetailPage } from "./features/workorders/detail/WorkOrderDetailPage";
 import { AppLayout } from "./layout/AppLayout";
-import { BusinessProfilePage } from "./pages/BusinessProfilePage";
-import { CatalogPage } from "./pages/CatalogPage";
-import { CustomersPage } from "./pages/CustomersPage";
-import { DashboardPage } from "./pages/DashboardPage";
-import { EquipmentPage } from "./pages/EquipmentPage";
-import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
-import { LoginPage } from "./pages/LoginPage";
-import { ProfilePage } from "./pages/ProfilePage";
-import { QuoteCreatePage } from "./pages/QuoteCreatePage";
-import { QuotesPage } from "./pages/QuotesPage";
-import { ResetPasswordPage } from "./pages/ResetPasswordPage";
-import { SettingsPage } from "./pages/SettingsPage";
-import { WorkOrderCreatePage } from "./pages/WorkOrderCreatePage";
-import { WorkOrdersPage } from "./pages/WorkOrdersPage";
+
+type RouteModule = object;
+
+function lazyPage<TModule extends RouteModule>(
+  loader: () => Promise<TModule>,
+  exportName: keyof TModule,
+) {
+  return async () => {
+    const module = await loader();
+    return { Component: module[exportName] as ComponentType };
+  };
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,11 +30,23 @@ const queryClient = new QueryClient({
 
 function createRouter() {
   return createBrowserRouter([
-    { path: "/login", element: <LoginPage /> },
-    { path: "/forgot-password", element: <ForgotPasswordPage /> },
+    {
+      path: "/login",
+      lazy: lazyPage(() => import("./pages/LoginPage"), "LoginPage"),
+    },
+    {
+      path: "/forgot-password",
+      lazy: lazyPage(
+        () => import("./pages/ForgotPasswordPage"),
+        "ForgotPasswordPage",
+      ),
+    },
     {
       path: "/reset-password/:uid/:token",
-      element: <ResetPasswordPage />,
+      lazy: lazyPage(
+        () => import("./pages/ResetPasswordPage"),
+        "ResetPasswordPage",
+      ),
     },
     {
       element: <ProtectedRoute />,
@@ -48,25 +54,126 @@ function createRouter() {
         {
           element: <AppLayout />,
           children: [
-            { path: "/", element: <DashboardPage /> },
-            { path: "/profile", element: <ProfilePage /> },
-            { path: "/customers", element: <CustomersPage /> },
-            { path: "/customers/:id", element: <CustomerDetailPage /> },
-            { path: "/equipment", element: <EquipmentPage /> },
-            { path: "/equipment/:id", element: <EquipmentDetailPage /> },
-            { path: "/work-orders", element: <WorkOrdersPage /> },
-            { path: "/work-orders/new", element: <WorkOrderCreatePage /> },
-            { path: "/work-orders/:id", element: <WorkOrderDetailPage /> },
-            { path: "/quotes", element: <QuotesPage /> },
-            { path: "/quotes/new", element: <QuoteCreatePage /> },
-            { path: "/quotes/:id", element: <QuoteDetailPage /> },
-            { path: "/finance", element: <FinancePage /> },
-            { path: "/settings", element: <SettingsPage /> },
+            {
+              path: "/",
+              lazy: lazyPage(
+                () => import("./pages/DashboardPage"),
+                "DashboardPage",
+              ),
+            },
+            {
+              path: "/profile",
+              lazy: lazyPage(
+                () => import("./pages/ProfilePage"),
+                "ProfilePage",
+              ),
+            },
+            {
+              path: "/customers",
+              lazy: lazyPage(
+                () => import("./pages/CustomersPage"),
+                "CustomersPage",
+              ),
+            },
+            {
+              path: "/customers/:id",
+              lazy: lazyPage(
+                () => import("./features/customers/detail/CustomerDetailPage"),
+                "CustomerDetailPage",
+              ),
+            },
+            {
+              path: "/equipment",
+              lazy: lazyPage(
+                () => import("./pages/EquipmentPage"),
+                "EquipmentPage",
+              ),
+            },
+            {
+              path: "/equipment/:id",
+              lazy: lazyPage(
+                () => import("./features/equipment/detail/EquipmentDetailPage"),
+                "EquipmentDetailPage",
+              ),
+            },
+            {
+              path: "/work-orders",
+              lazy: lazyPage(
+                () => import("./pages/WorkOrdersPage"),
+                "WorkOrdersPage",
+              ),
+            },
+            {
+              path: "/work-orders/new",
+              lazy: lazyPage(
+                () => import("./pages/WorkOrderCreatePage"),
+                "WorkOrderCreatePage",
+              ),
+            },
+            {
+              path: "/work-orders/:id",
+              lazy: lazyPage(
+                () =>
+                  import("./features/workorders/detail/WorkOrderDetailPage"),
+                "WorkOrderDetailPage",
+              ),
+            },
+            {
+              path: "/quotes",
+              lazy: lazyPage(
+                () => import("./pages/QuotesPage"),
+                "QuotesPage",
+              ),
+            },
+            {
+              path: "/quotes/new",
+              lazy: lazyPage(
+                () => import("./pages/QuoteCreatePage"),
+                "QuoteCreatePage",
+              ),
+            },
+            {
+              path: "/quotes/:id",
+              lazy: lazyPage(
+                () => import("./features/quotes/detail/QuoteDetailPage"),
+                "QuoteDetailPage",
+              ),
+            },
+            {
+              path: "/finance",
+              lazy: lazyPage(
+                () => import("./features/finance/FinancePage"),
+                "FinancePage",
+              ),
+            },
+            {
+              path: "/settings",
+              lazy: lazyPage(
+                () => import("./pages/SettingsPage"),
+                "SettingsPage",
+              ),
+            },
             {
               path: "/settings/business-profile",
-              element: <BusinessProfilePage />,
+              lazy: lazyPage(
+                () => import("./pages/BusinessProfilePage"),
+                "BusinessProfilePage",
+              ),
             },
-            { path: "/settings/:resource", element: <CatalogPage /> },
+            {
+              path: "/settings/:resource",
+              lazy: lazyPage(
+                () => import("./pages/CatalogPage"),
+                "CatalogPage",
+              ),
+            },
+            {
+              path: "*",
+              lazy: lazyPage(
+                () => import("./pages/NotFoundPage"),
+                "NotFoundPage",
+              ),
+            },
           ],
         },
       ],
