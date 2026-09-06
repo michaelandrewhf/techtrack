@@ -12,7 +12,7 @@ def test_login_endpoint_is_throttled_after_repeated_attempts(db):
     client = APIClient()
     cache.clear()
 
-    with patch.object(LoginRateThrottle, "rate", "2/min"):
+    with patch.object(LoginRateThrottle, "rate", "2/min", create=True):
         for _ in range(2):
             response = client.post(
                 "/api/token/",
@@ -35,7 +35,7 @@ def test_password_reset_endpoint_is_throttled(db):
     client = APIClient()
     cache.clear()
 
-    with patch.object(PasswordResetRateThrottle, "rate", "2/min"):
+    with patch.object(PasswordResetRateThrottle, "rate", "2/min", create=True):
         for index in range(2):
             response = client.post(
                 "/api/v1/auth/password-reset/",
