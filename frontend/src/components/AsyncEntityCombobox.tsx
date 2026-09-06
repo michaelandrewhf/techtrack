@@ -36,6 +36,7 @@ export function AsyncEntityCombobox({
   const listboxId = useId();
   const [open, setOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
+  const [selectedLabel, setSelectedLabel] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeIndex, setActiveIndex] = useState(-1);
 
@@ -63,13 +64,14 @@ export function AsyncEntityCombobox({
 
   useEffect(() => {
     if (!open) {
-      setInputValue(value ? (selected.data?.label ?? "") : "");
+      setInputValue(value ? (selected.data?.label ?? selectedLabel) : "");
     }
-  }, [open, selected.data?.label, value]);
+  }, [open, selected.data?.label, selectedLabel, value]);
 
   const rows = options.data ?? [];
 
   function choose(option: AsyncEntityOption) {
+    setSelectedLabel(option.label);
     onChange(option.id);
     setInputValue(option.label);
     setOpen(false);
@@ -101,7 +103,10 @@ export function AsyncEntityCombobox({
           value={inputValue}
           onBlur={() => window.setTimeout(() => setOpen(false), 120)}
           onChange={(event) => {
-            if (value) onChange("");
+            if (value) {
+              setSelectedLabel("");
+              onChange("");
+            }
             setInputValue(event.target.value);
             setOpen(true);
             setActiveIndex(-1);
@@ -141,6 +146,7 @@ export function AsyncEntityCombobox({
               type="button"
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => {
+                setSelectedLabel("");
                 onChange("");
                 setInputValue("");
                 setOpen(true);
