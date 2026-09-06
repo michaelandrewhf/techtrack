@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Search } from "lucide-react";
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { quotesApi } from "../api/endpoints";
 import type { Quote } from "../api/types";
@@ -10,6 +10,7 @@ import { PageHeader } from "../components/PageHeader";
 import { Pagination } from "../components/Pagination";
 import { ErrorState, PageLoader } from "../components/State";
 import { Badge, Button, Input, Panel, Select } from "../components/ui";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { formatDate, formatMoney } from "../utils/format";
 
 function tone(status: string) {
@@ -31,15 +32,40 @@ function statusLabel(status: string) {
   );
 }
 
+function parsePage(value: string | null) {
+  const page = Number(value ?? "1");
+  return Number.isInteger(page) && page > 0 ? page : 1;
+}
+
 export function QuotesPage() {
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
+  const [params, setParams] = useSearchParams();
+  const urlSearch = params.get("search") ?? "";
+  const [searchInput, setSearchInput] = useState(urlSearch);
+  const search = useDebouncedValue(searchInput);
+  const status = params.get("status") ?? "";
+  const page = parsePage(params.get("page"));
   const query = useQuery({
     queryKey: ["quotes", { page, search, status }],
     queryFn: () =>
       quotesApi.list({ page, search, status, ordering: "-created_at" }),
   });
+
+  useEffect(() => {
+    if (search === urlSearch) return;
+    const next = new URLSearchParams(params);
+    if (search) next.set("search", search);
+    else next.delete("search");
+    next.delete("page");
+    setParams(next, { replace: true });
+  }, [params, search, setParams, urlSearch]);
+
+  const updateParam = (key: "status" | "page", value: string) => {
+    const next = new URLSearchParams(params);
+    if (value && value !== "1") next.set(key, value);
+    else next.delete(key);
+    if (key !== "page") next.delete("page");
+    setParams(next, { replace: true });
+  };
 
   return (
     <div>
@@ -64,20 +90,14 @@ export function QuotesPage() {
             <Input
               className="pl-9"
               placeholder="Buscar cliente, titulo, descricao ou numero"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setPage(1);
-              }}
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
             />
           </div>
           <Select
             aria-label="Filtrar status"
             value={status}
-            onChange={(event) => {
-              setStatus(event.target.value);
-              setPage(1);
-            }}
+            onChange={(event) => updateParam("status", event.target.value)}
           >
             <option value="">Todos os status</option>
             <option value="draft">Rascunho</option>
@@ -158,7 +178,7 @@ export function QuotesPage() {
             page={page}
             count={query.data.count}
             pageSize={25}
-            onPageChange={setPage}
+            onPageChange={(nextPage) => updateParam("page", String(nextPage))}
           />
         </div>
       ) : null}

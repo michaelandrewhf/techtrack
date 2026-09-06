@@ -41,7 +41,10 @@ export const dashboardApi = {
 };
 
 export const financeApi = {
-  dashboard: () => apiRequest<FinanceDashboard>("/v1/finance/dashboard/"),
+  dashboard: (filters: Filters = {}) =>
+    apiRequest<FinanceDashboard>(
+      `/v1/finance/dashboard/${toQueryString(filters)}`,
+    ),
   receivables: (filters: Filters = {}) =>
     apiRequest<Paginated<Receivable>>(
       `/v1/receivables/${toQueryString(filters)}`,

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Search } from "lucide-react";
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { catalogApi, workOrdersApi } from "../api/endpoints";
 import { queryKeys } from "../api/queryKeys";
@@ -11,6 +11,7 @@ import { PageHeader } from "../components/PageHeader";
 import { Pagination } from "../components/Pagination";
 import { ErrorState, PageLoader } from "../components/State";
 import { Badge, Button, Input, Panel, Select } from "../components/ui";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { formatDateTime } from "../utils/format";
 
 function priorityTone(priority: string) {
@@ -30,11 +31,19 @@ function priorityLabel(priority: string) {
   );
 }
 
+function parsePage(value: string | null) {
+  const page = Number(value ?? "1");
+  return Number.isInteger(page) && page > 0 ? page : 1;
+}
+
 export function WorkOrdersPage() {
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
-  const [priority, setPriority] = useState("");
-  const [page, setPage] = useState(1);
+  const [params, setParams] = useSearchParams();
+  const urlSearch = params.get("search") ?? "";
+  const [searchInput, setSearchInput] = useState(urlSearch);
+  const search = useDebouncedValue(searchInput);
+  const status = params.get("status") ?? "";
+  const priority = params.get("priority") ?? "";
+  const page = parsePage(params.get("page"));
   const filters = { search, status, priority, page };
   const query = useQuery({
     queryKey: queryKeys.workOrders(filters),
@@ -44,6 +53,23 @@ export function WorkOrdersPage() {
     queryKey: queryKeys.catalog("work-order-statuses", { is_active: true }),
     queryFn: () => catalogApi("work-order-statuses").list({ is_active: true }),
   });
+
+  useEffect(() => {
+    if (search === urlSearch) return;
+    const next = new URLSearchParams(params);
+    if (search) next.set("search", search);
+    else next.delete("search");
+    next.delete("page");
+    setParams(next, { replace: true });
+  }, [params, search, setParams, urlSearch]);
+
+  const updateParam = (key: "status" | "priority" | "page", value: string) => {
+    const next = new URLSearchParams(params);
+    if (value && value !== "1") next.set(key, value);
+    else next.delete(key);
+    if (key !== "page") next.delete("page");
+    setParams(next, { replace: true });
+  };
 
   return (
     <div>
@@ -68,20 +94,14 @@ export function WorkOrdersPage() {
             <Input
               className="pl-9"
               placeholder="Buscar OS, cliente, equipamento ou problema"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setPage(1);
-              }}
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
             />
           </div>
           <Select
             aria-label="Filtrar status"
             value={status}
-            onChange={(event) => {
-              setStatus(event.target.value);
-              setPage(1);
-            }}
+            onChange={(event) => updateParam("status", event.target.value)}
           >
             <option value="">Todos os status</option>
             {(statuses.data?.results ?? []).map((item) => (
@@ -93,10 +113,7 @@ export function WorkOrdersPage() {
           <Select
             aria-label="Filtrar prioridade"
             value={priority}
-            onChange={(event) => {
-              setPriority(event.target.value);
-              setPage(1);
-            }}
+            onChange={(event) => updateParam("priority", event.target.value)}
           >
             <option value="">Todas as prioridades</option>
             <option value="low">Baixa</option>
@@ -179,7 +196,7 @@ export function WorkOrdersPage() {
           <Pagination
             count={query.data.count}
             page={page}
-            onPageChange={setPage}
+            onPageChange={(nextPage) => updateParam("page", String(nextPage))}
           />
         </div>
       ) : null}

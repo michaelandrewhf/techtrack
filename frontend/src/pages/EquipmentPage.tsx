@@ -1,16 +1,17 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Laptop, Plus, Search } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 
-import { customersApi, equipmentApi } from "../api/endpoints";
+import { equipmentApi } from "../api/endpoints";
 import { queryKeys } from "../api/queryKeys";
 import type { Equipment } from "../api/types";
 import { CatalogSelect } from "../components/CatalogSelect";
 import { DataTable } from "../components/DataTable";
+import { CustomerCombobox } from "../components/EntityComboboxes";
 import { Modal } from "../components/Modal";
 import { PageHeader } from "../components/PageHeader";
 import { Pagination } from "../components/Pagination";
@@ -25,6 +26,7 @@ import {
   Select,
   Textarea,
 } from "../components/ui";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { errorMessage } from "../utils/errors";
 
 const schema = z.object({
@@ -59,11 +61,18 @@ function statusLabel(status: string) {
   );
 }
 
+function parsePage(value: string | null) {
+  const page = Number(value ?? "1");
+  return Number.isInteger(page) && page > 0 ? page : 1;
+}
+
 export function EquipmentPage() {
-  const [params] = useSearchParams();
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
-  const [page, setPage] = useState(1);
+  const [params, setParams] = useSearchParams();
+  const urlSearch = params.get("search") ?? "";
+  const [searchInput, setSearchInput] = useState(urlSearch);
+  const search = useDebouncedValue(searchInput);
+  const status = params.get("status") ?? "";
+  const page = parsePage(params.get("page"));
   const [showForm, setShowForm] = useState(params.get("new") === "1");
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -72,14 +81,11 @@ export function EquipmentPage() {
     queryKey: queryKeys.equipment(filters),
     queryFn: () => equipmentApi.list(filters),
   });
-  const customers = useQuery({
-    queryKey: queryKeys.customers({ page_size: 100, status: "active" }),
-    queryFn: () => customersApi.list({ page_size: 100, status: "active" }),
-  });
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { status: "active" },
   });
+  const customerId = form.watch("customer_id") ?? "";
   const mutation = useMutation({
     mutationFn: equipmentApi.create,
     onSuccess: async (created) => {
@@ -92,6 +98,23 @@ export function EquipmentPage() {
       navigate(`/equipment/${created.id}`);
     },
   });
+
+  useEffect(() => {
+    if (search === urlSearch) return;
+    const next = new URLSearchParams(params);
+    if (search) next.set("search", search);
+    else next.delete("search");
+    next.delete("page");
+    setParams(next, { replace: true });
+  }, [params, search, setParams, urlSearch]);
+
+  const updateParam = (key: "status" | "page", value: string) => {
+    const next = new URLSearchParams(params);
+    if (value && value !== "1") next.set(key, value);
+    else next.delete(key);
+    if (key !== "page") next.delete("page");
+    setParams(next, { replace: true });
+  };
 
   return (
     <div>
@@ -114,20 +137,14 @@ export function EquipmentPage() {
             <Input
               className="pl-9"
               placeholder="Buscar cliente, tipo, modelo, serial ou patrimonio"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setPage(1);
-              }}
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
             />
           </div>
           <Select
             aria-label="Filtrar status"
             value={status}
-            onChange={(event) => {
-              setStatus(event.target.value);
-              setPage(1);
-            }}
+            onChange={(event) => updateParam("status", event.target.value)}
           >
             <option value="">Todos os status</option>
             <option value="active">Ativos</option>
@@ -195,7 +212,7 @@ export function EquipmentPage() {
           <Pagination
             count={query.data.count}
             page={page}
-            onPageChange={setPage}
+            onPageChange={(nextPage) => updateParam("page", String(nextPage))}
           />
         </div>
       ) : null}
@@ -216,17 +233,13 @@ export function EquipmentPage() {
             required
             error={form.formState.errors.customer_id?.message}
           >
-            <Select
-              aria-invalid={Boolean(form.formState.errors.customer_id)}
-              {...form.register("customer_id")}
-            >
-              <option value="">Selecione</option>
-              {(customers.data?.results ?? []).map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.name}
-                </option>
-              ))}
-            </Select>
+            <CustomerCombobox
+              ariaInvalid={Boolean(form.formState.errors.customer_id)}
+              value={customerId}
+              onChange={(value) =>
+                form.setValue("customer_id", value, { shouldValidate: true })
+              }
+            />
           </Field>
           <Controller
             control={form.control}

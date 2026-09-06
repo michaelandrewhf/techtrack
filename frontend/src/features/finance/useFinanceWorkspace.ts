@@ -1,16 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
 
 import { financeApi } from "../../api/endpoints";
 import type { FinanceTabId } from "./types";
 
-export function useFinanceWorkspace(
-  activeTab: FinanceTabId,
-  paymentOpen: boolean,
-) {
+const PAGE_SIZE = 25;
+
+export function useFinanceWorkspace(activeTab: FinanceTabId, page: number) {
   const dashboard = useQuery({
     queryKey: ["finance", "dashboard"],
-    queryFn: financeApi.dashboard,
+    queryFn: () => financeApi.dashboard(),
   });
 
   const activeAgreementSummary = useQuery({
@@ -19,33 +17,38 @@ export function useFinanceWorkspace(
   });
 
   const receivables = useQuery({
-    queryKey: ["finance", "receivables"],
+    queryKey: ["finance", "receivables", "open", page],
     queryFn: () =>
-      financeApi.receivables({ ordering: "due_date", page_size: 100 }),
-    enabled: activeTab === "receivables" || paymentOpen,
+      financeApi.receivables({
+        open: true,
+        ordering: "due_date",
+        page,
+        page_size: PAGE_SIZE,
+      }),
+    enabled: activeTab === "receivables",
   });
 
   const payments = useQuery({
-    queryKey: ["finance", "payments"],
+    queryKey: ["finance", "payments", page],
     queryFn: () =>
-      financeApi.payments({ ordering: "-paid_at", page_size: 100 }),
+      financeApi.payments({
+        ordering: "-paid_at",
+        page,
+        page_size: PAGE_SIZE,
+      }),
     enabled: activeTab === "payments",
   });
 
   const agreements = useQuery({
-    queryKey: ["finance", "agreements"],
+    queryKey: ["finance", "agreements", page],
     queryFn: () =>
-      financeApi.agreements({ ordering: "customer__name", page_size: 100 }),
+      financeApi.agreements({
+        ordering: "customer__name",
+        page,
+        page_size: PAGE_SIZE,
+      }),
     enabled: activeTab === "agreements",
   });
-
-  const openReceivables = useMemo(
-    () =>
-      receivables.data?.results.filter(
-        (item) => item.status !== "paid" && item.status !== "cancelled",
-      ) ?? [],
-    [receivables.data?.results],
-  );
 
   return {
     dashboard,
@@ -53,7 +56,7 @@ export function useFinanceWorkspace(
     receivables,
     payments,
     agreements,
-    openReceivables,
+    openReceivables: receivables.data?.results ?? [],
   };
 }
 

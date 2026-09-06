@@ -9,6 +9,7 @@ import type {
   WorkOrder,
 } from "../../../api/types";
 import { DataTable } from "../../../components/DataTable";
+import { Pagination } from "../../../components/Pagination";
 import { ErrorState, PageLoader } from "../../../components/State";
 import { Badge, Button, MetricCard, Panel } from "../../../components/ui";
 import { formatDate, formatDateTime, formatMoney } from "../../../utils/format";
@@ -18,12 +19,19 @@ import {
   receivableTone,
 } from "./presentation";
 import type { CustomerTabId } from "./types";
-import type { CustomerWorkspace } from "./useCustomerWorkspace";
+import type {
+  CustomerWorkspace,
+  CustomerWorkspacePages,
+} from "./useCustomerWorkspace";
 
 export function CustomerTabs({
   activeTab,
   customerId,
   workspace,
+  pages,
+  onResourcePageChange,
+  onReceivablesPageChange,
+  onAgreementsPageChange,
   onAddEquipment,
   onCreateAgreement,
   onOpenPayment,
@@ -31,6 +39,10 @@ export function CustomerTabs({
   activeTab: CustomerTabId;
   customerId: string;
   workspace: CustomerWorkspace;
+  pages: CustomerWorkspacePages;
+  onResourcePageChange: (page: number) => void;
+  onReceivablesPageChange: (page: number) => void;
+  onAgreementsPageChange: (page: number) => void;
   onAddEquipment: () => void;
   onCreateAgreement: () => void;
   onOpenPayment: () => void;
@@ -57,44 +69,51 @@ export function CustomerTabs({
           </Button>
         }
       >
-        <DataTable<Equipment>
-          empty="Nenhum equipamento vinculado."
-          getRowKey={(row) => row.id}
-          rows={workspace.equipment.data?.results ?? []}
-          columns={[
-            { header: "Tipo", cell: (row) => row.equipment_type.name },
-            {
-              header: "Equipamento",
-              cell: (row) => (
-                <Link
-                  className="font-medium text-[var(--primary)] hover:underline"
-                  to={`/equipment/${row.id}`}
-                >
-                  {[row.manufacturer, row.model].filter(Boolean).join(" ") ||
-                    row.equipment_type.name}
-                </Link>
-              ),
-            },
-            { header: "Serial", cell: (row) => row.serial_number || "-" },
-            { header: "Patrimonio", cell: (row) => row.asset_tag || "-" },
-            {
-              header: "Status",
-              cell: (row) => <Badge>{row.status}</Badge>,
-            },
-            {
-              header: "Acao",
-              cell: (row) => (
-                <Link
-                  to={`/work-orders/new?customer=${customerId}&equipment=${row.id}`}
-                >
-                  <Button size="sm" type="button" variant="secondary">
-                    Abrir OS
-                  </Button>
-                </Link>
-              ),
-            },
-          ]}
-        />
+        <div className="space-y-4">
+          <DataTable<Equipment>
+            empty="Nenhum equipamento vinculado."
+            getRowKey={(row) => row.id}
+            rows={workspace.equipment.data?.results ?? []}
+            columns={[
+              { header: "Tipo", cell: (row) => row.equipment_type.name },
+              {
+                header: "Equipamento",
+                cell: (row) => (
+                  <Link
+                    className="font-medium text-[var(--primary)] hover:underline"
+                    to={`/equipment/${row.id}`}
+                  >
+                    {[row.manufacturer, row.model].filter(Boolean).join(" ") ||
+                      row.equipment_type.name}
+                  </Link>
+                ),
+              },
+              { header: "Serial", cell: (row) => row.serial_number || "-" },
+              { header: "Patrimonio", cell: (row) => row.asset_tag || "-" },
+              {
+                header: "Status",
+                cell: (row) => <Badge>{row.status}</Badge>,
+              },
+              {
+                header: "Acao",
+                cell: (row) => (
+                  <Link
+                    to={`/work-orders/new?customer=${customerId}&equipment=${row.id}`}
+                  >
+                    <Button size="sm" type="button" variant="secondary">
+                      Abrir OS
+                    </Button>
+                  </Link>
+                ),
+              },
+            ]}
+          />
+          <Pagination
+            count={workspace.equipment.data?.count ?? 0}
+            page={pages.resource}
+            onPageChange={onResourcePageChange}
+          />
+        </div>
       </Panel>
     );
   }
@@ -123,40 +142,47 @@ export function CustomerTabs({
           </Link>
         }
       >
-        <DataTable<WorkOrder>
-          empty="Nenhuma OS para este cliente."
-          getRowKey={(row) => row.id}
-          rows={workspace.workOrders.data?.results ?? []}
-          columns={[
-            {
-              header: "OS",
-              cell: (row) => (
-                <Link
-                  className="font-semibold text-[var(--primary)] hover:underline"
-                  to={`/work-orders/${row.id}`}
-                >
-                  {row.display_number}
-                </Link>
-              ),
-            },
-            { header: "Titulo", cell: (row) => row.title },
-            {
-              header: "Equipamento",
-              cell: (row) =>
-                [row.equipment.manufacturer, row.equipment.model]
-                  .filter(Boolean)
-                  .join(" ") || row.equipment.equipment_type.name,
-            },
-            {
-              header: "Status",
-              cell: (row) => <Badge>{row.status.name}</Badge>,
-            },
-            {
-              header: "Abertura",
-              cell: (row) => formatDateTime(row.opened_at),
-            },
-          ]}
-        />
+        <div className="space-y-4">
+          <DataTable<WorkOrder>
+            empty="Nenhuma OS para este cliente."
+            getRowKey={(row) => row.id}
+            rows={workspace.workOrders.data?.results ?? []}
+            columns={[
+              {
+                header: "OS",
+                cell: (row) => (
+                  <Link
+                    className="font-semibold text-[var(--primary)] hover:underline"
+                    to={`/work-orders/${row.id}`}
+                  >
+                    {row.display_number}
+                  </Link>
+                ),
+              },
+              { header: "Titulo", cell: (row) => row.title },
+              {
+                header: "Equipamento",
+                cell: (row) =>
+                  [row.equipment.manufacturer, row.equipment.model]
+                    .filter(Boolean)
+                    .join(" ") || row.equipment.equipment_type.name,
+              },
+              {
+                header: "Status",
+                cell: (row) => <Badge>{row.status.name}</Badge>,
+              },
+              {
+                header: "Abertura",
+                cell: (row) => formatDateTime(row.opened_at),
+              },
+            ]}
+          />
+          <Pagination
+            count={workspace.workOrders.data?.count ?? 0}
+            page={pages.resource}
+            onPageChange={onResourcePageChange}
+          />
+        </div>
       </Panel>
     );
   }
@@ -185,57 +211,73 @@ export function CustomerTabs({
           </Link>
         }
       >
-        <DataTable<Quote>
-          empty="Nenhum orcamento para este cliente."
-          getRowKey={(row) => row.id}
-          rows={workspace.quotes.data?.results ?? []}
-          columns={[
-            {
-              header: "Orcamento",
-              cell: (row) => (
-                <Link
-                  className="font-semibold text-[var(--primary)] hover:underline"
-                  to={`/quotes/${row.id}`}
-                >
-                  {row.display_number}
-                </Link>
-              ),
-            },
-            { header: "Titulo", cell: (row) => row.title },
-            {
-              header: "Equipamento",
-              cell: (row) => row.equipment_label || "-",
-            },
-            {
-              header: "Total",
-              cell: (row) => formatMoney(row.total_amount),
-            },
-            {
-              header: "Status",
-              cell: (row) => (
-                <Badge tone={quoteTone(row.status)}>{row.status}</Badge>
-              ),
-            },
-            {
-              header: "Validade",
-              cell: (row) => formatDate(row.valid_until),
-            },
-          ]}
-        />
+        <div className="space-y-4">
+          <DataTable<Quote>
+            empty="Nenhum orcamento para este cliente."
+            getRowKey={(row) => row.id}
+            rows={workspace.quotes.data?.results ?? []}
+            columns={[
+              {
+                header: "Orcamento",
+                cell: (row) => (
+                  <Link
+                    className="font-semibold text-[var(--primary)] hover:underline"
+                    to={`/quotes/${row.id}`}
+                  >
+                    {row.display_number}
+                  </Link>
+                ),
+              },
+              { header: "Titulo", cell: (row) => row.title },
+              {
+                header: "Equipamento",
+                cell: (row) => row.equipment_label || "-",
+              },
+              {
+                header: "Total",
+                cell: (row) => formatMoney(row.total_amount),
+              },
+              {
+                header: "Status",
+                cell: (row) => (
+                  <Badge tone={quoteTone(row.status)}>{row.status}</Badge>
+                ),
+              },
+              {
+                header: "Validade",
+                cell: (row) => formatDate(row.valid_until),
+              },
+            ]}
+          />
+          <Pagination
+            count={workspace.quotes.data?.count ?? 0}
+            page={pages.resource}
+            onPageChange={onResourcePageChange}
+          />
+        </div>
       </Panel>
     );
   }
 
   if (activeTab === "finance") {
-    if (workspace.receivables.isLoading || workspace.agreements.isLoading)
+    if (
+      workspace.receivables.isLoading ||
+      workspace.agreements.isLoading ||
+      workspace.financeSummary.isLoading
+    )
       return <PageLoader label="Carregando financeiro do cliente" />;
-    if (workspace.receivables.error || workspace.agreements.error)
+    if (
+      workspace.receivables.error ||
+      workspace.agreements.error ||
+      workspace.financeSummary.error
+    )
       return (
         <ErrorState
           message="Nao foi possivel carregar o financeiro do cliente."
           onRetry={() => {
             void workspace.receivables.refetch();
             void workspace.agreements.refetch();
+            void workspace.financeSummary.refetch();
           }}
         />
       );
@@ -244,12 +286,17 @@ export function CustomerTabs({
       <FinanceTab
         activeAgreement={workspace.activeAgreement}
         agreements={workspace.agreements.data?.results ?? []}
+        agreementsCount={workspace.agreements.data?.count ?? 0}
+        agreementsPage={pages.agreements}
         openReceivables={workspace.openReceivables}
         overdue={workspace.overdue}
         pending={workspace.pending}
-        receivables={workspace.receivables.data?.results ?? []}
+        receivablesCount={workspace.receivables.data?.count ?? 0}
+        receivablesPage={pages.receivables}
+        onAgreementsPageChange={onAgreementsPageChange}
         onCreateAgreement={onCreateAgreement}
         onOpenPayment={onOpenPayment}
+        onReceivablesPageChange={onReceivablesPageChange}
       />
     );
   }
@@ -260,21 +307,31 @@ export function CustomerTabs({
 function FinanceTab({
   activeAgreement,
   agreements,
+  agreementsCount,
+  agreementsPage,
   openReceivables,
   overdue,
   pending,
-  receivables,
+  receivablesCount,
+  receivablesPage,
+  onAgreementsPageChange,
   onCreateAgreement,
   onOpenPayment,
+  onReceivablesPageChange,
 }: {
   activeAgreement?: ServiceAgreement;
   agreements: ServiceAgreement[];
+  agreementsCount: number;
+  agreementsPage: number;
   openReceivables: Receivable[];
   overdue: number;
   pending: number;
-  receivables: Receivable[];
+  receivablesCount: number;
+  receivablesPage: number;
+  onAgreementsPageChange: (page: number) => void;
   onCreateAgreement: () => void;
   onOpenPayment: () => void;
+  onReceivablesPageChange: (page: number) => void;
 }) {
   return (
     <div className="space-y-5">
@@ -299,9 +356,9 @@ function FinanceTab({
       <div className="grid gap-5 xl:grid-cols-[1.35fr_1fr]">
         <Panel
           title="Contas a receber"
-          subtitle="Cobrancas avulsas, de OS e mensalidades do cliente."
+          subtitle="Cobrancas em aberto de OS, contratos e lancamentos manuais."
           action={
-            openReceivables.length ? (
+            receivablesCount ? (
               <Button size="sm" type="button" onClick={onOpenPayment}>
                 <CircleDollarSign className="h-4 w-4" />
                 Registrar pagamento
@@ -309,28 +366,35 @@ function FinanceTab({
             ) : undefined
           }
         >
-          <DataTable<Receivable>
-            empty="Nenhum lancamento financeiro."
-            getRowKey={(row) => row.id}
-            rows={receivables}
-            columns={[
-              { header: "Descricao", cell: (row) => row.description },
-              {
-                header: "Vencimento",
-                cell: (row) => formatDate(row.due_date),
-              },
-              { header: "Valor", cell: (row) => formatMoney(row.amount) },
-              { header: "Saldo", cell: (row) => formatMoney(row.balance) },
-              {
-                header: "Status",
-                cell: (row) => (
-                  <Badge tone={receivableTone(row)}>
-                    {row.is_overdue ? "Vencido" : row.status}
-                  </Badge>
-                ),
-              },
-            ]}
-          />
+          <div className="space-y-4">
+            <DataTable<Receivable>
+              empty="Nenhuma conta em aberto."
+              getRowKey={(row) => row.id}
+              rows={openReceivables}
+              columns={[
+                { header: "Descricao", cell: (row) => row.description },
+                {
+                  header: "Vencimento",
+                  cell: (row) => formatDate(row.due_date),
+                },
+                { header: "Valor", cell: (row) => formatMoney(row.amount) },
+                { header: "Saldo", cell: (row) => formatMoney(row.balance) },
+                {
+                  header: "Status",
+                  cell: (row) => (
+                    <Badge tone={receivableTone(row)}>
+                      {row.is_overdue ? "Vencido" : row.status}
+                    </Badge>
+                  ),
+                },
+              ]}
+            />
+            <Pagination
+              count={receivablesCount}
+              page={receivablesPage}
+              onPageChange={onReceivablesPageChange}
+            />
+          </div>
         </Panel>
 
         <Panel
@@ -344,41 +408,50 @@ function FinanceTab({
             ) : undefined
           }
         >
-          <div className="space-y-3">
-            {agreements.map((agreement) => (
-              <div
-                className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4"
-                key={agreement.id}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="font-medium text-[var(--text)]">
-                      {agreement.name}
+          <div className="space-y-4">
+            <div className="space-y-3">
+              {agreements.map((agreement) => (
+                <div
+                  className="rounded-[var(--radius-lg)] border border-[var(--border)] p-4"
+                  key={agreement.id}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-medium text-[var(--text)]">
+                        {agreement.name}
+                      </div>
+                      <div className="mt-1 text-xs text-[var(--text-muted)]">
+                        {formatDate(agreement.starts_on)} →{" "}
+                        {agreement.ends_on
+                          ? formatDate(agreement.ends_on)
+                          : "atual"}
+                      </div>
                     </div>
-                    <div className="mt-1 text-xs text-[var(--text-muted)]">
-                      {formatDate(agreement.starts_on)} →{" "}
-                      {agreement.ends_on
-                        ? formatDate(agreement.ends_on)
-                        : "atual"}
-                    </div>
+                    <Badge
+                      tone={
+                        agreement.status === "active" ? "success" : "neutral"
+                      }
+                    >
+                      {agreementStatusLabel(agreement.status)}
+                    </Badge>
                   </div>
-                  <Badge
-                    tone={agreement.status === "active" ? "success" : "neutral"}
-                  >
-                    {agreementStatusLabel(agreement.status)}
-                  </Badge>
+                  <div className="mt-3 text-sm text-[var(--text)]">
+                    {formatMoney(agreement.amount)} · vencimento dia{" "}
+                    {agreement.billing_day}
+                  </div>
                 </div>
-                <div className="mt-3 text-sm text-[var(--text)]">
-                  {formatMoney(agreement.amount)} · vencimento dia{" "}
-                  {agreement.billing_day}
-                </div>
-              </div>
-            ))}
-            {!agreements.length ? (
-              <p className="text-sm text-[var(--text-muted)]">
-                Nenhum contrato registrado.
-              </p>
-            ) : null}
+              ))}
+              {!agreements.length ? (
+                <p className="text-sm text-[var(--text-muted)]">
+                  Nenhum contrato registrado.
+                </p>
+              ) : null}
+            </div>
+            <Pagination
+              count={agreementsCount}
+              page={agreementsPage}
+              onPageChange={onAgreementsPageChange}
+            />
           </div>
         </Panel>
       </div>

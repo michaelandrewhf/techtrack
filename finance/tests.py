@@ -192,3 +192,51 @@ def test_create_agreement_receive_now_requires_payment_method(user, customer):
 
     assert response.status_code == 400
     assert "first_payment_method" in response.data
+
+
+def test_receivables_open_filter_excludes_settled_rows(user, customer, payment_method):
+    today = timezone.localdate()
+    pending = Receivable.objects.create(
+        customer=customer,
+        origin="manual",
+        description="Pendente",
+        issued_at=today,
+        due_date=today,
+        amount=Decimal("100.00"),
+        created_by=user,
+    )
+    paid = Receivable.objects.create(
+        customer=customer,
+        origin="manual",
+        description="Paga",
+        issued_at=today,
+        due_date=today,
+        amount=Decimal("200.00"),
+        created_by=user,
+    )
+    register_payment(
+        receivable=paid,
+        amount="200.00",
+        payment_method=payment_method,
+        created_by=user,
+    )
+    cancelled = Receivable.objects.create(
+        customer=customer,
+        origin="manual",
+        description="Cancelada",
+        issued_at=today,
+        due_date=today,
+        amount=Decimal("50.00"),
+        status=ReceivableStatus.CANCELLED,
+        created_by=user,
+    )
+
+    client = APIClient()
+    client.force_authenticate(user=user)
+    response = client.get("/api/v1/receivables/?open=true&page_size=100")
+
+    assert response.status_code == 200
+    ids = {row["id"] for row in response.data["results"]}
+    assert str(pending.pk) in ids
+    assert str(paid.pk) not in ids
+    assert str(cancelled.pk) not in ids

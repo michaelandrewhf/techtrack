@@ -24,21 +24,28 @@ function isFinanceTab(value: string): value is FinanceTabId {
   return tabItems.some((tab) => tab.id === value);
 }
 
+function parsePage(value: string | null) {
+  const page = Number(value ?? "1");
+  return Number.isInteger(page) && page > 0 ? page : 1;
+}
+
 export function FinancePage() {
   const [params, setParams] = useSearchParams();
   const requestedTab = params.get("tab") ?? "overview";
   const activeTab: FinanceTabId = isFinanceTab(requestedTab)
     ? requestedTab
     : "overview";
+  const page = parsePage(params.get("page"));
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [agreementOpen, setAgreementOpen] = useState(false);
   const queryClient = useQueryClient();
-  const workspace = useFinanceWorkspace(activeTab, paymentOpen);
+  const workspace = useFinanceWorkspace(activeTab, page);
 
   const refreshFinance = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["finance"] }),
       queryClient.invalidateQueries({ queryKey: ["customers"] }),
+      queryClient.invalidateQueries({ queryKey: ["entity-combobox"] }),
     ]);
   };
 
@@ -46,6 +53,14 @@ export function FinancePage() {
     const next = new URLSearchParams(params);
     if (value === "overview") next.delete("tab");
     else next.set("tab", value);
+    next.delete("page");
+    setParams(next, { replace: true });
+  };
+
+  const selectPage = (value: number) => {
+    const next = new URLSearchParams(params);
+    if (value <= 1) next.delete("page");
+    else next.set("page", String(value));
     setParams(next, { replace: true });
   };
 
@@ -75,9 +90,7 @@ export function FinancePage() {
     ...tab,
     count:
       tab.id === "receivables"
-        ? workspace.receivables.data
-          ? workspace.openReceivables.length
-          : undefined
+        ? workspace.receivables.data?.count
         : tab.id === "payments"
           ? workspace.payments.data?.count
           : tab.id === "agreements"
@@ -126,25 +139,21 @@ export function FinancePage() {
         ) : (
           <FinanceTabs
             activeTab={activeTab}
+            page={page}
             workspace={workspace}
             onOpenAgreement={() => setAgreementOpen(true)}
             onOpenPayment={() => setPaymentOpen(true)}
+            onPageChange={selectPage}
           />
         )}
       </div>
 
       <FinanceDialogs
         agreementOpen={agreementOpen}
-        openReceivables={workspace.openReceivables}
         paymentOpen={paymentOpen}
-        receivablesError={Boolean(workspace.receivables.error)}
-        receivablesLoading={workspace.receivables.isLoading}
         onChanged={refreshFinance}
         onCloseAgreement={() => setAgreementOpen(false)}
         onClosePayment={() => setPaymentOpen(false)}
-        onRetryReceivables={() => {
-          void workspace.receivables.refetch();
-        }}
       />
     </div>
   );
