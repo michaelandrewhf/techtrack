@@ -1,0 +1,16 @@
+services:
+  db:
+    networks:
+      - offline
+
+  backend:
+    networks:
+      - offline
+
+  frontend:
+    networks:
+      - offline
+
+networks:
+  offline:
+    internal: true
