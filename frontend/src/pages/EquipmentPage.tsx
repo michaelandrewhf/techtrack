@@ -6,11 +6,12 @@ import { Controller, useForm } from "react-hook-form";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 
-import { customersApi, equipmentApi } from "../api/endpoints";
+import { equipmentApi } from "../api/endpoints";
 import { queryKeys } from "../api/queryKeys";
 import type { Equipment } from "../api/types";
 import { CatalogSelect } from "../components/CatalogSelect";
 import { DataTable } from "../components/DataTable";
+import { CustomerCombobox } from "../components/EntityComboboxes";
 import { Modal } from "../components/Modal";
 import { PageHeader } from "../components/PageHeader";
 import { Pagination } from "../components/Pagination";
@@ -72,14 +73,11 @@ export function EquipmentPage() {
     queryKey: queryKeys.equipment(filters),
     queryFn: () => equipmentApi.list(filters),
   });
-  const customers = useQuery({
-    queryKey: queryKeys.customers({ page_size: 100, status: "active" }),
-    queryFn: () => customersApi.list({ page_size: 100, status: "active" }),
-  });
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { status: "active" },
   });
+  const customerId = form.watch("customer_id") ?? "";
   const mutation = useMutation({
     mutationFn: equipmentApi.create,
     onSuccess: async (created) => {
@@ -216,17 +214,13 @@ export function EquipmentPage() {
             required
             error={form.formState.errors.customer_id?.message}
           >
-            <Select
-              aria-invalid={Boolean(form.formState.errors.customer_id)}
-              {...form.register("customer_id")}
-            >
-              <option value="">Selecione</option>
-              {(customers.data?.results ?? []).map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.name}
-                </option>
-              ))}
-            </Select>
+            <CustomerCombobox
+              ariaInvalid={Boolean(form.formState.errors.customer_id)}
+              value={customerId}
+              onChange={(value) =>
+                form.setValue("customer_id", value, { shouldValidate: true })
+              }
+            />
           </Field>
           <Controller
             control={form.control}
