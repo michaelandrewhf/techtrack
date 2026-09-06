@@ -1,13 +1,16 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 
-import { customersApi, equipmentApi, workOrdersApi } from "../api/endpoints";
+import { customersApi, workOrdersApi } from "../api/endpoints";
 import { queryKeys } from "../api/queryKeys";
 import { Breadcrumbs } from "../components/Breadcrumbs";
+import {
+  CustomerCombobox,
+  EquipmentCombobox,
+} from "../components/EntityComboboxes";
 import { PageHeader } from "../components/PageHeader";
 import {
   Button,
@@ -42,38 +45,29 @@ export function WorkOrderCreatePage() {
     },
   });
   const customerId = form.watch("customer_id");
-  const customers = useQuery({
-    queryKey: queryKeys.customers({ page_size: 100, status: "active" }),
-    queryFn: () => customersApi.list({ page_size: 100, status: "active" }),
-  });
-  const equipment = useQuery({
-    queryKey: queryKeys.equipment({ customer: customerId, page_size: 100 }),
-    queryFn: () => equipmentApi.list({ customer: customerId, page_size: 100 }),
+  const equipmentId = form.watch("equipment_id") ?? "";
+
+  const selectedCustomer = useQuery({
+    queryKey: queryKeys.customer(customerId),
+    queryFn: () => customersApi.get(customerId),
     enabled: Boolean(customerId),
   });
+
   const mutation = useMutation({
     mutationFn: workOrdersApi.create,
     onSuccess: (created) => navigate(`/work-orders/${created.id}`),
   });
-
-  useEffect(() => {
-    if (!customerId) form.setValue("equipment_id", "");
-  }, [customerId, form]);
-
-  const selectedCustomer = customers.data?.results.find(
-    (customer) => customer.id === customerId,
-  );
 
   return (
     <div className="mx-auto max-w-4xl">
       <Breadcrumbs
         items={[
           { label: "Ordens de servico", to: "/work-orders" },
-          ...(selectedCustomer
+          ...(selectedCustomer.data
             ? [
                 {
-                  label: selectedCustomer.name,
-                  to: `/customers/${selectedCustomer.id}?tab=work-orders`,
+                  label: selectedCustomer.data.name,
+                  to: `/customers/${selectedCustomer.data.id}?tab=work-orders`,
                 },
               ]
             : []),
@@ -95,48 +89,29 @@ export function WorkOrderCreatePage() {
             required
             error={form.formState.errors.customer_id?.message}
           >
-            <Select
-              aria-invalid={Boolean(form.formState.errors.customer_id)}
+            <CustomerCombobox
+              ariaInvalid={Boolean(form.formState.errors.customer_id)}
               value={customerId}
-              onChange={(event) => {
-                form.setValue("customer_id", event.target.value, {
-                  shouldValidate: true,
-                });
-                form.setValue("equipment_id", "");
+              onChange={(value) => {
+                form.setValue("customer_id", value, { shouldValidate: true });
+                form.setValue("equipment_id", "", { shouldValidate: true });
               }}
-            >
-              <option value="">Selecione</option>
-              {(customers.data?.results ?? []).map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.name}
-                </option>
-              ))}
-            </Select>
+            />
           </Field>
           <Field
             label="Equipamento"
             required
             error={form.formState.errors.equipment_id?.message}
           >
-            <Select
-              aria-invalid={Boolean(form.formState.errors.equipment_id)}
-              disabled={!customerId}
-              {...form.register("equipment_id")}
-            >
-              <option value="">Selecione</option>
-              {(equipment.data?.results ?? []).map((item) => (
-                <option key={item.id} value={item.id}>
-                  {[
-                    item.equipment_type.name,
-                    item.manufacturer,
-                    item.model,
-                    item.serial_number,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </option>
-              ))}
-            </Select>
+            <EquipmentCombobox
+              required
+              ariaInvalid={Boolean(form.formState.errors.equipment_id)}
+              customerId={customerId}
+              value={equipmentId}
+              onChange={(value) =>
+                form.setValue("equipment_id", value, { shouldValidate: true })
+              }
+            />
           </Field>
           <Field
             label="Titulo"
@@ -178,7 +153,7 @@ export function WorkOrderCreatePage() {
               <Notice tone="danger">{errorMessage(mutation.error)}</Notice>
             </div>
           ) : null}
-          <div className="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-800 md:col-span-2">
+          <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-4 md:col-span-2">
             <Button
               type="button"
               variant="secondary"
