@@ -39,7 +39,7 @@ export function Tabs({
     const item = items[index];
     if (!item) return;
     onChange(item.id);
-    window.requestAnimationFrame(() => refs.current[index]?.focus());
+    window.setTimeout(() => refs.current[index]?.focus(), 0);
   };
 
   const handleKeyDown = (
