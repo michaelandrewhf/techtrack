@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "format:check": "prettier --write src/components/Tabs.test.tsx src/components/Tabs.tsx src/components/Toast.tsx src/features/customers/detail/CustomerDetailPage.tsx src/features/equipment/detail/EquipmentDetailPage.tsx && git diff -- src/components/Tabs.test.tsx src/components/Tabs.tsx src/components/Toast.tsx src/features/customers/detail/CustomerDetailPage.tsx src/features/equipment/detail/EquipmentDetailPage.tsx",
+    "format:check": "prettier --check .",
     "test": "vitest run",
     "generate:api-types": "openapi-typescript ${VITE_API_SCHEMA_URL:-http://localhost:8000/api/schema/} -o src/api/schema.ts",
     "preview": "vite preview"
