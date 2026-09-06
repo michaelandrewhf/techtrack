@@ -35,7 +35,7 @@ def test_login_returns_only_access_token_and_sets_http_only_refresh_cookie(db):
     assert cookie["httponly"] is True
     assert cookie["path"] == "/api/token/"
     assert cookie["samesite"] == "Lax"
-    assert cookie["max-age"] == str(settings.AUTH_REFRESH_COOKIE_MAX_AGE)
+    assert int(cookie["max-age"]) == settings.AUTH_REFRESH_COOKIE_MAX_AGE
 
 
 def test_refresh_uses_http_only_cookie_without_request_body(db):
@@ -76,7 +76,7 @@ def test_logout_clears_refresh_cookie_and_prevents_future_refresh(db):
 
     assert logout.status_code == 204
     cleared_cookie = logout.cookies[settings.AUTH_REFRESH_COOKIE_NAME]
-    assert cleared_cookie["max-age"] == 0
+    assert int(cleared_cookie["max-age"]) == 0
 
     refresh = client.post("/api/token/refresh/", {}, format="json")
     assert refresh.status_code == 401
