@@ -64,7 +64,7 @@ export function WorkOrdersPage() {
       <Panel className="mb-5">
         <div className="grid gap-3 md:grid-cols-[1fr_220px_190px]">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-[var(--text-subtle)]" />
             <Input
               className="pl-9"
               placeholder="Buscar OS, cliente, equipamento ou problema"
@@ -125,7 +125,7 @@ export function WorkOrdersPage() {
                 header: "OS",
                 cell: (row) => (
                   <Link
-                    className="font-semibold text-blue-700 dark:text-blue-300"
+                    className="font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)]"
                     to={`/work-orders/${row.id}`}
                   >
                     {row.display_number}
@@ -136,7 +136,7 @@ export function WorkOrdersPage() {
                 header: "Cliente",
                 cell: (row) => (
                   <Link
-                    className="text-slate-800 hover:text-blue-600 dark:text-slate-100"
+                    className="text-[var(--text)] hover:text-[var(--primary)]"
                     to={`/customers/${row.customer.id}?tab=work-orders`}
                   >
                     {row.customer.name}
@@ -147,7 +147,7 @@ export function WorkOrdersPage() {
                 header: "Equipamento",
                 cell: (row) => (
                   <Link
-                    className="text-slate-700 hover:text-blue-600 dark:text-slate-200"
+                    className="text-[var(--text-muted)] hover:text-[var(--primary)]"
                     to={`/equipment/${row.equipment.id}`}
                   >
                     {[row.equipment.manufacturer, row.equipment.model]
