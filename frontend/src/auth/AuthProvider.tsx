@@ -1,6 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-import { AUTH_EXPIRED_EVENT, tokenStore } from "../api/client";
+import {
+  accessTokenStore,
+  AUTH_EXPIRED_EVENT,
+  clearLegacyTokenStorage,
+  restoreAccessToken,
+} from "../api/client";
 import { authApi } from "../api/endpoints";
 import { profileApi, type EditableProfile } from "../api/profile";
 import type { User } from "../api/types";
@@ -21,15 +26,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!tokenStore.getAccess()) {
-      setIsLoading(false);
-      return;
-    }
-    authApi
-      .me()
-      .then(setUser)
-      .catch(() => tokenStore.clear())
-      .finally(() => setIsLoading(false));
+    let active = true;
+    clearLegacyTokenStorage();
+
+    const restoreSession = async () => {
+      try {
+        const restored = await restoreAccessToken();
+        if (!restored) return;
+        const currentUser = await authApi.me();
+        if (active) setUser(currentUser);
+      } catch {
+        accessTokenStore.clear();
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    };
+
+    void restoreSession();
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -45,9 +61,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated: Boolean(user),
       isLoading,
       login: async (username, password) => {
-        const tokens = await authApi.login({ username, password });
-        tokenStore.set(tokens.access, tokens.refresh);
-        setUser(await authApi.me());
+        const session = await authApi.login({ username, password });
+        accessTokenStore.set(session.access);
+        try {
+          setUser(await authApi.me());
+        } catch (error) {
+          accessTokenStore.clear();
+          void authApi.logout().catch(() => undefined);
+          throw error;
+        }
       },
       updateProfile: async (profile) => {
         const updated = await profileApi.update(profile);
@@ -55,8 +77,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return updated;
       },
       logout: () => {
-        tokenStore.clear();
+        accessTokenStore.clear();
         setUser(null);
+        void authApi.logout().catch(() => undefined);
       },
     }),
     [isLoading, user],
