@@ -29,6 +29,11 @@ function isCustomerTab(value: string): value is CustomerTabId {
   return tabs.some((tab) => tab.id === value);
 }
 
+function parsePage(value: string | null) {
+  const page = Number(value ?? "1");
+  return Number.isInteger(page) && page > 0 ? page : 1;
+}
+
 export function CustomerDetailPage() {
   const { id = "" } = useParams();
   const [params, setParams] = useSearchParams();
@@ -36,9 +41,14 @@ export function CustomerDetailPage() {
   const activeTab: CustomerTabId = isCustomerTab(requestedTab)
     ? requestedTab
     : "overview";
+  const pages = {
+    resource: parsePage(params.get("page")),
+    receivables: parsePage(params.get("receivables_page")),
+    agreements: parsePage(params.get("agreements_page")),
+  };
   const [modal, setModal] = useState<CustomerModalName>(null);
   const queryClient = useQueryClient();
-  const workspace = useCustomerWorkspace(id, activeTab, modal);
+  const workspace = useCustomerWorkspace(id, activeTab, pages);
 
   const invalidateCustomerWorkspace = async () => {
     await Promise.all([
@@ -47,6 +57,7 @@ export function CustomerDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["work-orders"] }),
       queryClient.invalidateQueries({ queryKey: ["quotes"] }),
       queryClient.invalidateQueries({ queryKey: ["finance"] }),
+      queryClient.invalidateQueries({ queryKey: ["entity-combobox"] }),
     ]);
   };
 
@@ -69,6 +80,19 @@ export function CustomerDetailPage() {
     const next = new URLSearchParams(params);
     if (value === "overview") next.delete("tab");
     else next.set("tab", value);
+    next.delete("page");
+    next.delete("receivables_page");
+    next.delete("agreements_page");
+    setParams(next, { replace: true });
+  };
+
+  const selectPage = (
+    key: "page" | "receivables_page" | "agreements_page",
+    value: number,
+  ) => {
+    const next = new URLSearchParams(params);
+    if (value <= 1) next.delete(key);
+    else next.set(key, String(value));
     setParams(next, { replace: true });
   };
 
@@ -88,15 +112,15 @@ export function CustomerDetailPage() {
 
   const overviewLoading =
     activeTab === "overview" &&
-    (workspace.agreements.isLoading ||
-      workspace.receivables.isLoading ||
+    (workspace.activeAgreementSummary.isLoading ||
+      workspace.summaryReceivables.isLoading ||
       workspace.recentWorkOrders.isLoading ||
       workspace.recentQuotes.isLoading);
 
   const overviewError =
     activeTab === "overview" &&
-    (workspace.agreements.error ||
-      workspace.receivables.error ||
+    (workspace.activeAgreementSummary.error ||
+      workspace.summaryReceivables.error ||
       workspace.recentWorkOrders.error ||
       workspace.recentQuotes.error);
 
@@ -110,7 +134,7 @@ export function CustomerDetailPage() {
       />
       <PageHeader
         eyebrow={
-          workspace.agreements.isLoading
+          workspace.activeAgreementSummary.isLoading
             ? "Relacionamento"
             : workspace.activeAgreement
               ? "Cliente mensalista"
@@ -123,7 +147,7 @@ export function CustomerDetailPage() {
             <Badge tone={customer.status === "active" ? "success" : "neutral"}>
               {customerStatusLabel(customer.status)}
             </Badge>
-            {!workspace.agreements.isLoading ? (
+            {!workspace.activeAgreementSummary.isLoading ? (
               <Badge tone={workspace.activeAgreement ? "info" : "neutral"}>
                 {workspace.activeAgreement ? "Mensalista" : "Avulso"}
               </Badge>
@@ -178,8 +202,8 @@ export function CustomerDetailPage() {
             <ErrorState
               message="Nao foi possivel carregar todo o resumo do cliente."
               onRetry={() => {
-                void workspace.agreements.refetch();
-                void workspace.receivables.refetch();
+                void workspace.activeAgreementSummary.refetch();
+                void workspace.summaryReceivables.refetch();
                 void workspace.recentWorkOrders.refetch();
                 void workspace.recentQuotes.refetch();
               }}
@@ -202,10 +226,18 @@ export function CustomerDetailPage() {
           <CustomerTabs
             activeTab={activeTab}
             customerId={id}
+            pages={pages}
             workspace={workspace}
             onAddEquipment={() => setModal("equipment")}
+            onAgreementsPageChange={(page) =>
+              selectPage("agreements_page", page)
+            }
             onCreateAgreement={() => setModal("agreement")}
             onOpenPayment={() => setModal("payment")}
+            onReceivablesPageChange={(page) =>
+              selectPage("receivables_page", page)
+            }
+            onResourcePageChange={(page) => selectPage("page", page)}
           />
         )}
       </div>
@@ -214,7 +246,6 @@ export function CustomerDetailPage() {
         customer={customer}
         customerId={id}
         modal={modal}
-        openReceivables={workspace.openReceivables}
         onChanged={invalidateCustomerWorkspace}
         onClose={() => setModal(null)}
       />
