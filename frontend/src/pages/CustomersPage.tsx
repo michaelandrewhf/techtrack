@@ -101,7 +101,7 @@ export function CustomersPage() {
       <Panel className="mb-5">
         <div className="grid gap-3 md:grid-cols-[1fr_220px]">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-[var(--text-subtle)]" />
             <Input
               className="pl-9"
               placeholder="Buscar por nome, e-mail, telefone ou WhatsApp"
@@ -147,7 +147,7 @@ export function CustomersPage() {
                 header: "Cliente",
                 cell: (row) => (
                   <Link
-                    className="font-semibold text-blue-700 dark:text-blue-300"
+                    className="font-semibold text-[var(--primary)] hover:text-[var(--primary-hover)]"
                     to={`/customers/${row.id}`}
                   >
                     {row.name}
@@ -249,7 +249,7 @@ export function CustomersPage() {
               <Notice tone="danger">{errorMessage(mutation.error)}</Notice>
             </div>
           ) : null}
-          <div className="flex justify-end gap-2 border-t border-slate-200 pt-4 dark:border-slate-800 sm:col-span-2">
+          <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-4 sm:col-span-2">
             <Button
               type="button"
               variant="secondary"
