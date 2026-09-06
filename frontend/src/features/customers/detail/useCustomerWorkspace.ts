@@ -110,7 +110,8 @@ export function useCustomerWorkspace(
   const financeSummary = useQuery({
     queryKey: ["finance", "customer", id, "summary"],
     queryFn: () => financeApi.dashboard({ customer: id }),
-    enabled: Boolean(id) && (activeTab === "overview" || activeTab === "finance"),
+    enabled:
+      Boolean(id) && (activeTab === "overview" || activeTab === "finance"),
   });
 
   const receivables = useQuery({
