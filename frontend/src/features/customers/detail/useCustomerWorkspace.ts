@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
 
 import {
   customersApi,
@@ -9,12 +8,20 @@ import {
   workOrdersApi,
 } from "../../../api/endpoints";
 import { queryKeys } from "../../../api/queryKeys";
-import type { CustomerModalName, CustomerTabId } from "./types";
+import type { CustomerTabId } from "./types";
+
+const PAGE_SIZE = 25;
+
+export type CustomerWorkspacePages = {
+  resource: number;
+  receivables: number;
+  agreements: number;
+};
 
 export function useCustomerWorkspace(
   id: string,
   activeTab: CustomerTabId,
-  modal: CustomerModalName,
+  pages: CustomerWorkspacePages,
 ) {
   const customer = useQuery({
     queryKey: queryKeys.customer(id),
@@ -23,12 +30,13 @@ export function useCustomerWorkspace(
   });
 
   const equipment = useQuery({
-    queryKey: ["equipment", "customer", id, "workspace"],
+    queryKey: ["equipment", "customer", id, "workspace", pages.resource],
     queryFn: () =>
       equipmentApi.list({
         customer: id,
         ordering: "-created_at",
-        page_size: 100,
+        page: pages.resource,
+        page_size: PAGE_SIZE,
       }),
     enabled: Boolean(id) && activeTab === "equipment",
   });
@@ -45,12 +53,13 @@ export function useCustomerWorkspace(
   });
 
   const workOrders = useQuery({
-    queryKey: ["work-orders", "customer", id, "workspace"],
+    queryKey: ["work-orders", "customer", id, "workspace", pages.resource],
     queryFn: () =>
       workOrdersApi.list({
         customer: id,
         ordering: "-opened_at",
-        page_size: 100,
+        page: pages.resource,
+        page_size: PAGE_SIZE,
       }),
     enabled: Boolean(id) && activeTab === "work-orders",
   });
@@ -63,59 +72,73 @@ export function useCustomerWorkspace(
   });
 
   const quotes = useQuery({
-    queryKey: ["quotes", "customer", id, "workspace"],
+    queryKey: ["quotes", "customer", id, "workspace", pages.resource],
     queryFn: () =>
-      quotesApi.list({ customer: id, ordering: "-created_at", page_size: 100 }),
+      quotesApi.list({
+        customer: id,
+        ordering: "-created_at",
+        page: pages.resource,
+        page_size: PAGE_SIZE,
+      }),
     enabled: Boolean(id) && activeTab === "quotes",
   });
 
-  const agreements = useQuery({
-    queryKey: ["finance", "customer", id, "agreements"],
+  const activeAgreementSummary = useQuery({
+    queryKey: ["finance", "customer", id, "active-agreement"],
     queryFn: () =>
       financeApi.agreements({
         customer: id,
+        status: "active",
         ordering: "-starts_on",
-        page_size: 100,
+        page_size: 1,
       }),
     enabled: Boolean(id),
   });
 
-  const receivables = useQuery({
-    queryKey: ["finance", "customer", id, "receivables"],
+  const agreements = useQuery({
+    queryKey: ["finance", "customer", id, "agreements", pages.agreements],
+    queryFn: () =>
+      financeApi.agreements({
+        customer: id,
+        ordering: "-starts_on",
+        page: pages.agreements,
+        page_size: PAGE_SIZE,
+      }),
+    enabled: Boolean(id) && activeTab === "finance",
+  });
+
+  const summaryReceivables = useQuery({
+    queryKey: ["finance", "customer", id, "open-summary"],
     queryFn: () =>
       financeApi.receivables({
         customer: id,
-        ordering: "-due_date",
+        open: true,
+        ordering: "due_date",
         page_size: 100,
       }),
-    enabled:
-      Boolean(id) &&
-      (activeTab === "overview" ||
-        activeTab === "finance" ||
-        modal === "payment"),
+    enabled: Boolean(id) && (activeTab === "overview" || activeTab === "finance"),
   });
 
-  const activeAgreement = useMemo(
-    () =>
-      agreements.data?.results.find(
-        (agreement) => agreement.status === "active",
-      ),
-    [agreements.data?.results],
-  );
+  const receivables = useQuery({
+    queryKey: ["finance", "customer", id, "receivables", pages.receivables],
+    queryFn: () =>
+      financeApi.receivables({
+        customer: id,
+        open: true,
+        ordering: "due_date",
+        page: pages.receivables,
+        page_size: PAGE_SIZE,
+      }),
+    enabled: Boolean(id) && activeTab === "finance",
+  });
 
-  const openReceivables = useMemo(
-    () =>
-      receivables.data?.results.filter(
-        (row) => row.status !== "paid" && row.status !== "cancelled",
-      ) ?? [],
-    [receivables.data?.results],
-  );
-
-  const pending = openReceivables.reduce(
+  const activeAgreement = activeAgreementSummary.data?.results[0];
+  const openSummaryRows = summaryReceivables.data?.results ?? [];
+  const pending = openSummaryRows.reduce(
     (total, row) => total + Number(row.balance),
     0,
   );
-  const overdue = openReceivables.reduce(
+  const overdue = openSummaryRows.reduce(
     (total, row) => total + (row.is_overdue ? Number(row.balance) : 0),
     0,
   );
@@ -127,10 +150,12 @@ export function useCustomerWorkspace(
     workOrders,
     recentQuotes,
     quotes,
+    activeAgreementSummary,
     agreements,
+    summaryReceivables,
     receivables,
     activeAgreement,
-    openReceivables,
+    openReceivables: receivables.data?.results ?? [],
     pending,
     overdue,
   };
