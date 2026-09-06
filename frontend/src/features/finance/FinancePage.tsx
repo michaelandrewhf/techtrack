@@ -5,13 +5,15 @@ import { useSearchParams } from "react-router-dom";
 
 import { PageHeader } from "../../components/PageHeader";
 import { ErrorState, PageLoader } from "../../components/State";
-import { Tabs } from "../../components/Tabs";
+import { TabPanel, Tabs } from "../../components/Tabs";
 import { Button } from "../../components/ui";
 import { FinanceDialogs } from "./FinanceDialogs";
 import { FinanceMetrics, FinanceOverview } from "./FinanceOverview";
 import { FinanceTabs } from "./FinanceTabs";
 import type { FinanceTabId } from "./types";
 import { useFinanceWorkspace } from "./useFinanceWorkspace";
+
+const FINANCE_TABS_ID = "finance-tabs";
 
 const tabItems: Array<{ id: FinanceTabId; label: string }> = [
   { id: "overview", label: "Visao geral" },
@@ -128,12 +130,13 @@ export function FinancePage() {
       />
 
       <Tabs
+        id={FINANCE_TABS_ID}
         items={tabs}
         value={activeTab}
         onChange={(value) => selectTab(value as FinanceTabId)}
       />
 
-      <div className="mt-5">
+      <TabPanel className="mt-5" tabId={activeTab} tabsId={FINANCE_TABS_ID}>
         {activeTab === "overview" ? (
           <FinanceOverview dashboard={workspace.dashboard.data} />
         ) : (
@@ -146,7 +149,7 @@ export function FinancePage() {
             onPageChange={selectPage}
           />
         )}
-      </div>
+      </TabPanel>
 
       <FinanceDialogs
         agreementOpen={agreementOpen}

@@ -1,11 +1,17 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  MutationCache,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import type { ComponentType } from "react";
 import { useEffect } from "react";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
 
 import { AuthProvider } from "./auth/AuthProvider";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
+import { toast, ToastProvider } from "./components/Toast";
 import { AppLayout } from "./layout/AppLayout";
+import { errorMessage as formatErrorMessage } from "./utils/errors";
 
 type RouteModule = object;
 
@@ -19,7 +25,35 @@ function lazyPage<TModule extends RouteModule>(
   };
 }
 
+function mutationToastEnabled(meta: Record<string, unknown> | undefined) {
+  return meta?.toast !== false;
+}
+
+function mutationToastMessage(
+  meta: Record<string, unknown> | undefined,
+  key: "successMessage" | "errorMessage",
+) {
+  const value = meta?.[key];
+  return typeof value === "string" ? value : undefined;
+}
+
 const queryClient = new QueryClient({
+  mutationCache: new MutationCache({
+    onSuccess: (_data, _variables, _context, mutation) => {
+      if (!mutationToastEnabled(mutation.meta)) return;
+      toast.success(
+        mutationToastMessage(mutation.meta, "successMessage") ??
+          "Operacao concluida com sucesso.",
+      );
+    },
+    onError: (error, _variables, _context, mutation) => {
+      if (!mutationToastEnabled(mutation.meta)) return;
+      toast.error(
+        mutationToastMessage(mutation.meta, "errorMessage") ??
+          formatErrorMessage(error),
+      );
+    },
+  }),
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
@@ -186,9 +220,11 @@ export function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <RouterProvider router={createRouter()} />
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <RouterProvider router={createRouter()} />
+        </AuthProvider>
+      </ToastProvider>
     </QueryClientProvider>
   );
 }

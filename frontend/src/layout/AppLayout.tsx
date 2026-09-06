@@ -1,6 +1,5 @@
 import {
   Boxes,
-  ChevronDown,
   CircleUserRound,
   ClipboardList,
   FileText,
@@ -8,7 +7,6 @@ import {
   LogOut,
   Menu,
   Moon,
-  Plus,
   Settings,
   Sun,
   Users,
@@ -20,6 +18,7 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthProvider";
+import { QuickCreateMenu } from "../components/QuickCreateMenu";
 import { Button } from "../components/ui";
 
 type NavItem = {
@@ -65,7 +64,6 @@ const quickCreate: NavItem[] = [
 export function AppLayout() {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [createOpen, setCreateOpen] = useState(false);
   const [dark, setDark] = useState(
     () => localStorage.getItem("techtrack.theme") === "dark",
   );
@@ -78,7 +76,6 @@ export function AppLayout() {
 
   useEffect(() => {
     setSidebarOpen(false);
-    setCreateOpen(false);
   }, [location.pathname]);
 
   const displayName =
@@ -88,6 +85,13 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen bg-[var(--app-bg)] text-[var(--text)]">
+      <a
+        className="fixed left-3 top-3 z-[110] -translate-y-20 rounded-[var(--radius-md)] bg-[var(--surface-inverse)] px-4 py-2 text-sm font-semibold text-[var(--surface)] shadow-[var(--shadow-md)] transition-transform focus:translate-y-0"
+        href="#main-content"
+      >
+        Ir para o conteudo principal
+      </a>
+
       {sidebarOpen ? (
         <button
           aria-label="Fechar menu"
@@ -192,36 +196,7 @@ export function AppLayout() {
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <div className="relative">
-              <Button
-                aria-expanded={createOpen}
-                aria-haspopup="menu"
-                type="button"
-                onClick={() => setCreateOpen((value) => !value)}
-              >
-                <Plus className="h-4 w-4" />
-                Novo
-                <ChevronDown className="h-3.5 w-3.5" />
-              </Button>
-              {createOpen ? (
-                <div
-                  className="absolute left-0 top-11 z-50 w-52 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-[var(--shadow-md)]"
-                  role="menu"
-                >
-                  {quickCreate.map((item) => (
-                    <Link
-                      className="flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2 text-sm text-[var(--text)] hover:bg-[var(--surface-subtle)]"
-                      key={item.to}
-                      role="menuitem"
-                      to={item.to}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-              ) : null}
-            </div>
+            <QuickCreateMenu items={quickCreate} />
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2">
@@ -267,7 +242,11 @@ export function AppLayout() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-[1500px] p-4 sm:p-5 lg:p-7">
+        <main
+          className="mx-auto max-w-[1500px] p-4 outline-none sm:p-5 lg:p-7"
+          id="main-content"
+          tabIndex={-1}
+        >
           <Outlet />
         </main>
       </div>

@@ -7,7 +7,7 @@ import { queryKeys } from "../../../api/queryKeys";
 import { Breadcrumbs } from "../../../components/Breadcrumbs";
 import { PageHeader } from "../../../components/PageHeader";
 import { ErrorState, PageLoader } from "../../../components/State";
-import { Tabs } from "../../../components/Tabs";
+import { TabPanel, Tabs } from "../../../components/Tabs";
 import { Badge, Button } from "../../../components/ui";
 import { EquipmentComponents } from "./EquipmentComponents";
 import { EquipmentEditDialog } from "./EquipmentEditDialog";
@@ -21,6 +21,8 @@ import {
 } from "./presentation";
 import type { EquipmentTabId } from "./types";
 import { useEquipmentWorkspace } from "./useEquipmentWorkspace";
+
+const EQUIPMENT_TABS_ID = "equipment-detail-tabs";
 
 const tabItems: Array<{ id: EquipmentTabId; label: string }> = [
   { id: "overview", label: "Visao geral" },
@@ -136,12 +138,13 @@ export function EquipmentDetailPage() {
       />
 
       <Tabs
+        id={EQUIPMENT_TABS_ID}
         items={tabs}
         value={activeTab}
         onChange={(value) => selectTab(value as EquipmentTabId)}
       />
 
-      <div className="mt-5">
+      <TabPanel className="mt-5" tabId={activeTab} tabsId={EQUIPMENT_TABS_ID}>
         {activeTab === "overview" ? (
           <EquipmentOverview equipment={equipment} />
         ) : null}
@@ -164,7 +167,7 @@ export function EquipmentDetailPage() {
         {activeTab === "work-orders" ? (
           <EquipmentWorkOrders equipment={equipment} />
         ) : null}
-      </div>
+      </TabPanel>
 
       <EquipmentEditDialog
         equipment={equipment}
