@@ -1,5 +1,8 @@
-import { customersApi, equipmentApi } from "../api/endpoints";
-import type { Customer, Equipment } from "../api/types";
+import { useRef } from "react";
+
+import { customersApi, equipmentApi, financeApi } from "../api/endpoints";
+import type { Customer, Equipment, Receivable } from "../api/types";
+import { formatDate, formatMoney } from "../utils/format";
 import {
   AsyncEntityCombobox,
   type AsyncEntityOption,
@@ -31,6 +34,14 @@ function equipmentOption(equipment: Equipment): AsyncEntityOption {
     id: equipment.id,
     label: label || "Equipamento",
     description,
+  };
+}
+
+function receivableOption(receivable: Receivable): AsyncEntityOption {
+  return {
+    id: receivable.id,
+    label: `${receivable.customer_name} · ${receivable.description}`,
+    description: `${formatDate(receivable.due_date)} · saldo ${formatMoney(receivable.balance)}`,
   };
 }
 
@@ -109,6 +120,35 @@ export function EquipmentCombobox({
       }
       value={value}
       onChange={onChange}
+    />
+  );
+}
+
+export function ReceivableCombobox({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string, receivable?: Receivable) => void;
+}) {
+  const rows = useRef(new Map<string, Receivable>());
+
+  return (
+    <AsyncEntityCombobox
+      loadOptions={async (search) => {
+        const page = await financeApi.receivables({
+          open: true,
+          search,
+          ordering: "due_date",
+          page_size: 10,
+        });
+        rows.current = new Map(page.results.map((row) => [row.id, row]));
+        return page.results.map(receivableOption);
+      }}
+      queryKey={["entity-combobox", "receivables", "open"]}
+      searchPlaceholder="Buscar cliente, descricao ou referencia"
+      value={value}
+      onChange={(nextValue) => onChange(nextValue, rows.current.get(nextValue))}
     />
   );
 }
