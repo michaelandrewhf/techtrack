@@ -167,9 +167,9 @@ class FinanceDashboardView(APIView):
         )
         pending_total = sum((row.balance for row in open_rows), Decimal("0.00"))
         overdue_total = sum((row.balance for row in open_rows if row.due_date < today), Decimal("0.00"))
-        received_month = payments.filter(
-            paid_at__date__gte=month_start, paid_at__date__lte=today
-        ).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+        received_month = payments.filter(paid_at__date__gte=month_start, paid_at__date__lte=today).aggregate(
+            total=Sum("amount")
+        )["total"] or Decimal("0.00")
 
         upcoming = (
             receivables.with_list_data()
