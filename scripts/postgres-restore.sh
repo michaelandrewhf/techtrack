@@ -23,6 +23,22 @@ if [[ $# -ne 2 || "$2" != "--yes" ]]; then
   exit 2
 fi
 
+case "$RESTORE_SAFETY_BACKUP" in
+  true|false) ;;
+  *)
+    echo "RESTORE_SAFETY_BACKUP must be true or false." >&2
+    exit 2
+    ;;
+esac
+
+case "$RESTORE_RUN_MIGRATIONS" in
+  true|false) ;;
+  *)
+    echo "RESTORE_RUN_MIGRATIONS must be true or false." >&2
+    exit 2
+    ;;
+esac
+
 backup_path=$1
 if [[ ! -f "$backup_path" ]]; then
   echo "Backup file not found: $backup_path" >&2
@@ -52,9 +68,6 @@ compose=(docker compose -f "$COMPOSE_FILE")
 if [[ "$RESTORE_SAFETY_BACKUP" == "true" ]]; then
   echo "Creating pre-restore safety backup..."
   COMPOSE_FILE="$COMPOSE_FILE" bash "$(dirname "$0")/postgres-backup.sh"
-elif [[ "$RESTORE_SAFETY_BACKUP" != "false" ]]; then
-  echo "RESTORE_SAFETY_BACKUP must be true or false." >&2
-  exit 2
 fi
 
 echo "Stopping application services..."
@@ -81,9 +94,6 @@ echo "Restoring PostgreSQL database from: $backup_path"
 if [[ "$RESTORE_RUN_MIGRATIONS" == "true" ]]; then
   echo "Applying migrations after restore..."
   "${compose[@]}" run --rm --no-deps backend python manage.py migrate --noinput
-elif [[ "$RESTORE_RUN_MIGRATIONS" != "false" ]]; then
-  echo "RESTORE_RUN_MIGRATIONS must be true or false." >&2
-  exit 2
 fi
 
 echo "Starting application services..."
