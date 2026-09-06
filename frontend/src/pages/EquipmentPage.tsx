@@ -212,9 +212,7 @@ export function EquipmentPage() {
           <Pagination
             count={query.data.count}
             page={page}
-            onPageChange={(nextPage) =>
-              updateParam("page", String(nextPage))
-            }
+            onPageChange={(nextPage) => updateParam("page", String(nextPage))}
           />
         </div>
       ) : null}
