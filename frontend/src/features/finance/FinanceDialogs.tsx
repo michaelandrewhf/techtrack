@@ -2,34 +2,26 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 import { catalogApi, financeApi } from "../../api/endpoints";
-import type { Receivable } from "../../api/types";
-import { CustomerCombobox } from "../../components/EntityComboboxes";
+import {
+  CustomerCombobox,
+  ReceivableCombobox,
+} from "../../components/EntityComboboxes";
 import { Modal } from "../../components/Modal";
-import { ErrorState, PageLoader } from "../../components/State";
 import { Button, Field, Input, Notice, Select } from "../../components/ui";
 import { errorMessage } from "../../utils/errors";
-import { formatMoney } from "../../utils/format";
 
 export function FinanceDialogs({
   paymentOpen,
   agreementOpen,
-  openReceivables,
-  receivablesLoading,
-  receivablesError,
   onClosePayment,
   onCloseAgreement,
   onChanged,
-  onRetryReceivables,
 }: {
   paymentOpen: boolean;
   agreementOpen: boolean;
-  openReceivables: Receivable[];
-  receivablesLoading: boolean;
-  receivablesError: boolean;
   onClosePayment: () => void;
   onCloseAgreement: () => void;
   onChanged: () => Promise<void> | void;
-  onRetryReceivables: () => void;
 }) {
   const [selectedReceivable, setSelectedReceivable] = useState("");
   const [paymentAmount, setPaymentAmount] = useState("");
@@ -110,85 +102,64 @@ export function FinanceDialogs({
       <Modal
         open={paymentOpen}
         title="Registrar pagamento"
-        description="Escolha uma conta em aberto e registre a baixa total ou parcial."
+        description="Busque uma conta em aberto e registre a baixa total ou parcial."
         onClose={onClosePayment}
       >
-        {receivablesLoading ? (
-          <PageLoader label="Carregando contas em aberto" />
-        ) : receivablesError ? (
-          <ErrorState
-            message="Nao foi possivel carregar as contas em aberto."
-            onRetry={onRetryReceivables}
-          />
-        ) : (
-          <div className="space-y-4">
-            <Field label="Conta a receber" required>
-              <Select
-                value={selectedReceivable}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  setSelectedReceivable(value);
-                  const selected = openReceivables.find(
-                    (item) => item.id === value,
-                  );
-                  setPaymentAmount(selected?.balance ?? "");
-                }}
-              >
-                <option value="">Selecione</option>
-                {openReceivables.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.customer_name} · {item.description} ·{" "}
-                    {formatMoney(item.balance)}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="Valor" required>
-              <Input
-                inputMode="decimal"
-                value={paymentAmount}
-                onChange={(event) => setPaymentAmount(event.target.value)}
-              />
-            </Field>
-            <Field label="Metodo" required>
-              <Select
-                value={paymentMethod}
-                onChange={(event) => setPaymentMethod(event.target.value)}
-              >
-                <option value="">Selecione</option>
-                {(paymentMethods.data?.results ?? []).map((method) => (
-                  <option key={method.id} value={method.id}>
-                    {method.name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            {addPayment.error ? (
-              <Notice tone="danger">{errorMessage(addPayment.error)}</Notice>
-            ) : null}
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={onClosePayment}
-              >
-                Cancelar
-              </Button>
-              <Button
-                disabled={
-                  !selectedReceivable ||
-                  !paymentAmount ||
-                  !paymentMethod ||
-                  addPayment.isPending
-                }
-                type="button"
-                onClick={() => addPayment.mutate()}
-              >
-                Registrar pagamento
-              </Button>
-            </div>
+        <div className="space-y-4">
+          <Field label="Conta a receber" required>
+            <ReceivableCombobox
+              value={selectedReceivable}
+              onChange={(value, receivable) => {
+                setSelectedReceivable(value);
+                setPaymentAmount(receivable?.balance ?? "");
+              }}
+            />
+          </Field>
+          <Field label="Valor" required>
+            <Input
+              inputMode="decimal"
+              value={paymentAmount}
+              onChange={(event) => setPaymentAmount(event.target.value)}
+            />
+          </Field>
+          <Field label="Metodo" required>
+            <Select
+              value={paymentMethod}
+              onChange={(event) => setPaymentMethod(event.target.value)}
+            >
+              <option value="">Selecione</option>
+              {(paymentMethods.data?.results ?? []).map((method) => (
+                <option key={method.id} value={method.id}>
+                  {method.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          {addPayment.error ? (
+            <Notice tone="danger">{errorMessage(addPayment.error)}</Notice>
+          ) : null}
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClosePayment}
+            >
+              Cancelar
+            </Button>
+            <Button
+              disabled={
+                !selectedReceivable ||
+                !paymentAmount ||
+                !paymentMethod ||
+                addPayment.isPending
+              }
+              type="button"
+              onClick={() => addPayment.mutate()}
+            >
+              Registrar pagamento
+            </Button>
           </div>
-        )}
+        </div>
       </Modal>
 
       <Modal
