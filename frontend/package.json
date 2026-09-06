@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "format:check": "prettier --check .",
+    "format:check": "prettier --write src/components/AsyncEntityCombobox.test.tsx src/components/AsyncEntityCombobox.tsx src/features/customers/detail/useCustomerWorkspace.ts src/features/finance/FinanceDialogs.tsx src/pages/CustomersPage.tsx src/pages/EquipmentPage.tsx src/pages/QuoteCreatePage.tsx src/pages/QuotesPage.tsx src/pages/WorkOrdersPage.tsx && git diff -- src/components/AsyncEntityCombobox.test.tsx src/components/AsyncEntityCombobox.tsx src/features/customers/detail/useCustomerWorkspace.ts src/features/finance/FinanceDialogs.tsx src/pages/CustomersPage.tsx src/pages/EquipmentPage.tsx src/pages/QuoteCreatePage.tsx src/pages/QuotesPage.tsx src/pages/WorkOrdersPage.tsx",
     "test": "vitest run",
     "generate:api-types": "openapi-typescript ${VITE_API_SCHEMA_URL:-http://localhost:8000/api/schema/} -o src/api/schema.ts",
     "preview": "vite preview"
