@@ -70,6 +70,7 @@ finance
 - [API](docs/api.md)
 - [Financeiro](docs/finance.md)
 - [Orcamentos](docs/quotes.md)
+- [Deploy, runtime offline e seguranca operacional](docs/deployment.md)
 - [Frontend](frontend/README.md)
 
 ## Requisitos
@@ -118,12 +119,12 @@ Django/DRF        http://localhost:8001
 React/Vite        http://localhost:5173
 ```
 
-As migrations sao aplicadas no startup do backend. O frontend usa proxy para acessar o backend dentro da rede Docker.
+As migrations sao aplicadas no startup do backend. O frontend usa proxy para acessar o backend dentro da rede Docker. Depois que as imagens estiverem construidas, o startup nao sincroniza dependencias e pode funcionar sem internet.
 
 Para criar um superusuario:
 
 ```bash
-docker compose exec backend uv run python manage.py createsuperuser
+docker compose exec backend python manage.py createsuperuser
 ```
 
 Para acompanhar os containers:
@@ -164,6 +165,19 @@ FRONTEND_PORT=5173
 ```
 
 Os defaults do `compose.yaml` sao adequados somente para desenvolvimento local.
+
+## Runtime de producao
+
+Existe uma stack separada em `compose.prod.yaml`, sem bind mounts de codigo, com Gunicorn no backend e Nginx servindo o frontend compilado.
+
+Consulte [docs/deployment.md](docs/deployment.md) antes de publicar. O fluxo basico e:
+
+```bash
+docker compose -f compose.prod.yaml build
+docker compose -f compose.prod.yaml up -d
+```
+
+A stack exige `POSTGRES_PASSWORD`, `DJANGO_SECRET_KEY` e `DJANGO_ALLOWED_HOSTS` configurados explicitamente.
 
 ## Backend sem Docker
 
@@ -275,10 +289,17 @@ curl --fail http://localhost:8001/api/health/
 curl --fail http://localhost:5173/api/health/
 ```
 
-Depois:
+Para validar especificamente o startup sem internet depois do build:
 
 ```bash
 docker compose down
+docker compose -f compose.yaml -f compose.offline.yaml up -d --no-build
+```
+
+Depois:
+
+```bash
+docker compose -f compose.yaml -f compose.offline.yaml down
 ```
 
 ## Cobrancas recorrentes
@@ -311,11 +332,13 @@ A geracao e idempotente para acordo/competencia: repetir o comando nao deve dupl
 
 ## CI
 
-O workflow de validacao executa quatro frentes independentes:
+O workflow de validacao cobre:
 
 - backend com SQLite;
 - backend com PostgreSQL 17;
 - frontend (lint, formato, testes e build);
-- smoke test do Docker Compose completo.
+- smoke test do Docker Compose de desenvolvimento;
+- novo startup da stack preconstruida em rede sem acesso a internet;
+- smoke test da stack de producao com Gunicorn e Nginx.
 
-O objetivo e detectar tanto erros de aplicacao quanto diferencas entre SQLite/PostgreSQL e problemas de integracao entre frontend, backend e containers.
+O objetivo e detectar erros de aplicacao, diferencas entre SQLite/PostgreSQL, problemas de integracao e dependencias acidentais de rede durante o runtime.
