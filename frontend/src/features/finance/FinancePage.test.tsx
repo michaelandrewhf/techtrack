@@ -96,12 +96,12 @@ describe("FinancePage", () => {
     await waitFor(() => {
       expect(
         fetchMock.mock.calls.some(([input]) => {
-          const url = String(input);
+          const url = new URL(String(input), "http://localhost");
           return (
-            url.includes("/api/v1/receivables/") &&
-            url.includes("open=true") &&
-            url.includes("search=Cliente%20A") &&
-            url.includes("page_size=10")
+            url.pathname.endsWith("/api/v1/receivables/") &&
+            url.searchParams.get("open") === "true" &&
+            url.searchParams.get("search") === "Cliente A" &&
+            url.searchParams.get("page_size") === "10"
           );
         }),
       ).toBe(true);
@@ -163,11 +163,11 @@ describe("FinancePage", () => {
     ).toHaveTextContent("1");
     expect(
       fetchMock.mock.calls.some(([input]) => {
-        const url = String(input);
+        const url = new URL(String(input), "http://localhost");
         return (
-          url.includes("/api/v1/receivables/") &&
-          url.includes("open=true") &&
-          url.includes("page_size=25")
+          url.pathname.endsWith("/api/v1/receivables/") &&
+          url.searchParams.get("open") === "true" &&
+          url.searchParams.get("page_size") === "25"
         );
       }),
     ).toBe(true);
