@@ -11,8 +11,7 @@ type ToastItem = {
 };
 
 type ToastEvent =
-  | { type: "add"; toast: ToastItem }
-  | { type: "remove"; id: number };
+  { type: "add"; toast: ToastItem } | { type: "remove"; id: number };
 
 type Listener = (event: ToastEvent) => void;
 
