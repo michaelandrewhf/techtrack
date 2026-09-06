@@ -107,15 +107,9 @@ export function useCustomerWorkspace(
     enabled: Boolean(id) && activeTab === "finance",
   });
 
-  const summaryReceivables = useQuery({
-    queryKey: ["finance", "customer", id, "open-summary"],
-    queryFn: () =>
-      financeApi.receivables({
-        customer: id,
-        open: true,
-        ordering: "due_date",
-        page_size: 100,
-      }),
+  const financeSummary = useQuery({
+    queryKey: ["finance", "customer", id, "summary"],
+    queryFn: () => financeApi.dashboard({ customer: id }),
     enabled: Boolean(id) && (activeTab === "overview" || activeTab === "finance"),
   });
 
@@ -133,15 +127,6 @@ export function useCustomerWorkspace(
   });
 
   const activeAgreement = activeAgreementSummary.data?.results[0];
-  const openSummaryRows = summaryReceivables.data?.results ?? [];
-  const pending = openSummaryRows.reduce(
-    (total, row) => total + Number(row.balance),
-    0,
-  );
-  const overdue = openSummaryRows.reduce(
-    (total, row) => total + (row.is_overdue ? Number(row.balance) : 0),
-    0,
-  );
 
   return {
     customer,
@@ -152,12 +137,12 @@ export function useCustomerWorkspace(
     quotes,
     activeAgreementSummary,
     agreements,
-    summaryReceivables,
+    financeSummary,
     receivables,
     activeAgreement,
     openReceivables: receivables.data?.results ?? [],
-    pending,
-    overdue,
+    pending: Number(financeSummary.data?.pending_total ?? 0),
+    overdue: Number(financeSummary.data?.overdue_total ?? 0),
   };
 }
 
