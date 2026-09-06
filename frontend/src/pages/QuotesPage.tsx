@@ -178,9 +178,7 @@ export function QuotesPage() {
             page={page}
             count={query.data.count}
             pageSize={25}
-            onPageChange={(nextPage) =>
-              updateParam("page", String(nextPage))
-            }
+            onPageChange={(nextPage) => updateParam("page", String(nextPage))}
           />
         </div>
       ) : null}
