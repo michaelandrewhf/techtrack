@@ -25,7 +25,7 @@ export function DashboardPage() {
   });
   const finance = useQuery({
     queryKey: ["finance", "dashboard"],
-    queryFn: financeApi.dashboard,
+    queryFn: () => financeApi.dashboard(),
   });
 
   if (query.isLoading) return <PageLoader />;
