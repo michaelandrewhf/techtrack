@@ -125,9 +125,11 @@ export function EquipmentCombobox({
 }
 
 export function ReceivableCombobox({
+  customerId,
   value,
   onChange,
 }: {
+  customerId?: string;
   value: string;
   onChange: (value: string, receivable?: Receivable) => void;
 }) {
@@ -137,6 +139,7 @@ export function ReceivableCombobox({
     <AsyncEntityCombobox
       loadOptions={async (search) => {
         const page = await financeApi.receivables({
+          customer: customerId,
           open: true,
           search,
           ordering: "due_date",
@@ -145,7 +148,7 @@ export function ReceivableCombobox({
         rows.current = new Map(page.results.map((row) => [row.id, row]));
         return page.results.map(receivableOption);
       }}
-      queryKey={["entity-combobox", "receivables", "open"]}
+      queryKey={["entity-combobox", "receivables", "open", customerId ?? "all"]}
       searchPlaceholder="Buscar cliente, descricao ou referencia"
       value={value}
       onChange={(nextValue) => onChange(nextValue, rows.current.get(nextValue))}
