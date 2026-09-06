@@ -64,11 +64,15 @@ class ReceivableViewSet(viewsets.ModelViewSet):
     ordering = ["due_date", "created_at"]
 
     def get_queryset(self):
-        return Receivable.objects.with_list_data().prefetch_related(
+        queryset = Receivable.objects.with_list_data().prefetch_related(
             "payments__payment_method",
             "payments__created_by",
             "payments__voided_by",
         )
+        open_only = self.request.query_params.get("open", "").lower()
+        if open_only in {"1", "true", "yes"}:
+            queryset = queryset.exclude(status__in=[ReceivableStatus.PAID, ReceivableStatus.CANCELLED])
+        return queryset
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
