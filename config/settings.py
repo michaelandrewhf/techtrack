@@ -155,8 +155,8 @@ REST_FRAMEWORK = {
         "login": os.environ.get("THROTTLE_LOGIN_RATE", "10/min"),
         "token_refresh": os.environ.get("THROTTLE_TOKEN_REFRESH_RATE", "30/min"),
         "token_verify": os.environ.get("THROTTLE_TOKEN_VERIFY_RATE", "30/min"),
-        "password_reset": os.environ.get("THROTTLE_PASSWORD_RESET_RATE", "5/hour"),
-        "password_reset_confirm": os.environ.get("THROTTLE_PASSWORD_RESET_CONFIRM_RATE", "10/hour"),
+        "password_reset": os.environ.get("THROTTLE_PASSWORD_RESET_RATE", "20/hour"),
+        "password_reset_confirm": os.environ.get("THROTTLE_PASSWORD_RESET_CONFIRM_RATE", "30/hour"),
     },
 }
 
