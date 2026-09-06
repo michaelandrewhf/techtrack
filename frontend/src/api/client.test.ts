@@ -1,14 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { apiRequest, AUTH_EXPIRED_EVENT, tokenStore } from "./client";
+import {
+  accessTokenStore,
+  apiRequest,
+  AUTH_EXPIRED_EVENT,
+  clearLegacyTokenStorage,
+} from "./client";
 
 describe("apiRequest", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    localStorage.clear();
+    accessTokenStore.clear();
   });
 
-  it("refreshes the access token once on 401 and retries the request", async () => {
-    tokenStore.set("old-access", "refresh-token");
+  it("refreshes the in-memory access token once on 401 and retries the request", async () => {
+    accessTokenStore.set("old-access");
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(
@@ -34,12 +41,21 @@ describe("apiRequest", () => {
     const result = await apiRequest<{ ok: boolean }>("/v1/customers/");
 
     expect(result.ok).toBe(true);
-    expect(tokenStore.getAccess()).toBe("new-access");
+    expect(accessTokenStore.get()).toBe("new-access");
     expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/token/refresh/");
+    expect(fetchMock.mock.calls[1]?.[1]).toEqual(
+      expect.objectContaining({
+        method: "POST",
+        credentials: "same-origin",
+      }),
+    );
+    expect(localStorage.getItem("techtrack.access")).toBeNull();
+    expect(localStorage.getItem("techtrack.refresh")).toBeNull();
   });
 
-  it("clears tokens and emits an auth-expired event when refresh fails", async () => {
-    tokenStore.set("expired-access", "invalid-refresh");
+  it("clears the access token and emits an auth-expired event when cookie refresh fails", async () => {
+    accessTokenStore.set("expired-access");
     const authExpired = vi.fn();
     window.addEventListener(AUTH_EXPIRED_EVENT, authExpired);
     const fetchMock = vi
@@ -62,9 +78,18 @@ describe("apiRequest", () => {
       status: 401,
     });
 
-    expect(tokenStore.getAccess()).toBeNull();
-    expect(tokenStore.getRefresh()).toBeNull();
+    expect(accessTokenStore.get()).toBeNull();
     expect(authExpired).toHaveBeenCalledTimes(1);
     window.removeEventListener(AUTH_EXPIRED_EVENT, authExpired);
+  });
+
+  it("purges tokens left by the legacy localStorage session", () => {
+    localStorage.setItem("techtrack.access", "legacy-access");
+    localStorage.setItem("techtrack.refresh", "legacy-refresh");
+
+    clearLegacyTokenStorage();
+
+    expect(localStorage.getItem("techtrack.access")).toBeNull();
+    expect(localStorage.getItem("techtrack.refresh")).toBeNull();
   });
 });
