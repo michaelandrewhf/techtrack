@@ -339,10 +339,7 @@ class ClientPdfDocument(PdfDocument):
 
         draw_header()
         for row_index, row in enumerate(rows):
-            cell_lines = [
-                self._wrapped_lines(value, widths[index] - 14, 8.4)
-                for index, value in enumerate(row)
-            ]
+            cell_lines = [self._wrapped_lines(value, widths[index] - 14, 8.4) for index, value in enumerate(row)]
             total_lines = max(len(lines) for lines in cell_lines)
             full_height = max(30, total_lines * 12 + 12)
 
