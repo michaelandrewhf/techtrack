@@ -42,9 +42,8 @@ it("shows recovery actions for an unknown authenticated route", async () => {
   expect(
     await screen.findByRole("heading", { name: "Pagina nao encontrada" }),
   ).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "Voltar ao inicio" })).toHaveAttribute(
-    "href",
-    "/",
-  );
+  expect(
+    screen.getByRole("link", { name: "Voltar ao inicio" }),
+  ).toHaveAttribute("href", "/");
   expect(screen.getByRole("button", { name: "Voltar" })).toBeInTheDocument();
 });
