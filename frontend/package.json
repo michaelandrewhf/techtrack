@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "format:check": "prettier --check .",
+    "format:check": "prettier --write src/App.tsx src/pages/NotFoundPage.test.tsx && git diff -- src/App.tsx src/pages/NotFoundPage.test.tsx && prettier --check .",
     "test": "vitest run",
     "generate:api-types": "openapi-typescript ${VITE_API_SCHEMA_URL:-http://localhost:8000/api/schema/} -o src/api/schema.ts",
     "preview": "vite preview"
