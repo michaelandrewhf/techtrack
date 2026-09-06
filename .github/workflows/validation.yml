@@ -114,18 +114,24 @@ jobs:
         run: docker compose down
       - name: Start prebuilt stack without internet access
         run: docker compose -f compose.yaml -f compose.offline.yaml up -d --no-build
-      - name: Wait for offline backend
+      - name: Wait for offline services inside isolated network
         run: |
           for i in $(seq 1 40); do
-            if curl --fail --silent http://127.0.0.1:8001/api/health/ >/dev/null; then exit 0; fi
+            if docker compose -f compose.yaml -f compose.offline.yaml exec -T backend \
+              python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health/', timeout=3).read()" \
+              >/dev/null 2>&1; then
+              exit 0
+            fi
             sleep 3
           done
           docker compose -f compose.yaml -f compose.offline.yaml logs
           exit 1
-      - name: Verify offline frontend and API proxy
+      - name: Verify offline frontend and API proxy inside isolated network
         run: |
-          curl --fail --silent http://127.0.0.1:5173/ >/dev/null
-          curl --fail --silent http://127.0.0.1:5173/api/health/
+          docker compose -f compose.yaml -f compose.offline.yaml exec -T backend \
+            python -c "import urllib.request; urllib.request.urlopen('http://frontend:5173/', timeout=3).read()"
+          docker compose -f compose.yaml -f compose.offline.yaml exec -T backend \
+            python -c "import urllib.request; urllib.request.urlopen('http://frontend:5173/api/health/', timeout=3).read()"
       - name: Show offline service status
         run: docker compose -f compose.yaml -f compose.offline.yaml ps
       - if: always()
