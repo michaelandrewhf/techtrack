@@ -263,13 +263,13 @@ export function CustomerTabs({
     if (
       workspace.receivables.isLoading ||
       workspace.agreements.isLoading ||
-      workspace.summaryReceivables.isLoading
+      workspace.financeSummary.isLoading
     )
       return <PageLoader label="Carregando financeiro do cliente" />;
     if (
       workspace.receivables.error ||
       workspace.agreements.error ||
-      workspace.summaryReceivables.error
+      workspace.financeSummary.error
     )
       return (
         <ErrorState
@@ -277,7 +277,7 @@ export function CustomerTabs({
           onRetry={() => {
             void workspace.receivables.refetch();
             void workspace.agreements.refetch();
-            void workspace.summaryReceivables.refetch();
+            void workspace.financeSummary.refetch();
           }}
         />
       );
