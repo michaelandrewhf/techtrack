@@ -22,7 +22,7 @@ def test_json_formatter_emits_structured_request_metadata():
     )
     record.request_id = "trace-123"
     record.method = "GET"
-    record.path = "/api/health/"
+    record.path = "/api/example/"
     record.status_code = 200
     record.duration_ms = 12.34
 
@@ -33,14 +33,14 @@ def test_json_formatter_emits_structured_request_metadata():
     assert payload["message"] == "HTTP request completed"
     assert payload["request_id"] == "trace-123"
     assert payload["method"] == "GET"
-    assert payload["path"] == "/api/health/"
+    assert payload["path"] == "/api/example/"
     assert payload["status_code"] == 200
     assert payload["duration_ms"] == 12.34
     assert payload["timestamp"].endswith("Z")
 
 
 def test_request_observability_middleware_preserves_safe_request_id():
-    request = RequestFactory().get("/api/health/?token=must-not-be-logged", HTTP_X_REQUEST_ID="trace-123")
+    request = RequestFactory().get("/api/example/?token=must-not-be-logged", HTTP_X_REQUEST_ID="trace-123")
     middleware = RequestObservabilityMiddleware(lambda _: HttpResponse("ok"))
 
     with patch.object(request_logger, "log") as log:
@@ -54,9 +54,20 @@ def test_request_observability_middleware_preserves_safe_request_id():
     assert message == "HTTP request completed"
     assert extra["request_id"] == "trace-123"
     assert extra["method"] == "GET"
-    assert extra["path"] == "/api/health/"
+    assert extra["path"] == "/api/example/"
     assert extra["status_code"] == 200
     assert "must-not-be-logged" not in message
+
+
+def test_health_request_keeps_request_id_without_routine_log():
+    request = RequestFactory().get("/api/health/", HTTP_X_REQUEST_ID="health-123")
+    middleware = RequestObservabilityMiddleware(lambda _: HttpResponse("ok"))
+
+    with patch.object(request_logger, "log") as log:
+        response = middleware(request)
+
+    assert response["X-Request-ID"] == "health-123"
+    log.assert_not_called()
 
 
 @pytest.mark.parametrize(
