@@ -1,12 +1,13 @@
 import json
 import logging
+from unittest.mock import patch
 
 import pytest
 from django.http import HttpResponse
 from django.test import RequestFactory
 
 from config.logging import JsonFormatter
-from config.middleware import RequestObservabilityMiddleware, normalize_request_id
+from config.middleware import RequestObservabilityMiddleware, normalize_request_id, request_logger
 
 
 def test_json_formatter_emits_structured_request_metadata():
@@ -38,20 +39,24 @@ def test_json_formatter_emits_structured_request_metadata():
     assert payload["timestamp"].endswith("Z")
 
 
-def test_request_observability_middleware_preserves_safe_request_id(caplog):
+def test_request_observability_middleware_preserves_safe_request_id():
     request = RequestFactory().get("/api/health/?token=must-not-be-logged", HTTP_X_REQUEST_ID="trace-123")
     middleware = RequestObservabilityMiddleware(lambda _: HttpResponse("ok"))
 
-    with caplog.at_level(logging.INFO, logger="techtrack.request"):
+    with patch.object(request_logger, "log") as log:
         response = middleware(request)
 
     assert response["X-Request-ID"] == "trace-123"
-    record = next(record for record in caplog.records if record.name == "techtrack.request")
-    assert record.request_id == "trace-123"
-    assert record.method == "GET"
-    assert record.path == "/api/health/"
-    assert record.status_code == 200
-    assert "must-not-be-logged" not in record.getMessage()
+    log.assert_called_once()
+    level, message = log.call_args.args
+    extra = log.call_args.kwargs["extra"]
+    assert level == logging.INFO
+    assert message == "HTTP request completed"
+    assert extra["request_id"] == "trace-123"
+    assert extra["method"] == "GET"
+    assert extra["path"] == "/api/health/"
+    assert extra["status_code"] == 200
+    assert "must-not-be-logged" not in message
 
 
 @pytest.mark.parametrize(
