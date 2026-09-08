@@ -157,11 +157,29 @@ A pipeline de produção também executa um ciclo efêmero de backup/restore par
 
 O runbook completo, incluindo retenção, agendamento e recomendação de cópia off-site, está em [backups.md](backups.md).
 
+## Observabilidade e logs
+
+A stack de produção escreve logs em `stdout`/`stderr`, sem depender de um fornecedor específico.
+
+O backend usa JSON estruturado por padrão em produção e registra request ID, método, caminho sem query string, status HTTP e duração. O Nginx também usa JSON para access logs, gera o `X-Request-ID` externo e encaminha o mesmo valor ao Django, permitindo correlacionar as duas camadas.
+
+Health checks rotineiros do backend não geram eventos de request para evitar ruído, embora continuem recebendo `X-Request-ID`.
+
+Configuração principal:
+
+```dotenv
+LOG_LEVEL=INFO
+OBSERVABILITY_JSON_LOGS=True
+LOG_MAX_SIZE=10m
+LOG_MAX_FILES=5
+```
+
+A rotação local do Docker evita crescimento ilimitado dos arquivos `json-file`. Coleta e retenção de longo prazo podem ser feitas pela plataforma de deploy ou por qualquer stack compatível com stdout/stderr.
+
+O runbook completo está em [observability.md](observability.md).
+
 ## Próximos hardenings
 
 A persistência de refresh JWT no navegador foi removida. Como evolução posterior de segurança de sessão, pode-se adicionar blacklist/rotação de refresh tokens para revogação server-side imediata, caso a aplicação passe a exigir esse nível de controle.
 
-Também permanecem como etapas operacionais posteriores:
-
-- observabilidade/logging de produção;
-- regras de proteção obrigatória da branch `master` no GitHub.
+Também permanece como etapa operacional externa ao código a configuração de regras de proteção obrigatória da branch `master` no GitHub.
