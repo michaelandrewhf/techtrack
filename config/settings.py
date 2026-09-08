@@ -227,6 +227,7 @@ LOGGING = {
     "root": {"handlers": ["console"], "level": LOG_LEVEL},
     "loggers": {
         "django": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
         "techtrack": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
     },
 }
