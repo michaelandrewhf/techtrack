@@ -158,6 +158,8 @@ jobs:
       EMAIL_BACKEND: django.core.mail.backends.console.EmailBackend
     steps:
       - uses: actions/checkout@v4
+      - name: Validate backup scripts
+        run: bash -n scripts/postgres-backup.sh scripts/postgres-restore.sh
       - name: Validate production Compose config
         run: docker compose -f compose.prod.yaml config
       - name: Build production stack
@@ -182,6 +184,41 @@ jobs:
         run: docker compose -f compose.prod.yaml exec -T backend python manage.py check
       - name: Verify backend runs as non-root
         run: test "$(docker compose -f compose.prod.yaml exec -T backend id -u | tr -d '\r')" = "10001"
+      - name: Verify PostgreSQL backup and restore
+        run: |
+          rm -rf /tmp/techtrack-backups
+          printf '%s\n' \
+            "CREATE TABLE backup_restore_smoke (id integer PRIMARY KEY, marker text NOT NULL);" \
+            "INSERT INTO backup_restore_smoke (id, marker) VALUES (1, 'before');" \
+            | docker compose -f compose.prod.yaml exec -T db sh -eu -c \
+              'psql --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" --set=ON_ERROR_STOP=1'
+
+          BACKUP_DIR=/tmp/techtrack-backups \
+            bash scripts/postgres-backup.sh
+          backup_path=$(find /tmp/techtrack-backups -maxdepth 1 -type f -name 'techtrack_*.dump' | head -n 1)
+          test -n "$backup_path"
+          test -f "${backup_path}.sha256"
+
+          printf '%s\n' "UPDATE backup_restore_smoke SET marker = 'after' WHERE id = 1;" \
+            | docker compose -f compose.prod.yaml exec -T db sh -eu -c \
+              'psql --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" --set=ON_ERROR_STOP=1'
+
+          RESTORE_SAFETY_BACKUP=false \
+            BACKUP_DIR=/tmp/techtrack-backups \
+            bash scripts/postgres-restore.sh "$backup_path" --yes
+
+          restored_marker=$(printf '%s\n' "SELECT marker FROM backup_restore_smoke WHERE id = 1;" \
+            | docker compose -f compose.prod.yaml exec -T db sh -eu -c \
+              'psql --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" --tuples-only --no-align' \
+            | tr -d '[:space:]')
+          test "$restored_marker" = "before"
+
+          for i in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:8080/api/health/ >/dev/null; then exit 0; fi
+            sleep 3
+          done
+          docker compose -f compose.prod.yaml logs
+          exit 1
       - name: Show production service status
         run: docker compose -f compose.prod.yaml ps
       - if: always()

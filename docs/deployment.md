@@ -142,12 +142,26 @@ Django aplica baseline de segurança incluindo `nosniff`, `DENY` para framing e 
 - `Referrer-Policy: same-origin`;
 - `Permissions-Policy` desabilitando câmera, microfone e geolocalização.
 
+## Backup e restore do PostgreSQL
+
+O repositório possui scripts operacionais para backup e restore da stack de produção:
+
+```bash
+bash scripts/postgres-backup.sh
+bash scripts/postgres-restore.sh /caminho/backup.dump --yes
+```
+
+O backup usa `pg_dump` em formato custom, valida o archive antes de concluir, gera SHA-256 e aplica retenção local configurável. O restore valida o dump, cria backup de segurança por padrão, para a aplicação, restaura com limpeza controlada, reaplica migrations e só então sobe frontend/backend novamente.
+
+A pipeline de produção também executa um ciclo efêmero de backup/restore para detectar regressões no procedimento.
+
+O runbook completo, incluindo retenção, agendamento e recomendação de cópia off-site, está em [backups.md](backups.md).
+
 ## Próximos hardenings
 
 A persistência de refresh JWT no navegador foi removida. Como evolução posterior de segurança de sessão, pode-se adicionar blacklist/rotação de refresh tokens para revogação server-side imediata, caso a aplicação passe a exigir esse nível de controle.
 
 Também permanecem como etapas operacionais posteriores:
 
-- política automatizada de backup/restore do PostgreSQL;
 - observabilidade/logging de produção;
 - regras de proteção obrigatória da branch `master` no GitHub.
