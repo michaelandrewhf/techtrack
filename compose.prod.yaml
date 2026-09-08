@@ -1,3 +1,9 @@
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "${LOG_MAX_SIZE:-10m}"
+    max-file: "${LOG_MAX_FILES:-5}"
+
 services:
   db:
     image: postgres:17-alpine
@@ -14,6 +20,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+    logging: *default-logging
 
   backend:
     build:
@@ -51,6 +58,8 @@ services:
       DEFAULT_FROM_EMAIL: "${DEFAULT_FROM_EMAIL:-TechTrack <noreply@techtrack.local>}"
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-3}
       GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-60}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      OBSERVABILITY_JSON_LOGS: ${OBSERVABILITY_JSON_LOGS:-True}
       THROTTLE_LOGIN_RATE: ${THROTTLE_LOGIN_RATE:-10/min}
       THROTTLE_TOKEN_REFRESH_RATE: ${THROTTLE_TOKEN_REFRESH_RATE:-30/min}
       THROTTLE_TOKEN_VERIFY_RATE: ${THROTTLE_TOKEN_VERIFY_RATE:-30/min}
@@ -73,6 +82,7 @@ services:
       start_period: 15s
     security_opt:
       - no-new-privileges:true
+    logging: *default-logging
 
   frontend:
     build:
@@ -86,6 +96,7 @@ services:
         condition: service_healthy
     security_opt:
       - no-new-privileges:true
+    logging: *default-logging
 
 volumes:
   postgres_data:
