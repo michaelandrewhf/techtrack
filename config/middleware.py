@@ -3,6 +3,7 @@ import re
 import time
 import uuid
 
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
@@ -31,6 +32,9 @@ class RequestObservabilityMiddleware:
         response = self.get_response(request)
         duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
         response["X-Request-ID"] = request_id
+
+        if request.path == "/api/health/" and not settings.OBSERVABILITY_LOG_HEALTH:
+            return response
 
         status_code = response.status_code
         if status_code >= 500:
