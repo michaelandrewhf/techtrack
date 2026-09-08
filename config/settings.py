@@ -45,6 +45,11 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "DENY"
 
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+if LOG_LEVEL not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
+    raise ImproperlyConfigured("LOG_LEVEL must be DEBUG, INFO, WARNING, ERROR or CRITICAL.")
+OBSERVABILITY_JSON_LOGS = env_bool("OBSERVABILITY_JSON_LOGS", not DEBUG)
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -66,6 +71,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "config.middleware.RequestObservabilityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -201,6 +207,27 @@ SPECTACULAR_SETTINGS = {
         "QuoteStatusEnum": "quotes.models.QuoteStatus",
         "QuoteItemTypeEnum": "quotes.models.QuoteItemType",
         "DocumentTypeEnum": "quotes.models.DocumentType",
+    },
+}
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "json": {"()": "config.logging.JsonFormatter"},
+        "plain": {"format": "%(asctime)s %(levelname)s %(name)s %(message)s"},
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stdout",
+            "formatter": "json" if OBSERVABILITY_JSON_LOGS else "plain",
+        }
+    },
+    "root": {"handlers": ["console"], "level": LOG_LEVEL},
+    "loggers": {
+        "django": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        "techtrack": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
     },
 }
 
