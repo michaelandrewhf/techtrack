@@ -33,7 +33,7 @@ class RequestObservabilityMiddleware:
         duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
         response["X-Request-ID"] = request_id
 
-        if request.path == "/api/health/" and not settings.OBSERVABILITY_LOG_HEALTH:
+        if request.path == "/api/health/" and not getattr(settings, "OBSERVABILITY_LOG_HEALTH", False):
             return response
 
         status_code = response.status_code
