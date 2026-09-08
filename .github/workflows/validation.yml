@@ -183,8 +183,9 @@ jobs:
           curl --fail --silent --head http://127.0.0.1:8080/ | grep -qi '^X-Frame-Options: DENY'
       - name: Verify production request correlation logs
         run: |
-          curl --fail --silent -D /tmp/techtrack-headers -o /dev/null \
-            'http://127.0.0.1:8080/api/health/?probe=ci-secret-query'
+          status=$(curl --silent -D /tmp/techtrack-headers -o /dev/null -w '%{http_code}' \
+            'http://127.0.0.1:8080/api/observability-probe/?probe=ci-secret-query')
+          test "$status" = "404"
           request_id=$(grep -i '^X-Request-ID:' /tmp/techtrack-headers | tail -n 1 | cut -d' ' -f2 | tr -d '\r')
           test -n "$request_id"
 
