@@ -16,6 +16,8 @@ import type {
   ServiceAgreement,
   User,
   WorkOrder,
+  WorkOrderChargeMode,
+  WorkOrderChargePolicyState,
   WorkOrderPart,
   WorkOrderService,
   WorkOrderTimeline,
@@ -242,6 +244,22 @@ export const workOrdersApi = {
       method: "PUT",
       body,
     }),
+  getChargePolicy: (id: string) =>
+    apiRequest<WorkOrderChargePolicyState>(
+      `/v1/work-orders/${id}/charge-policy/`,
+    ),
+  saveChargePolicy: (
+    id: string,
+    body: {
+      mode: WorkOrderChargeMode;
+      service_agreement_id?: string | null;
+      notes?: string;
+    },
+  ) =>
+    apiRequest<WorkOrderChargePolicyState>(
+      `/v1/work-orders/${id}/charge-policy/`,
+      { method: "PUT", body },
+    ),
   previewPdf: (id: string, version?: number) =>
     apiDownload(
       `/v1/work-orders/${id}/pdf/${version ? `?version=${version}` : ""}`,
