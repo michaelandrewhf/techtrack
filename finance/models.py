@@ -39,6 +39,11 @@ class ReceivableOrigin(models.TextChoices):
     MANUAL = "manual", "Lancamento manual"
 
 
+class WorkOrderChargeMode(models.TextChoices):
+    AGREEMENT_INCLUDED = "agreement_included", "Incluso no plano mensal"
+    AGREEMENT_EXTRA = "agreement_extra", "Cobrado a parte"
+
+
 class ServiceAgreementQuerySet(models.QuerySet):
     def with_customer_data(self):
         return self.select_related("customer")
@@ -334,6 +339,38 @@ class Payment(TimeStampedUUIDModel):
 
     def __str__(self):
         return f"R$ {self.amount} - {self.receivable}"
+
+
+class WorkOrderChargePolicy(TimeStampedUUIDModel):
+    work_order = models.OneToOneField(
+        "workorders.WorkOrder",
+        on_delete=models.PROTECT,
+        related_name="charge_policy",
+    )
+    service_agreement = models.ForeignKey(
+        ServiceAgreement,
+        on_delete=models.PROTECT,
+        related_name="work_order_charge_policies",
+    )
+    mode = models.CharField(max_length=30, choices=WorkOrderChargeMode)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["mode"], name="wo_charge_policy_mode_idx")]
+        verbose_name = "Work order charge policy"
+        verbose_name_plural = "Work order charge policies"
+
+    def clean(self):
+        super().clean()
+        if (
+            self.work_order_id
+            and self.service_agreement_id
+            and self.work_order.customer_id != self.service_agreement.customer_id
+        ):
+            raise ValidationError({"service_agreement": "O contrato deve pertencer ao mesmo cliente da OS."})
+
+    def __str__(self):
+        return f"{self.work_order.display_number} - {self.get_mode_display()}"
 
 
 class BusinessProfile(models.Model):

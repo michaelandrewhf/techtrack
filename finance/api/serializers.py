@@ -2,7 +2,14 @@ from rest_framework import serializers
 
 from catalog.models import PaymentMethod
 
-from ..models import BusinessProfile, Payment, Receivable, ServiceAgreement
+from ..models import (
+    BusinessProfile,
+    Payment,
+    Receivable,
+    ServiceAgreement,
+    WorkOrderChargeMode,
+    WorkOrderChargePolicy,
+)
 from ..services import create_service_agreement
 
 
@@ -158,6 +165,25 @@ class ReceivableSerializer(serializers.ModelSerializer):
         for key, value in attrs.items():
             setattr(instance, key, value)
         instance.full_clean()
+
+        if self.instance is None and instance.work_order_id:
+            has_active_agreement = ServiceAgreement.objects.active().filter(
+                customer_id=instance.work_order.customer_id
+            ).exists()
+            if has_active_agreement:
+                policy = WorkOrderChargePolicy.objects.filter(work_order=instance.work_order).first()
+                if policy is None:
+                    raise serializers.ValidationError(
+                        {
+                            "work_order": (
+                                "Defina se a OS do cliente mensalista esta inclusa no plano ou sera cobrada a parte."
+                            )
+                        }
+                    )
+                if policy.mode != WorkOrderChargeMode.AGREEMENT_EXTRA:
+                    raise serializers.ValidationError(
+                        {"work_order": "Esta OS esta inclusa no plano mensal e nao pode gerar cobranca avulsa."}
+                    )
         return attrs
 
 

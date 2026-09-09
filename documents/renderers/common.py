@@ -36,7 +36,7 @@ def business_footer(business: dict) -> str:
 
 def quote_status_label(status: str | None) -> str:
     return {
-        "draft": "Rascunho",
+        "draft": "Orçamento",
         "sent": "Enviado",
         "approved": "Aprovado",
         "rejected": "Rejeitado",

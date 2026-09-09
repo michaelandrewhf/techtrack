@@ -12,6 +12,7 @@ export type User = {
   last_name: string;
   email: string;
   is_staff: boolean;
+  is_superuser: boolean;
 };
 
 export type CatalogItem = {
@@ -169,6 +170,30 @@ export type ServiceAgreement = {
   notes: string;
   created_at: string;
   updated_at: string;
+};
+
+export type WorkOrderChargeMode = "agreement_included" | "agreement_extra";
+
+export type WorkOrderChargeAgreement = {
+  id: string;
+  name: string;
+  amount: string;
+  billing_frequency: string;
+};
+
+export type WorkOrderChargePolicy = {
+  id: string;
+  mode: WorkOrderChargeMode;
+  mode_label: string;
+  service_agreement: string;
+  agreement_name: string;
+  notes: string;
+};
+
+export type WorkOrderChargePolicyState = {
+  has_active_agreement: boolean;
+  active_agreements: WorkOrderChargeAgreement[];
+  policy: WorkOrderChargePolicy | null;
 };
 
 export type Payment = {

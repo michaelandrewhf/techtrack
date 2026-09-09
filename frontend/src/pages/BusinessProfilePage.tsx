@@ -90,7 +90,7 @@ export function BusinessProfilePage() {
     );
   }
 
-  const canEdit = Boolean(auth.user?.is_staff);
+  const canEdit = Boolean(auth.user?.is_staff || auth.user?.is_superuser);
 
   return (
     <div>

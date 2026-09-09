@@ -133,6 +133,7 @@ def test_quote_renderer_builds_versioned_pdf():
     assert pdf.startswith(b"%PDF-1.4")
     assert pdf.endswith(b"%%EOF\n")
     assert len(pdf) > 1_500
+    assert pdf_page_count(pdf) == 1
 
 
 def test_work_order_renderer_builds_pdf_with_technical_sections():

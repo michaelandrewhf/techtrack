@@ -6,9 +6,11 @@ from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from config.api_utils import IsAuthenticatedAndStaffForWrites
 
 from ..models import BusinessProfile, Payment, Receivable, ReceivableStatus, ServiceAgreement
 from ..services import generate_service_agreement_receivable, register_payment, void_payment
@@ -195,7 +197,7 @@ class BusinessProfileView(APIView):
 
     def get_permissions(self):
         if self.request.method in {"PUT", "PATCH"}:
-            return [IsAdminUser()]
+            return [IsAuthenticatedAndStaffForWrites()]
         return [IsAuthenticated()]
 
     def get(self, request):
