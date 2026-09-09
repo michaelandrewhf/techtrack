@@ -22,6 +22,7 @@ from catalog.api.views import (
     ServiceTypeViewSet,
 )
 from customers.api.views import CustomerViewSet
+from finance.api.charge_policy import WorkOrderChargePolicyView
 from finance.api.views import (
     BusinessProfileView,
     FinanceDashboardView,
@@ -104,6 +105,11 @@ urlpatterns = [
     path("v1/dashboard/", DashboardView.as_view(), name="api-dashboard"),
     path("v1/finance/dashboard/", FinanceDashboardView.as_view(), name="api-finance-dashboard"),
     path("v1/business-profile/", BusinessProfileView.as_view(), name="api-business-profile"),
+    path(
+        "v1/work-orders/<uuid:pk>/charge-policy/",
+        WorkOrderChargePolicyView.as_view(),
+        name="api-work-order-charge-policy",
+    ),
     path("v1/work-orders/<uuid:pk>/pdf/", WorkOrderPdfView.as_view(), name="api-work-order-pdf"),
     path("v1/work-orders/<uuid:pk>/issue-pdf/", WorkOrderIssuePdfView.as_view(), name="api-work-order-issue-pdf"),
     path("v1/", include(router.urls)),
