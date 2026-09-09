@@ -156,6 +156,7 @@ jobs:
       DJANGO_SESSION_COOKIE_SECURE: "False"
       DJANGO_CSRF_COOKIE_SECURE: "False"
       EMAIL_BACKEND: django.core.mail.backends.console.EmailBackend
+      OBSERVABILITY_JSON_LOGS: "True"
     steps:
       - uses: actions/checkout@v4
       - name: Validate backup scripts
@@ -180,6 +181,31 @@ jobs:
         run: |
           curl --fail --silent --head http://127.0.0.1:8080/ | grep -qi '^X-Content-Type-Options: nosniff'
           curl --fail --silent --head http://127.0.0.1:8080/ | grep -qi '^X-Frame-Options: DENY'
+      - name: Verify production request correlation logs
+        run: |
+          status=$(curl --silent -D /tmp/techtrack-headers -o /dev/null -w '%{http_code}' \
+            'http://127.0.0.1:8080/api/observability-probe/?probe=ci-secret-query')
+          test "$status" = "404"
+          request_id=$(grep -i '^X-Request-ID:' /tmp/techtrack-headers | tail -n 1 | cut -d' ' -f2 | tr -d '\r')
+          test -n "$request_id"
+
+          for i in $(seq 1 20); do
+            backend_logs=$(docker compose -f compose.prod.yaml logs --no-color --no-log-prefix backend)
+            frontend_logs=$(docker compose -f compose.prod.yaml logs --no-color --no-log-prefix frontend)
+            if printf '%s\n' "$backend_logs" | grep -Fq "\"request_id\":\"$request_id\"" \
+              && printf '%s\n' "$frontend_logs" | grep -Fq "\"request_id\":\"$request_id\""; then
+              break
+            fi
+            sleep 1
+          done
+
+          printf '%s\n' "$backend_logs" | grep -Fq "\"request_id\":\"$request_id\""
+          printf '%s\n' "$frontend_logs" | grep -Fq "\"request_id\":\"$request_id\""
+          if printf '%s\n%s\n' "$backend_logs" "$frontend_logs" | grep -Fq 'ci-secret-query'; then
+            echo 'Query string leaked into production logs:' >&2
+            printf '%s\n%s\n' "$backend_logs" "$frontend_logs" | grep -F 'ci-secret-query' >&2 || true
+            exit 1
+          fi
       - name: Verify backend production checks
         run: docker compose -f compose.prod.yaml exec -T backend python manage.py check
       - name: Verify backend runs as non-root
