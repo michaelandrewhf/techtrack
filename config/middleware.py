@@ -8,6 +8,7 @@ from django.http import HttpRequest, HttpResponse
 
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 request_logger = logging.getLogger("techtrack.request")
+ROUTINE_HEALTH_PATHS = {"/api/health/", "/api/ready/"}
 
 
 def normalize_request_id(value: str | None) -> str:
@@ -33,7 +34,7 @@ class RequestObservabilityMiddleware:
         duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
         response["X-Request-ID"] = request_id
 
-        if request.path == "/api/health/" and not getattr(settings, "OBSERVABILITY_LOG_HEALTH", False):
+        if request.path in ROUTINE_HEALTH_PATHS and not getattr(settings, "OBSERVABILITY_LOG_HEALTH", False):
             return response
 
         status_code = response.status_code
