@@ -8,7 +8,7 @@ export function quoteStatusTone(status: string) {
 export function quoteStatusLabel(status: string) {
   return (
     {
-      draft: "Rascunho",
+      draft: "Orcamento",
       sent: "Enviado",
       approved: "Aprovado",
       rejected: "Rejeitado",
