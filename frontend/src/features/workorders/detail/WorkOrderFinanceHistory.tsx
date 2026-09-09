@@ -101,6 +101,7 @@ export function WorkOrderFinanceHistory({
   });
 
   const canCreateCharge = !hasAgreement || policy?.mode === "agreement_extra";
+  const canRecoverMissingCharge = isClosed && receivables.length === 0;
 
   return (
     <div className="mt-5 grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
@@ -250,7 +251,7 @@ export function WorkOrderFinanceHistory({
           </div>
         )}
 
-        {!isClosed && canCreateCharge ? (
+        {canCreateCharge && (!isClosed || canRecoverMissingCharge) ? (
           <div className="mt-4 grid gap-3 border-t border-[var(--border)] pt-4 sm:grid-cols-[1fr_170px_auto]">
             <Field label="Valor da cobranca">
               <Input
@@ -278,6 +279,15 @@ export function WorkOrderFinanceHistory({
                 Criar cobranca
               </Button>
             </div>
+          </div>
+        ) : null}
+
+        {canRecoverMissingCharge && canCreateCharge ? (
+          <div className="mt-3">
+            <Notice tone="warning">
+              Esta OS foi encerrada sem cobranca. Gere o recebivel acima para
+              regularizar o financeiro.
+            </Notice>
           </div>
         ) : null}
 
