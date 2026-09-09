@@ -1,3 +1,5 @@
+from django.db import connection
+from django.db.utils import DatabaseError
 from django.http import JsonResponse
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
@@ -35,6 +37,18 @@ from workorders.api.views import WorkOrderStatusViewSet, WorkOrderViewSet
 
 
 def health_check(request):
+    """Process liveness check. Does not depend on external services."""
+    return JsonResponse({"status": "ok"})
+
+
+def readiness_check(request):
+    """Readiness check that confirms the primary database is reachable."""
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+    except DatabaseError:
+        return JsonResponse({"status": "unavailable"}, status=503)
     return JsonResponse({"status": "ok"})
 
 
@@ -69,6 +83,7 @@ router.register("payments", PaymentViewSet, basename="payment")
 
 urlpatterns = [
     path("health/", health_check, name="api-health"),
+    path("ready/", readiness_check, name="api-ready"),
     path("token/", CookieTokenObtainPairView.as_view(), name="token-obtain-pair"),
     path("token/refresh/", CookieTokenRefreshView.as_view(), name="token-refresh"),
     path("token/logout/", TokenLogoutView.as_view(), name="token-logout"),
