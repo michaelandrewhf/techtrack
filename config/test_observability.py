@@ -59,8 +59,9 @@ def test_request_observability_middleware_preserves_safe_request_id():
     assert "must-not-be-logged" not in message
 
 
-def test_health_request_keeps_request_id_without_routine_log():
-    request = RequestFactory().get("/api/health/", HTTP_X_REQUEST_ID="health-123")
+@pytest.mark.parametrize("path", ["/api/health/", "/api/ready/"])
+def test_routine_health_request_keeps_request_id_without_log(path):
+    request = RequestFactory().get(path, HTTP_X_REQUEST_ID="health-123")
     middleware = RequestObservabilityMiddleware(lambda _: HttpResponse("ok"))
 
     with patch.object(request_logger, "log") as log:
