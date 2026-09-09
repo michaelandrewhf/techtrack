@@ -50,11 +50,20 @@ export function WorkOrderDetailPage() {
     enabled: Boolean(id),
   });
 
+  const chargePolicy = useQuery({
+    queryKey: ["finance", "work-order-charge-policy", id],
+    queryFn: () => workOrdersApi.getChargePolicy(id),
+    enabled: Boolean(id),
+  });
+
   const invalidate = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.workOrder(id) }),
       queryClient.invalidateQueries({ queryKey: ["work-orders"] }),
       queryClient.invalidateQueries({ queryKey: ["finance"] }),
+      queryClient.invalidateQueries({
+        queryKey: ["finance", "work-order-charge-policy", id],
+      }),
       queryClient.invalidateQueries({ queryKey: ["customers"] }),
       queryClient.invalidateQueries({ queryKey: ["equipment"] }),
     ]);
@@ -242,7 +251,13 @@ export function WorkOrderDetailPage() {
       <WorkOrderOperations workOrder={item} onChanged={invalidate} />
 
       <WorkOrderFinanceHistory
+        chargePolicy={chargePolicy.data}
+        chargePolicyError={Boolean(chargePolicy.error)}
+        chargePolicyLoading={chargePolicy.isLoading}
         onChanged={invalidate}
+        onRetryChargePolicy={() => {
+          void chargePolicy.refetch();
+        }}
         onRetryReceivables={() => {
           void receivables.refetch();
         }}
