@@ -85,6 +85,8 @@ services:
       timeout: 5s
       retries: 20
       start_period: 15s
+    cap_drop:
+      - ALL
     security_opt:
       - no-new-privileges:true
     logging: *default-logging
@@ -99,6 +101,8 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    cap_drop:
+      - ALL
     security_opt:
       - no-new-privileges:true
     logging: *default-logging
