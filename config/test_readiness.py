@@ -1,6 +1,9 @@
 from unittest.mock import patch
 
+import pytest
 from django.db.utils import OperationalError
+
+pytestmark = pytest.mark.django_db
 
 
 def test_liveness_does_not_require_database(client):
