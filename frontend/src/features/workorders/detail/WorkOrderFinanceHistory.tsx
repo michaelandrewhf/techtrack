@@ -56,8 +56,15 @@ export function WorkOrderFinanceHistory({
   const hasAgreement = Boolean(chargePolicy?.has_active_agreement);
 
   useEffect(() => {
-    setAgreementId(policy?.service_agreement ?? agreements[0]?.id ?? "");
-  }, [policy?.service_agreement, agreements]);
+    setAgreementId(
+      chargePolicy?.policy?.service_agreement ??
+        chargePolicy?.active_agreements?.[0]?.id ??
+        "",
+    );
+  }, [
+    chargePolicy?.policy?.service_agreement,
+    chargePolicy?.active_agreements,
+  ]);
 
   const savePolicy = useMutation({
     mutationFn: (mode: WorkOrderChargeMode) =>
@@ -82,7 +89,10 @@ export function WorkOrderFinanceHistory({
         issued_at: new Date().toISOString().slice(0, 10),
         due_date: dueDate,
         amount: chargeAmount,
-        notes: policy?.mode === "agreement_extra" ? "Cobranca adicional ao plano mensal." : "",
+        notes:
+          policy?.mode === "agreement_extra"
+            ? "Cobranca adicional ao plano mensal."
+            : "",
       }),
     onSuccess: async () => {
       setChargeAmount("");
@@ -156,12 +166,16 @@ export function WorkOrderFinanceHistory({
                   disabled={savePolicy.isPending || !agreementId}
                   onChange={(event) => {
                     if (event.target.value) {
-                      savePolicy.mutate(event.target.value as WorkOrderChargeMode);
+                      savePolicy.mutate(
+                        event.target.value as WorkOrderChargeMode,
+                      );
                     }
                   }}
                 >
                   <option value="">Selecione</option>
-                  <option value="agreement_included">Inclusa no plano mensal</option>
+                  <option value="agreement_included">
+                    Inclusa no plano mensal
+                  </option>
                   <option value="agreement_extra">Cobrar a parte</option>
                 </Select>
               </Field>
