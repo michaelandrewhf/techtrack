@@ -1,7 +1,70 @@
 from __future__ import annotations
 
-from .base import ClientPdfDocument
+from config.pdf import MARGIN_X
+
+from .base import BORDER, CONTENT_WIDTH, INK, MUTED, NAVY, PRIMARY, ClientPdfDocument
 from .common import business_footer, equipment_model, money, pt_date, quote_status_label
+
+
+class QuotePdfDocument(ClientPdfDocument):
+    """Quote-specific presentation with a compact commercial header."""
+
+    def _draw_header(self, *, first_page: bool) -> None:
+        if not first_page:
+            super()._draw_header(first_page=False)
+            return
+
+        self._draw_rect(0, 838, 595, 4, fill=PRIMARY, stroke=PRIMARY)
+        self._draw_text(self.brand, MARGIN_X, 805, size=13, bold=True, color=NAVY)
+        self._draw_text(
+            "GESTAO DE SERVICOS DE TI",
+            MARGIN_X,
+            791,
+            size=6.5,
+            bold=True,
+            color=MUTED,
+        )
+
+        self._draw_cell_text(
+            "ORCAMENTO",
+            553,
+            805,
+            width=185,
+            size=7.2,
+            bold=True,
+            color=PRIMARY,
+            align="right",
+        )
+        self._draw_cell_text(
+            self.document_number,
+            553,
+            783,
+            width=205,
+            size=14.5,
+            bold=True,
+            color=INK,
+            align="right",
+        )
+        if self.revision:
+            self._draw_cell_text(
+                self.revision.upper(),
+                553,
+                768,
+                width=205,
+                size=6.5,
+                bold=True,
+                color=MUTED,
+                align="right",
+            )
+
+        self._draw_line(MARGIN_X, 750, 553, 750, color=BORDER)
+        self._draw_text("PROPOSTA COMERCIAL", MARGIN_X, 731, size=7.2, bold=True, color=PRIMARY)
+        self.y = 712
+
+
+def _contact(primary: str | None, secondary: str | None) -> str:
+    values = [value for value in [primary, secondary] if value]
+    return " | ".join(values) or "-"
 
 
 def render_quote_pdf(snapshot: dict, revision: str = "") -> bytes:
@@ -10,7 +73,7 @@ def render_quote_pdf(snapshot: dict, revision: str = "") -> bytes:
     customer = snapshot["customer"]
     equipment = snapshot.get("equipment")
 
-    document = ClientPdfDocument(
+    document = QuotePdfDocument(
         brand=business.get("name") or "TechTrack",
         document_label="Orçamento",
         document_number=quote["display_number"],
@@ -24,20 +87,28 @@ def render_quote_pdf(snapshot: dict, revision: str = "") -> bytes:
             ("Situação", quote_status_label(quote.get("status"))),
         ]
     )
-    document.paired_cards(
-        left_title="Prestador",
-        left_fields=[
-            ("Empresa", business.get("name") or "TechTrack"),
-            ("Documento", business.get("document") or "-"),
-            ("Contato", business.get("phone") or business.get("whatsapp") or "-"),
-            ("E-mail", business.get("email") or "-"),
+
+    document.section_title("Cliente e prestador", keep_with=70)
+    document.info_box(
+        [
+            ("Cliente", customer.get("name") or "-"),
+            (
+                "Contato do cliente",
+                _contact(
+                    customer.get("whatsapp") or customer.get("phone"),
+                    customer.get("email"),
+                ),
+            ),
+            ("Prestador", business.get("name") or "TechTrack"),
+            (
+                "Contato do prestador",
+                _contact(
+                    business.get("phone") or business.get("whatsapp"),
+                    business.get("email"),
+                ),
+            ),
         ],
-        right_title="Cliente",
-        right_fields=[
-            ("Nome", customer.get("name") or "-"),
-            ("Contato", customer.get("whatsapp") or customer.get("phone") or "-"),
-            ("E-mail", customer.get("email") or "-"),
-        ],
+        columns=2,
     )
 
     if equipment:
@@ -52,7 +123,7 @@ def render_quote_pdf(snapshot: dict, revision: str = "") -> bytes:
             columns=4,
         )
 
-    document.section_title("Escopo da proposta", keep_with=80)
+    document.section_title("Proposta", keep_with=80)
     document.lead_block(
         quote.get("title") or "Proposta de serviço",
         quote.get("description") or "",
