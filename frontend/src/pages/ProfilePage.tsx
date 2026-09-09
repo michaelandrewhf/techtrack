@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 
 import { useAuth } from "../auth/AuthProvider";
@@ -21,6 +22,10 @@ type ProfileForm = z.infer<typeof profileSchema>;
 
 export function ProfilePage() {
   const auth = useAuth();
+  const navigate = useNavigate();
+  const isAdministrator = Boolean(
+    auth.user?.is_staff || auth.user?.is_superuser,
+  );
   const [saved, setSaved] = useState(false);
   const form = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -78,7 +83,7 @@ export function ProfilePage() {
                 {auth.user?.first_name || auth.user?.username}
               </div>
               <div className="text-xs text-slate-500">
-                {auth.user?.is_staff ? "Administrador" : "Usuario"}
+                {isAdministrator ? "Administrador" : "Usuario"}
               </div>
             </div>
           </div>
@@ -125,7 +130,16 @@ export function ProfilePage() {
             <Notice tone="danger">{form.formState.errors.root.message}</Notice>
           ) : null}
 
-          <div className="flex justify-end">
+          <div className="flex flex-wrap justify-end gap-2">
+            {isAdministrator ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => navigate("/settings")}
+              >
+                Acessar configuracoes
+              </Button>
+            ) : null}
             <Button disabled={form.formState.isSubmitting} type="submit">
               {form.formState.isSubmitting ? "Salvando..." : "Salvar perfil"}
             </Button>

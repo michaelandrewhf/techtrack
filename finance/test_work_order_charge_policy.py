@@ -5,10 +5,11 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+from catalog.models import ServiceType
 from customers.models import Customer
-from finance.models import ServiceAgreement
+from finance.models import Receivable, ServiceAgreement
 from inventory.models import Equipment, EquipmentType
-from workorders.services import create_work_order
+from workorders.services import create_work_order, register_work_order_service
 
 
 @pytest.fixture
@@ -114,3 +115,30 @@ def test_monthly_work_order_can_be_included_or_charged_extra(api_client, monthly
         format="json",
     )
     assert cannot_reclassify.status_code == 400
+
+
+def test_completing_monthly_work_order_requires_policy_and_generates_extra_charge(
+    api_client, monthly_work_order
+):
+    work_order, agreement = monthly_work_order
+    service_type = ServiceType.objects.create(name="Suporte extra", slug="extra-support-on-complete")
+    register_work_order_service(
+        work_order=work_order,
+        service_type=service_type,
+        labor_price=Decimal("120.00"),
+    )
+
+    blocked = api_client.post(f"/api/v1/work-orders/{work_order.id}/complete/", {}, format="json")
+    assert blocked.status_code == 400
+    assert not Receivable.objects.filter(work_order=work_order).exists()
+
+    policy = api_client.put(
+        f"/api/v1/work-orders/{work_order.id}/charge-policy/",
+        {"mode": "agreement_extra", "service_agreement_id": str(agreement.id)},
+        format="json",
+    )
+    assert policy.status_code == 200
+
+    completed = api_client.post(f"/api/v1/work-orders/{work_order.id}/complete/", {}, format="json")
+    assert completed.status_code == 200
+    assert Receivable.objects.get(work_order=work_order).amount == Decimal("120.00")

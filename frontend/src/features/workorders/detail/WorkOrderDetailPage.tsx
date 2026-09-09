@@ -203,7 +203,7 @@ export function WorkOrderDetailPage() {
 
           <ConfirmDialog
             title="Concluir OS"
-            description="A conclusao sera registrada no historico e encerra o fluxo de edicao comum."
+            description="A conclusao encerra as edicoes. Se houver valor e nenhuma cobranca, o sistema criara automaticamente um recebivel com vencimento hoje. OS inclusa no plano mensal nao gera cobranca adicional."
             onConfirm={() => complete.mutate()}
           >
             <Button disabled={isClosed || complete.isPending} type="button">

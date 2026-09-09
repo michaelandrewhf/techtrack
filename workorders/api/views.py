@@ -1,7 +1,8 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db import IntegrityError
-from django.db.models import ProtectedError
+from django.db import IntegrityError, transaction
+from django.db.models import ProtectedError, Sum
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, OpenApiTypes, extend_schema
 from rest_framework import filters, status, viewsets
@@ -14,6 +15,13 @@ from config.api_utils import (
     integrity_error_response,
     protected_delete_response,
 )
+from finance.models import (
+    ReceivableStatus,
+    ServiceAgreement,
+    WorkOrderChargeMode,
+    WorkOrderChargePolicy,
+)
+from finance.services import create_work_order_receivable
 from workorders.api.filters import WorkOrderFilter, WorkOrderStatusFilter
 from workorders.api.serializers import (
     AddWorkOrderPartSerializer,
@@ -159,6 +167,7 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
 
     @extend_schema(request=CompleteWorkOrderSerializer, responses=WorkOrderDetailSerializer)
     @action(detail=True, methods=["post"], url_path="complete")
+    @transaction.atomic
     def complete(self, request, pk=None):
         work_order = self.get_object()
         if work_order.is_closed:
@@ -173,6 +182,29 @@ class WorkOrderViewSet(viewsets.ModelViewSet):
             if field in data:
                 setattr(work_order, field, data[field])
         try:
+            labor_total = work_order.services.valid().aggregate(total=Sum("labor_price"))["total"] or 0
+            parts = work_order.parts.valid().filter(unit_price__isnull=False)
+            parts_total = sum((part.quantity * part.unit_price for part in parts), 0)
+            technical_total = labor_total + parts_total
+            has_receivable = work_order.receivables.exclude(status=ReceivableStatus.CANCELLED).exists()
+
+            if technical_total > 0 and not has_receivable:
+                active_agreements = ServiceAgreement.objects.active().filter(customer_id=work_order.customer_id)
+                policy = WorkOrderChargePolicy.objects.filter(work_order=work_order).first()
+                if active_agreements.exists() and policy is None:
+                    raise DjangoValidationError(
+                        "Defina se esta OS esta inclusa no plano mensal ou se sera cobrada a parte antes de concluir."
+                    )
+                if policy is None or policy.mode == WorkOrderChargeMode.AGREEMENT_EXTRA:
+                    create_work_order_receivable(
+                        work_order=work_order,
+                        amount=technical_total,
+                        due_date=timezone.localdate(),
+                        description=f"Servicos e pecas da {work_order.display_number}",
+                        created_by=request.user,
+                        notes="Cobranca gerada automaticamente na conclusao da OS.",
+                    )
+
             work_order.full_clean()
             work_order.save(
                 update_fields=["diagnosis", "service_description", "solution", "internal_notes", "updated_at"]

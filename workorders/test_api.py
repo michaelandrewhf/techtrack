@@ -9,6 +9,7 @@ from rest_framework.test import APIClient
 
 from catalog.models import IntervalUnit, Part, PartCategory, PaymentMethod, ServiceType
 from customers.models import Customer
+from finance.models import Receivable
 from inventory.models import ComponentType, Equipment, EquipmentType
 from workorders.models import WorkOrderPart, WorkOrderStatus
 from workorders.services import complete_work_order, create_work_order, register_work_order_service
@@ -283,6 +284,30 @@ def test_completed_work_order_rejects_generic_update_and_new_service(api_client,
         format="json",
     )
     assert service_response.status_code == 400
+
+
+def test_complete_work_order_creates_receivable_from_unbilled_service(
+    api_client, customer, equipment, service_type
+):
+    work_order = create_work_order(
+        customer=customer,
+        equipment=equipment,
+        title="OS cobrada",
+        problem_description="Problema",
+    )
+    register_work_order_service(
+        work_order=work_order,
+        service_type=service_type,
+        labor_price=Decimal("100.00"),
+    )
+
+    response = api_client.post(f"/api/v1/work-orders/{work_order.id}/complete/", {}, format="json")
+
+    assert response.status_code == 200
+    receivable = Receivable.objects.get(work_order=work_order)
+    assert receivable.amount == Decimal("100.00")
+    assert receivable.due_date == timezone.localdate()
+    assert receivable.created_by_id == response.wsgi_request.user.id
 
 
 def test_complete_action_does_not_edit_already_closed_work_order(api_client, customer, equipment):
