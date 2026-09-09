@@ -48,4 +48,4 @@ class IsAuthenticatedAndStaffForWrites(permissions.BasePermission):
             return False
         if request.method in permissions.SAFE_METHODS:
             return True
-        return request.user.is_staff
+        return bool(request.user.is_staff or request.user.is_superuser)
