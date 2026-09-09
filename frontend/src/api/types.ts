@@ -141,16 +141,9 @@ export type WorkOrderPart = {
   void_reason: string;
 };
 
-export type WorkOrderBillingMode =
-  | "unclassified"
-  | "standard"
-  | "agreement_included"
-  | "agreement_extra";
-
 /** Legacy OS financial snapshot. Payments are now represented by Receivable + Payment. */
 export type Billing = {
   id: string;
-  billing_mode: WorkOrderBillingMode;
   labor_total: string | null;
   parts_total: string | null;
   discount: string | null;
@@ -177,6 +170,30 @@ export type ServiceAgreement = {
   notes: string;
   created_at: string;
   updated_at: string;
+};
+
+export type WorkOrderChargeMode = "agreement_included" | "agreement_extra";
+
+export type WorkOrderChargeAgreement = {
+  id: string;
+  name: string;
+  amount: string;
+  billing_frequency: string;
+};
+
+export type WorkOrderChargePolicy = {
+  id: string;
+  mode: WorkOrderChargeMode;
+  mode_label: string;
+  service_agreement: string;
+  agreement_name: string;
+  notes: string;
+};
+
+export type WorkOrderChargePolicyState = {
+  has_active_agreement: boolean;
+  active_agreements: WorkOrderChargeAgreement[];
+  policy: WorkOrderChargePolicy | null;
 };
 
 export type Payment = {
