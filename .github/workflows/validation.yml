@@ -109,7 +109,9 @@ jobs:
       - name: Django check inside Compose
         run: docker compose exec -T backend python manage.py check
       - name: Verify frontend API proxy
-        run: curl --fail --silent http://127.0.0.1:5173/api/health/
+        run: |
+          curl --fail --silent http://127.0.0.1:5173/api/health/
+          curl --fail --silent http://127.0.0.1:5173/api/ready/
       - name: Stop online stack
         run: docker compose down
       - name: Start prebuilt stack without internet access
@@ -118,7 +120,7 @@ jobs:
         run: |
           for i in $(seq 1 40); do
             if docker compose -f compose.yaml -f compose.offline.yaml exec -T backend \
-              python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health/', timeout=3).read()" \
+              python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/ready/', timeout=3).read()" \
               >/dev/null 2>&1; then
               exit 0
             fi
@@ -141,7 +143,7 @@ jobs:
       - name: Verify offline frontend API proxy inside isolated network
         run: |
           docker compose -f compose.yaml -f compose.offline.yaml exec -T frontend \
-            node -e "fetch('http://127.0.0.1:5173/api/health/').then(async r => { if (!r.ok) process.exit(1); const data = await r.json(); if (data.status !== 'ok') process.exit(1) }).catch(() => process.exit(1))"
+            node -e "fetch('http://127.0.0.1:5173/api/ready/').then(async r => { if (!r.ok) process.exit(1); const data = await r.json(); if (data.status !== 'ok') process.exit(1) }).catch(() => process.exit(1))"
       - name: Show offline service status
         run: docker compose -f compose.yaml -f compose.offline.yaml ps
       - if: always()
@@ -150,21 +152,36 @@ jobs:
   production-smoke:
     runs-on: ubuntu-latest
     env:
-      POSTGRES_PASSWORD: ci-production-db-password
+      POSTGRES_PASSWORD: "ci:p@ss/with?reserved#chars:2026"
       DJANGO_SECRET_KEY: ci-production-secret-key-not-for-real-use
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,backend
       DJANGO_SESSION_COOKIE_SECURE: "False"
       DJANGO_CSRF_COOKIE_SECURE: "False"
+      FRONTEND_URL: http://localhost:8080
       EMAIL_BACKEND: django.core.mail.backends.console.EmailBackend
+      EMAIL_HOST_USER: ci@example.com
+      EMAIL_HOST_PASSWORD: ci-email-password
+      DEFAULT_FROM_EMAIL: "TechTrack CI <ci@example.com>"
       OBSERVABILITY_JSON_LOGS: "True"
     steps:
       - uses: actions/checkout@v4
       - name: Validate backup scripts
         run: bash -n scripts/postgres-backup.sh scripts/postgres-restore.sh
       - name: Validate production Compose config
-        run: docker compose -f compose.prod.yaml config
-      - name: Build production stack
-        run: docker compose -f compose.prod.yaml build
+        run: |
+          docker compose -f compose.prod.yaml config
+          if env -u FRONTEND_URL docker compose -f compose.prod.yaml config >/dev/null 2>&1; then
+            echo 'Production Compose unexpectedly accepted a missing FRONTEND_URL.' >&2
+            exit 1
+          fi
+      - name: Build production stack without embedding backups
+        run: |
+          mkdir -p backups
+          printf 'must-not-enter-image\n' > backups/ci-context-sentinel.dump
+          docker compose -f compose.prod.yaml build
+          docker compose -f compose.prod.yaml run --rm --no-deps --entrypoint sh backend \
+            -c 'test ! -e /app/backups/ci-context-sentinel.dump'
+          rm -rf backups
       - name: Start production stack
         run: docker compose -f compose.prod.yaml up -d
       - name: Wait for production frontend
@@ -175,12 +192,15 @@ jobs:
           done
           docker compose -f compose.prod.yaml logs
           exit 1
-      - name: Verify production API proxy
-        run: curl --fail --silent http://127.0.0.1:8080/api/health/
+      - name: Verify production API health and readiness
+        run: |
+          curl --fail --silent http://127.0.0.1:8080/api/health/
+          curl --fail --silent http://127.0.0.1:8080/api/ready/
       - name: Verify production security headers
         run: |
           curl --fail --silent --head http://127.0.0.1:8080/ | grep -qi '^X-Content-Type-Options: nosniff'
           curl --fail --silent --head http://127.0.0.1:8080/ | grep -qi '^X-Frame-Options: DENY'
+          curl --fail --silent --head http://127.0.0.1:8080/ | grep -qi '^Content-Security-Policy:'
       - name: Verify production request correlation logs
         run: |
           status=$(curl --silent -D /tmp/techtrack-headers -o /dev/null -w '%{http_code}' \
@@ -206,10 +226,12 @@ jobs:
             printf '%s\n%s\n' "$backend_logs" "$frontend_logs" | grep -F 'ci-secret-query' >&2 || true
             exit 1
           fi
-      - name: Verify backend production checks
-        run: docker compose -f compose.prod.yaml exec -T backend python manage.py check
-      - name: Verify backend runs as non-root
-        run: test "$(docker compose -f compose.prod.yaml exec -T backend id -u | tr -d '\r')" = "10001"
+      - name: Verify production checks
+        run: docker compose -f compose.prod.yaml exec -T backend python manage.py check --deploy
+      - name: Verify containers run as non-root
+        run: |
+          test "$(docker compose -f compose.prod.yaml exec -T backend id -u | tr -d '\r')" = "10001"
+          test "$(docker compose -f compose.prod.yaml exec -T frontend id -u | tr -d '\r')" != "0"
       - name: Verify PostgreSQL backup and restore
         run: |
           rm -rf /tmp/techtrack-backups
@@ -240,7 +262,7 @@ jobs:
           test "$restored_marker" = "before"
 
           for i in $(seq 1 40); do
-            if curl --fail --silent http://127.0.0.1:8080/api/health/ >/dev/null; then exit 0; fi
+            if curl --fail --silent http://127.0.0.1:8080/api/ready/ >/dev/null; then exit 0; fi
             sleep 3
           done
           docker compose -f compose.prod.yaml logs
