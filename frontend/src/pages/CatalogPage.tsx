@@ -108,12 +108,13 @@ export function CatalogPage() {
   const isStatus = resource === "work-order-statuses";
   const isServiceType = resource === "service-types";
   const isPart = resource === "parts";
+  const canManageCatalog = Boolean(user?.is_staff || user?.is_superuser);
 
   return (
     <div>
       <PageHeader
         action={
-          user?.is_staff ? (
+          canManageCatalog ? (
             <Button
               type="button"
               onClick={() => setShowForm((value) => !value)}
@@ -126,10 +127,10 @@ export function CatalogPage() {
         title={title}
         description="Catalogos configuraveis consumidos pela API."
       />
-      {!user?.is_staff ? (
+      {!canManageCatalog ? (
         <p className="mb-4 rounded-md bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-100">
-          Seu usuario pode visualizar este catalogo, mas apenas staff pode
-          alterar.
+          Seu usuario pode visualizar este catalogo, mas apenas administradores
+          podem alterar.
         </p>
       ) : null}
       {showForm ? (
@@ -242,7 +243,7 @@ export function CatalogPage() {
               {
                 header: "Acao",
                 cell: (row) =>
-                  user?.is_staff ? (
+                  canManageCatalog ? (
                     <Button
                       variant="secondary"
                       type="button"
