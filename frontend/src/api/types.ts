@@ -12,6 +12,7 @@ export type User = {
   last_name: string;
   email: string;
   is_staff: boolean;
+  is_superuser: boolean;
 };
 
 export type CatalogItem = {
@@ -140,9 +141,16 @@ export type WorkOrderPart = {
   void_reason: string;
 };
 
+export type WorkOrderBillingMode =
+  | "unclassified"
+  | "standard"
+  | "agreement_included"
+  | "agreement_extra";
+
 /** Legacy OS financial snapshot. Payments are now represented by Receivable + Payment. */
 export type Billing = {
   id: string;
+  billing_mode: WorkOrderBillingMode;
   labor_total: string | null;
   parts_total: string | null;
   discount: string | null;
