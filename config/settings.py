@@ -24,6 +24,7 @@ SECRET_KEY = os.environ.get(
     "dev-only-insecure-secret-key-for-local-development",
 )
 DEBUG = env_bool("DJANGO_DEBUG", True)
+PRODUCTION_MODE = env_bool("TECHTRACK_PRODUCTION")
 if not DEBUG and SECRET_KEY == "dev-only-insecure-secret-key-for-local-development":
     raise ImproperlyConfigured("DJANGO_SECRET_KEY must be configured when DJANGO_DEBUG is False.")
 
@@ -49,6 +50,7 @@ LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
 if LOG_LEVEL not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
     raise ImproperlyConfigured("LOG_LEVEL must be DEBUG, INFO, WARNING, ERROR or CRITICAL.")
 OBSERVABILITY_JSON_LOGS = env_bool("OBSERVABILITY_JSON_LOGS", not DEBUG)
+OBSERVABILITY_LOG_HEALTH = env_bool("OBSERVABILITY_LOG_HEALTH")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -102,24 +104,34 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 def database_config():
     database_url = os.environ.get("DATABASE_URL")
-    if not database_url:
-        return {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
+    if database_url:
+        parsed = urlparse(database_url)
+        if parsed.scheme in {"postgres", "postgresql"}:
+            return {
+                "ENGINE": "django.db.backends.postgresql",
+                "NAME": parsed.path.lstrip("/"),
+                "USER": parsed.username or "",
+                "PASSWORD": parsed.password or "",
+                "HOST": parsed.hostname or "",
+                "PORT": str(parsed.port or ""),
+            }
+        raise ValueError("Unsupported DATABASE_URL scheme. Use postgresql:// or omit it for local SQLite.")
 
-    parsed = urlparse(database_url)
-    if parsed.scheme in {"postgres", "postgresql"}:
+    postgres_host = os.environ.get("POSTGRES_HOST")
+    if postgres_host:
         return {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": parsed.path.lstrip("/"),
-            "USER": parsed.username or "",
-            "PASSWORD": parsed.password or "",
-            "HOST": parsed.hostname or "",
-            "PORT": str(parsed.port or ""),
+            "NAME": os.environ.get("POSTGRES_DB", "techtrack"),
+            "USER": os.environ.get("POSTGRES_USER", "techtrack"),
+            "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
+            "HOST": postgres_host,
+            "PORT": os.environ.get("POSTGRES_PORT", "5432"),
         }
 
-    raise ValueError("Unsupported DATABASE_URL scheme. Use postgresql:// or omit it for local SQLite.")
+    return {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+    }
 
 
 DATABASES = {"default": database_config()}
@@ -246,5 +258,65 @@ DEFAULT_FROM_EMAIL = os.environ.get(
     "DEFAULT_FROM_EMAIL",
     "TechTrack <noreply@techtrack.local>",
 )
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "" if PRODUCTION_MODE else "http://localhost:5173")
 PASSWORD_RESET_TIMEOUT = int(os.environ.get("PASSWORD_RESET_TIMEOUT", "3600"))
+
+
+def validate_production_configuration() -> None:
+    if not PRODUCTION_MODE:
+        return
+
+    errors: list[str] = []
+    if DEBUG:
+        errors.append("DJANGO_DEBUG must be False")
+    if not ALLOWED_HOSTS or "*" in ALLOWED_HOSTS:
+        errors.append("DJANGO_ALLOWED_HOSTS must explicitly list trusted hosts")
+
+    required_postgres = ["POSTGRES_HOST", "POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD"]
+    missing_postgres = [name for name in required_postgres if not os.environ.get(name)]
+    if missing_postgres:
+        errors.append(f"missing PostgreSQL settings: {', '.join(missing_postgres)}")
+
+    parsed_frontend = urlparse(FRONTEND_URL)
+    if parsed_frontend.scheme not in {"http", "https"} or not parsed_frontend.hostname:
+        errors.append("FRONTEND_URL must be an absolute http(s) URL")
+    else:
+        local_frontend = parsed_frontend.hostname in {"localhost", "127.0.0.1"}
+        if not local_frontend:
+            frontend_origin = f"{parsed_frontend.scheme}://{parsed_frontend.netloc}"
+            if parsed_frontend.scheme != "https":
+                errors.append("FRONTEND_URL must use https outside localhost")
+            if not TRUST_X_FORWARDED_PROTO:
+                errors.append("DJANGO_TRUST_X_FORWARDED_PROTO must be True behind the production proxy")
+            if not SECURE_SSL_REDIRECT:
+                errors.append("DJANGO_SECURE_SSL_REDIRECT must be True for external production")
+            if not SESSION_COOKIE_SECURE:
+                errors.append("DJANGO_SESSION_COOKIE_SECURE must be True for external production")
+            if not CSRF_COOKIE_SECURE:
+                errors.append("DJANGO_CSRF_COOKIE_SECURE must be True for external production")
+            if not AUTH_REFRESH_COOKIE_SECURE:
+                errors.append("AUTH_REFRESH_COOKIE_SECURE must be True for external production")
+            if frontend_origin not in CSRF_TRUSTED_ORIGINS:
+                errors.append("DJANGO_CSRF_TRUSTED_ORIGINS must include the FRONTEND_URL origin")
+
+    if EMAIL_USE_TLS and EMAIL_USE_SSL:
+        errors.append("EMAIL_USE_TLS and EMAIL_USE_SSL cannot both be True")
+
+    if EMAIL_BACKEND == "django.core.mail.backends.smtp.EmailBackend":
+        smtp_required = {
+            "EMAIL_HOST": EMAIL_HOST,
+            "EMAIL_HOST_USER": EMAIL_HOST_USER,
+            "EMAIL_HOST_PASSWORD": EMAIL_HOST_PASSWORD,
+            "DEFAULT_FROM_EMAIL": DEFAULT_FROM_EMAIL,
+        }
+        missing_smtp = [name for name, value in smtp_required.items() if not value]
+        if DEFAULT_FROM_EMAIL == "TechTrack <noreply@techtrack.local>":
+            missing_smtp.append("DEFAULT_FROM_EMAIL")
+        if missing_smtp:
+            errors.append(f"missing SMTP settings: {', '.join(sorted(set(missing_smtp)))}")
+
+    if errors:
+        raise ImproperlyConfigured("Invalid production configuration: " + "; ".join(errors))
+
+
+validate_production_configuration()

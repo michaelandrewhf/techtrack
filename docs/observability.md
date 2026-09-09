@@ -19,10 +19,10 @@ Nginx request_id=abc123
 
 ## Logs do backend
 
-Em produção, `OBSERVABILITY_JSON_LOGS=True` por padrão. Cada request gera um evento JSON com metadados operacionais:
+Em produção, `OBSERVABILITY_JSON_LOGS=True` por padrão. Cada request de aplicação gera um evento JSON com metadados operacionais:
 
 ```json
-{"timestamp":"2026-09-08T21:00:00.000Z","level":"INFO","logger":"techtrack.request","message":"HTTP request completed","request_id":"abc123","method":"GET","path":"/api/health/","status_code":200,"duration_ms":4.2}
+{"timestamp":"2026-09-08T21:00:00.000Z","level":"INFO","logger":"techtrack.request","message":"HTTP request completed","request_id":"abc123","method":"GET","path":"/api/v1/customers/","status_code":200,"duration_ms":4.2}
 ```
 
 O middleware registra apenas o caminho (`request.path`), nunca query string, cookies, corpo, Authorization header ou refresh token.
@@ -32,9 +32,23 @@ Configuração:
 ```dotenv
 LOG_LEVEL=INFO
 OBSERVABILITY_JSON_LOGS=True
+OBSERVABILITY_LOG_HEALTH=False
 ```
 
-Em desenvolvimento, logs estruturados ficam desabilitados por padrão para manter leitura humana no terminal. É possível ativá-los manualmente.
+`/api/health/` e `/api/ready/` recebem request ID normalmente, mas seus logs de request são suprimidos por padrão para evitar ruído de probes. Ative `OBSERVABILITY_LOG_HEALTH=True` somente quando precisar investigar esses checks.
+
+Em desenvolvimento, logs estruturados ficam desabilitados por padrão para manter leitura humana no terminal.
+
+## Liveness e readiness
+
+Para monitoramento:
+
+```text
+/api/health/ -> processo Django vivo
+/api/ready/  -> aplicacao pronta e PostgreSQL respondendo a SELECT 1
+```
+
+Use `/api/ready/` como alvo do monitor externo e de readiness da plataforma.
 
 ## Logs do Nginx
 
@@ -104,4 +118,4 @@ Ao integrar um coletor externo, trate os logs como dados operacionais potencialm
 
 ## Escopo atual
 
-Esta camada cobre logs e correlação de requests. Métricas, tracing distribuído, alertas e error tracking dedicado (por exemplo Sentry/OpenTelemetry) podem ser adicionados depois se houver necessidade operacional concreta.
+Esta camada cobre logs, correlação e health/readiness. Métricas, tracing distribuído e error tracking dedicado podem ser adicionados depois apenas se houver necessidade operacional concreta.

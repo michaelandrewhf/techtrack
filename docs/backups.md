@@ -14,6 +14,8 @@ O TechTrack usa PostgreSQL como banco principal. Os scripts em `scripts/` fornec
 
 Nenhum backup e armazenado dentro do container ou do volume do PostgreSQL. O destino padrao e `./backups/` no host.
 
+`backups/`, `*.dump` e `*.dump.sha256` tambem sao excluidos do contexto Docker. Isso impede que um rebuild posterior incorpore acidentalmente dados reais do PostgreSQL em uma camada da imagem do backend.
+
 ## Criar backup
 
 Com a stack de producao em execucao:
@@ -31,7 +33,7 @@ BACKUP_RETENTION_DAYS=14
 BACKUP_PREFIX=techtrack
 ```
 
-Exemplo usando um diretorio fora do repositorio:
+Para producao, prefira um diretorio fora do repositorio:
 
 ```bash
 BACKUP_DIR=/srv/backups/techtrack \
@@ -104,8 +106,12 @@ Recomendacao minima:
 
 Credenciais, dados de clientes e historico financeiro podem existir no dump. Trate o arquivo como dado sensivel.
 
+Agendamento, copia off-site, criptografia do destino e alertas ficam deliberadamente na infraestrutura do EasyPanel/host, nao dentro do container da aplicacao.
+
 ## Validacao
 
 A pipeline de producao executa um smoke test real de backup/restore em uma base efemera. O teste cria um marcador, gera o dump, altera o marcador, restaura o dump e confirma que o valor original voltou.
 
-Esse teste valida o mecanismo, mas nao substitui restores periodicos de backups reais em um ambiente isolado.
+A pipeline tambem cria um arquivo sentinela em `backups/` antes do build e confirma que ele nao existe dentro da imagem produzida.
+
+Esses testes validam o mecanismo, mas nao substituem restores periodicos de backups reais em um ambiente isolado.

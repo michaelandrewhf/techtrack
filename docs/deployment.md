@@ -1,86 +1,171 @@
-# Deploy, runtime offline e segurança operacional
+# Deploy, runtime offline e seguranca operacional
 
 ## Objetivos
 
 O TechTrack possui dois fluxos Docker distintos:
 
 - `compose.yaml`: desenvolvimento local, com bind mounts, Django `runserver` e Vite;
-- `compose.prod.yaml`: runtime de produção, sem bind mounts de código, com Gunicorn e Nginx.
+- `compose.prod.yaml`: runtime de producao, sem bind mounts de codigo, com Gunicorn e Nginx.
 
-A imagem do backend contém um virtualenv pronto em `/opt/venv`. O startup não executa mais `uv sync` nem baixa pacotes. Depois que as imagens necessárias estiverem construídas e presentes na máquina, a stack local pode iniciar sem acesso à internet.
+A imagem do backend contem um virtualenv pronto em `/opt/venv`. O startup nao executa `uv sync` nem baixa pacotes. Depois que as imagens estiverem construidas e presentes na maquina, a stack local pode iniciar sem acesso a internet.
 
-## Desenvolvimento local
+## Desenvolvimento e runtime offline
 
 ```bash
 docker compose build
 docker compose up -d
 ```
 
-Depois de um build bem-sucedido, uma queda de internet não deve impedir um novo `docker compose up`, desde que as imagens Docker já estejam disponíveis localmente.
+O arquivo `compose.offline.yaml` conecta os servicos a uma rede Docker `internal`, sem rota de saida para a internet. O CI sobe as imagens pre-construidas nesse modo e valida backend, frontend e proxy da API usando `/api/ready/`.
 
-O arquivo `compose.offline.yaml` existe para validação automatizada. Ele conecta os serviços a uma rede Docker `internal`, sem rota de saída para a internet:
+Ainda exigem internet:
 
-```bash
-docker compose build
-docker compose -f compose.yaml -f compose.offline.yaml up -d --no-build
+- primeiro build se imagens/pacotes nao estiverem em cache;
+- atualizacao de dependencias;
+- envio SMTP real;
+- integracoes externas futuras.
+
+## Stack de producao
+
+A stack usa:
+
+```text
+PostgreSQL 17
+     |
+Django + Gunicorn
+     |
+Nginx nao-root + SPA React compilada
 ```
 
-Esse modo é usado no CI para garantir que backend, frontend e proxy da API iniciem sem downloads em runtime.
+Caracteristicas:
 
-### O que ainda exige internet
+- nenhum bind mount de codigo;
+- backend executado como UID `10001`;
+- Nginx executado como usuario nao-root e escuta internamente em `8080`;
+- proxy `/api/` para o backend;
+- logs JSON correlacionados por request ID;
+- backup/restore PostgreSQL testados no CI;
+- frontend publicado em loopback (`127.0.0.1`) por padrao no Compose standalone;
+- CSP e headers basicos de seguranca;
+- validacao fail-fast das configuracoes essenciais quando `TECHTRACK_PRODUCTION=True`.
 
-A independência é de **runtime**, não de instalação inicial. Ainda exigem rede:
-
-- primeiro `docker compose build`, se imagens/pacotes não estiverem em cache;
-- atualização/rebuild de dependências;
-- envio real de e-mail SMTP para recuperação de senha;
-- qualquer integração externa adicionada futuramente.
-
-Para uma instalação totalmente air-gapped seria necessário distribuir também as imagens Docker já construídas, por exemplo com `docker save`/`docker load`.
-
-## Produção
-
-A stack de produção usa:
-
-- PostgreSQL 17;
-- Django via Gunicorn;
-- frontend compilado pelo Vite e servido pelo Nginx;
-- proxy `/api/` do Nginx para o backend;
-- código da aplicação embutido nas imagens, sem bind mounts;
-- backend executado como usuário não-root (`uid 10001`).
-
-Variáveis mínimas obrigatórias:
-
-```dotenv
-POSTGRES_PASSWORD=use-uma-senha-forte
-DJANGO_SECRET_KEY=use-uma-chave-longa-e-aleatoria
-DJANGO_ALLOWED_HOSTS=techtrack.seudominio.com,backend
-FRONTEND_URL=https://techtrack.seudominio.com
-```
-
-Subida:
+Subida standalone:
 
 ```bash
 docker compose -f compose.prod.yaml build
 docker compose -f compose.prod.yaml up -d
 ```
 
-Por padrão o frontend é publicado na porta `8080`. Altere com `PROD_FRONTEND_PORT` quando necessário.
+## PostgreSQL sem DATABASE_URL em producao
 
-## Sessão JWT
+A stack de producao passa credenciais em campos separados:
 
-O navegador não persiste mais JWTs em `localStorage` ou `sessionStorage`.
+```dotenv
+POSTGRES_DB=techtrack
+POSTGRES_USER=techtrack
+POSTGRES_PASSWORD=<senha-forte>
+POSTGRES_HOST=db
+POSTGRES_PORT=5432
+```
 
-A sessão funciona em duas camadas:
+Isso evita que caracteres reservados como `@`, `/`, `?`, `#` ou `:` em uma senha forte alterem o parsing de uma connection string.
 
-1. o **access token** é retornado pelo login e mantido apenas em memória pelo frontend;
-2. o **refresh token** é emitido em cookie `HttpOnly`, limitado ao path `/api/token/` e inacessível ao JavaScript.
+`DATABASE_URL` continua suportada em desenvolvimento e CI para compatibilidade.
 
-Quando a página é recarregada, o frontend chama `POST /api/token/refresh/`. O backend lê o refresh token diretamente do cookie e devolve um novo access token. O corpo da requisição de refresh não aceita o refresh token como credencial alternativa.
+## Configuracao fail-fast
 
-O logout chama `POST /api/token/logout/`, remove o access token da memória e expira o cookie de refresh.
+`compose.prod.yaml` define `TECHTRACK_PRODUCTION=True`. Nesse modo o Django recusa startup quando detectar, entre outros:
 
-Configurações disponíveis:
+- `DJANGO_DEBUG=True`;
+- hosts vazios ou `*`;
+- credenciais PostgreSQL ausentes;
+- `FRONTEND_URL` invalida;
+- producao externa sem HTTPS;
+- secure cookies desabilitados em dominio externo;
+- `DJANGO_CSRF_TRUSTED_ORIGINS` sem a origem do frontend;
+- SMTP selecionado sem usuario/senha/remetente;
+- TLS e SSL SMTP habilitados simultaneamente.
+
+O container tambem executa:
+
+```bash
+python manage.py check --deploy
+```
+
+antes das migrations e do Gunicorn.
+
+## Liveness e readiness
+
+Os checks tem papeis diferentes:
+
+```text
+GET /api/health/ -> confirma que o processo Django responde
+GET /api/ready/  -> executa SELECT 1 e confirma que o PostgreSQL esta acessivel
+```
+
+O healthcheck do container backend usa `/api/ready/`. Para monitoramento externo, use tambem `/api/ready/`.
+
+## HTTPS e EasyPanel
+
+O cenario recomendado e:
+
+```text
+Internet
+   |
+EasyPanel / Traefik com HTTPS
+   |
+Nginx TechTrack (rede privada / porta interna 8080)
+   |
+Django
+```
+
+O Compose standalone publica o frontend em:
+
+```text
+127.0.0.1:8080 -> container:8080
+```
+
+Ajustes disponiveis:
+
+```dotenv
+PROD_BIND_ADDRESS=127.0.0.1
+PROD_FRONTEND_PORT=8080
+```
+
+Nao exponha a porta HTTP raw publicamente em paralelo ao proxy HTTPS.
+
+Para dominio real configure no EasyPanel:
+
+```dotenv
+DJANGO_ALLOWED_HOSTS=techtrack.seudominio.com,backend
+DJANGO_CSRF_TRUSTED_ORIGINS=https://techtrack.seudominio.com
+DJANGO_TRUST_X_FORWARDED_PROTO=True
+DJANGO_USE_X_FORWARDED_HOST=True
+DJANGO_SECURE_SSL_REDIRECT=True
+DJANGO_SESSION_COOKIE_SECURE=True
+DJANGO_CSRF_COOKIE_SECURE=True
+AUTH_REFRESH_COOKIE_SECURE=True
+FRONTEND_URL=https://techtrack.seudominio.com
+```
+
+HSTS deve ser habilitado somente depois de HTTPS estar validado:
+
+```dotenv
+DJANGO_SECURE_HSTS_SECONDS=31536000
+DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS=True
+DJANGO_SECURE_HSTS_PRELOAD=False
+```
+
+## Sessao JWT
+
+O navegador nao persiste JWT em `localStorage` ou `sessionStorage`.
+
+- access token: apenas memoria;
+- refresh token: cookie `HttpOnly`, limitado a `/api/token/`;
+- reload: `POST /api/token/refresh/` restaura o access em memoria;
+- logout: expira o cookie e limpa o access.
+
+Defaults:
 
 ```dotenv
 AUTH_ACCESS_TOKEN_MINUTES=5
@@ -89,39 +174,22 @@ AUTH_REFRESH_COOKIE_NAME=techtrack_refresh
 AUTH_REFRESH_COOKIE_SAMESITE=Lax
 ```
 
-Em desenvolvimento, `AUTH_REFRESH_COOKIE_SECURE=False`. O `compose.prod.yaml` usa `AUTH_REFRESH_COOKIE_SECURE=True` por padrão e essa configuração deve permanecer ativa quando a aplicação estiver publicada via HTTPS.
+## SMTP e recuperacao de senha
 
-A implantação desta mudança invalida intencionalmente as sessões antigas que ainda dependiam de tokens no `localStorage`. O frontend remove as chaves legadas e o usuário precisa autenticar novamente uma vez.
-
-## HTTPS e reverse proxy
-
-O cenário recomendado é terminar TLS no proxy da plataforma (Traefik, Caddy, Nginx externo, EasyPanel etc.) e encaminhar o tráfego para o container frontend.
-
-A stack aceita `X-Forwarded-Proto`. Depois de confirmar que o proxy preserva corretamente o protocolo original, configure:
+Em producao o Compose exige explicitamente:
 
 ```dotenv
-DJANGO_TRUST_X_FORWARDED_PROTO=True
-DJANGO_USE_X_FORWARDED_HOST=True
-DJANGO_SECURE_SSL_REDIRECT=True
-DJANGO_SESSION_COOKIE_SECURE=True
-DJANGO_CSRF_COOKIE_SECURE=True
-DJANGO_CSRF_TRUSTED_ORIGINS=https://techtrack.seudominio.com
-AUTH_REFRESH_COOKIE_SECURE=True
+EMAIL_HOST_USER=...
+EMAIL_HOST_PASSWORD=...
+DEFAULT_FROM_EMAIL=TechTrack <techtrack@seudominio.com>
+FRONTEND_URL=https://techtrack.seudominio.com
 ```
 
-HSTS deve ser habilitado somente depois de HTTPS estar estável:
+Quando `EMAIL_BACKEND` e SMTP, o backend tambem valida essas configuracoes no startup. Depois do deploy, teste um reset de senha real para confirmar DNS, credenciais e entrega.
 
-```dotenv
-DJANGO_SECURE_HSTS_SECONDS=31536000
-DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS=True
-DJANGO_SECURE_HSTS_PRELOAD=False
-```
+## Rate limiting
 
-Não habilite `HSTS_PRELOAD` sem entender as consequências de longo prazo para o domínio e subdomínios.
-
-## Rate limiting de autenticação
-
-Os endpoints públicos sensíveis possuem throttling DRF por IP:
+Endpoints publicos sensiveis possuem throttling DRF:
 
 ```dotenv
 THROTTLE_LOGIN_RATE=10/min
@@ -131,55 +199,51 @@ THROTTLE_PASSWORD_RESET_RATE=20/hour
 THROTTLE_PASSWORD_RESET_CONFIRM_RATE=30/hour
 ```
 
-Esses limites são uma barreira de aplicação. Em exposição pública, mantenha também rate limiting no reverse proxy/WAF quando disponível.
+Em exposicao publica, complemente no reverse proxy/WAF quando disponivel.
 
-## Headers
+## Headers e CSP
 
-Django aplica baseline de segurança incluindo `nosniff`, `DENY` para framing e política de referrer. O Nginx do frontend também envia:
+O Nginx envia:
 
 - `X-Content-Type-Options: nosniff`;
 - `X-Frame-Options: DENY`;
 - `Referrer-Policy: same-origin`;
-- `Permissions-Policy` desabilitando câmera, microfone e geolocalização.
+- `Permissions-Policy` com camera/microfone/geolocalizacao desabilitados;
+- `Content-Security-Policy` restrita a recursos da propria aplicacao, sem objetos e sem framing.
 
-## Backup e restore do PostgreSQL
-
-O repositório possui scripts operacionais para backup e restore da stack de produção:
+## Backup e restore
 
 ```bash
 bash scripts/postgres-backup.sh
 bash scripts/postgres-restore.sh /caminho/backup.dump --yes
 ```
 
-O backup usa `pg_dump` em formato custom, valida o archive antes de concluir, gera SHA-256 e aplica retenção local configurável. O restore valida o dump, cria backup de segurança por padrão, para a aplicação, restaura com limpeza controlada, reaplica migrations e só então sobe frontend/backend novamente.
+Backups locais usam `pg_dump` custom, checksum SHA-256, validacao e retencao. `backups/`, `*.dump` e `*.dump.sha256` sao excluidos tanto do Git quanto do contexto Docker para impedir que dados do banco sejam incorporados em imagens durante rebuilds.
 
-A pipeline de produção também executa um ciclo efêmero de backup/restore para detectar regressões no procedimento.
+Consulte [backups.md](backups.md). Agendamento, copia off-site e alertas pertencem a infraestrutura do EasyPanel/host.
 
-O runbook completo, incluindo retenção, agendamento e recomendação de cópia off-site, está em [backups.md](backups.md).
+## Observabilidade
 
-## Observabilidade e logs
+Backend e Nginx escrevem em `stdout`/`stderr` com request ID correlacionado. Query strings, cookies, Authorization e bodies nao fazem parte dos access logs estruturados.
 
-A stack de produção escreve logs em `stdout`/`stderr`, sem depender de um fornecedor específico.
+Consulte [observability.md](observability.md).
 
-O backend usa JSON estruturado por padrão em produção e registra request ID, método, caminho sem query string, status HTTP e duração. O Nginx também usa JSON para access logs, gera o `X-Request-ID` externo e encaminha o mesmo valor ao Django, permitindo correlacionar as duas camadas.
+## Release e rollback
 
-Health checks rotineiros do backend não geram eventos de request para evitar ruído, embora continuem recebendo `X-Request-ID`.
+O procedimento final esta em [release.md](release.md). Ele cobre:
 
-Configuração principal:
+- backup pre-deploy;
+- build/deploy;
+- smoke real;
+- tag `v1.0.0`;
+- rollback de codigo;
+- restore do banco quando realmente necessario.
 
-```dotenv
-LOG_LEVEL=INFO
-OBSERVABILITY_JSON_LOGS=True
-LOG_MAX_SIZE=10m
-LOG_MAX_FILES=5
-```
+## Pendencias deliberadamente externas
 
-A rotação local do Docker evita crescimento ilimitado dos arquivos `json-file`. Coleta e retenção de longo prazo podem ser feitas pela plataforma de deploy ou por qualquer stack compatível com stdout/stderr.
+Depois do hardening do repositorio, permanecem apenas:
 
-O runbook completo está em [observability.md](observability.md).
+1. **EasyPanel/infraestrutura:** dominio, TLS, variaveis, SMTP real, scheduler de backup, copia off-site e monitor de `/api/ready/`;
+2. **GitHub:** proteger `master` exigindo Pull Request + workflow `Validation`, bloqueando force push e exclusao.
 
-## Próximos hardenings
-
-A persistência de refresh JWT no navegador foi removida. Como evolução posterior de segurança de sessão, pode-se adicionar blacklist/rotação de refresh tokens para revogação server-side imediata, caso a aplicação passe a exigir esse nível de controle.
-
-Também permanece como etapa operacional externa ao código a configuração de regras de proteção obrigatória da branch `master` no GitHub.
+Esses itens nao exigem nova modelagem ou alteracao funcional no TechTrack.

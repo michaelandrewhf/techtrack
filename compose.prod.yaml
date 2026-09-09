@@ -28,6 +28,7 @@ services:
       dockerfile: Dockerfile.prod
     restart: unless-stopped
     environment:
+      TECHTRACK_PRODUCTION: "True"
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?DJANGO_SECRET_KEY is required}
       DJANGO_DEBUG: "False"
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:?DJANGO_ALLOWED_HOSTS is required}
@@ -40,8 +41,12 @@ services:
       DJANGO_SECURE_HSTS_SECONDS: ${DJANGO_SECURE_HSTS_SECONDS:-0}
       DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS: ${DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS:-False}
       DJANGO_SECURE_HSTS_PRELOAD: ${DJANGO_SECURE_HSTS_PRELOAD:-False}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-techtrack}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-techtrack}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
+      POSTGRES_DB: ${POSTGRES_DB:-techtrack}
+      POSTGRES_USER: ${POSTGRES_USER:-techtrack}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
       PASSWORD_RESET_TIMEOUT: ${PASSWORD_RESET_TIMEOUT:-3600}
       AUTH_ACCESS_TOKEN_MINUTES: ${AUTH_ACCESS_TOKEN_MINUTES:-5}
       AUTH_REFRESH_TOKEN_DAYS: ${AUTH_REFRESH_TOKEN_DAYS:-1}
@@ -51,11 +56,11 @@ services:
       EMAIL_BACKEND: ${EMAIL_BACKEND:-django.core.mail.backends.smtp.EmailBackend}
       EMAIL_HOST: ${EMAIL_HOST:-smtp.zoho.com}
       EMAIL_PORT: ${EMAIL_PORT:-587}
-      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
-      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:?EMAIL_HOST_USER is required}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:?EMAIL_HOST_PASSWORD is required}
       EMAIL_USE_TLS: ${EMAIL_USE_TLS:-True}
       EMAIL_USE_SSL: ${EMAIL_USE_SSL:-False}
-      DEFAULT_FROM_EMAIL: "${DEFAULT_FROM_EMAIL:-TechTrack <noreply@techtrack.local>}"
+      DEFAULT_FROM_EMAIL: "${DEFAULT_FROM_EMAIL:?DEFAULT_FROM_EMAIL is required}"
       GUNICORN_WORKERS: ${GUNICORN_WORKERS:-3}
       GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-60}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
@@ -74,12 +79,14 @@ services:
           "CMD",
           "python",
           "-c",
-          "import urllib.request; r=urllib.request.Request('http://127.0.0.1:8000/api/health/', headers={'X-Forwarded-Proto':'https'}); urllib.request.urlopen(r, timeout=3).read()",
+          "import urllib.request; r=urllib.request.Request('http://127.0.0.1:8000/api/ready/', headers={'X-Forwarded-Proto':'https'}); urllib.request.urlopen(r, timeout=3).read()",
         ]
       interval: 5s
       timeout: 5s
       retries: 20
       start_period: 15s
+    cap_drop:
+      - ALL
     security_opt:
       - no-new-privileges:true
     logging: *default-logging
@@ -90,10 +97,12 @@ services:
       dockerfile: Dockerfile.prod
     restart: unless-stopped
     ports:
-      - "${PROD_FRONTEND_PORT:-8080}:80"
+      - "${PROD_BIND_ADDRESS:-127.0.0.1}:${PROD_FRONTEND_PORT:-8080}:8080"
     depends_on:
       backend:
         condition: service_healthy
+    cap_drop:
+      - ALL
     security_opt:
       - no-new-privileges:true
     logging: *default-logging
