@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from config.pdf import MARGIN_X
 
-from .base import BORDER, CONTENT_WIDTH, INK, MUTED, NAVY, PRIMARY, ClientPdfDocument
+from .base import BORDER, INK, MUTED, NAVY, PRIMARY, ClientPdfDocument
 from .common import business_footer, equipment_model, money, pt_date, quote_status_label
 
 
