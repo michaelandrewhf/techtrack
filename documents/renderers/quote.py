@@ -62,8 +62,8 @@ class QuotePdfDocument(ClientPdfDocument):
         self.y = 712
 
 
-def _contact(primary: str | None, secondary: str | None) -> str:
-    values = [value for value in [primary, secondary] if value]
+def _contact(*values: str | None) -> str:
+    values = [value for value in values if value]
     return " | ".join(values) or "-"
 
 
@@ -88,21 +88,20 @@ def render_quote_pdf(snapshot: dict, revision: str = "") -> bytes:
         ]
     )
 
-    document.section_title("Cliente e prestador", keep_with=70)
     document.info_box(
         [
-            ("Cliente", customer.get("name") or "-"),
             (
-                "Contato do cliente",
+                "Cliente",
                 _contact(
+                    customer.get("name"),
                     customer.get("whatsapp") or customer.get("phone"),
                     customer.get("email"),
                 ),
             ),
-            ("Prestador", business.get("name") or "TechTrack"),
             (
-                "Contato do prestador",
+                "Prestador",
                 _contact(
+                    business.get("name") or "TechTrack",
                     business.get("phone") or business.get("whatsapp"),
                     business.get("email"),
                 ),
@@ -123,13 +122,11 @@ def render_quote_pdf(snapshot: dict, revision: str = "") -> bytes:
             columns=4,
         )
 
-    document.section_title("Proposta", keep_with=80)
     document.lead_block(
         quote.get("title") or "Proposta de serviço",
         quote.get("description") or "",
     )
 
-    document.section_title("Itens e valores", keep_with=70)
     document.table(
         headers=["Descrição", "Qtd.", "Unitário", "Desconto", "Total"],
         rows=[

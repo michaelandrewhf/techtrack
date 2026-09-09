@@ -125,7 +125,8 @@ export function WorkOrderFinanceHistory({
               Cliente mensalista
             </div>
             <p className="mt-1 text-sm text-[var(--text-muted)]">
-              Defina explicitamente como este atendimento entra no financeiro antes de criar uma cobranca avulsa.
+              Defina explicitamente como este atendimento entra no financeiro
+              antes de criar uma cobranca avulsa.
             </p>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -184,7 +185,8 @@ export function WorkOrderFinanceHistory({
             <div className="mt-3">
               {policy?.mode === "agreement_included" ? (
                 <Notice tone="success">
-                  Esta OS esta inclusa no plano mensal e nao deve gerar cobranca adicional.
+                  Esta OS esta inclusa no plano mensal e nao deve gerar cobranca
+                  adicional.
                 </Notice>
               ) : policy?.mode === "agreement_extra" ? (
                 <Notice tone="warning">
@@ -192,7 +194,8 @@ export function WorkOrderFinanceHistory({
                 </Notice>
               ) : (
                 <Notice tone="warning">
-                  Selecione se a OS esta inclusa no plano ou se sera cobrada a parte.
+                  Selecione se a OS esta inclusa no plano ou se sera cobrada a
+                  parte.
                 </Notice>
               )}
             </div>
@@ -225,7 +228,8 @@ export function WorkOrderFinanceHistory({
                     {receivable.description}
                   </div>
                   <div className="mt-1 text-xs text-[var(--text-muted)]">
-                    Vence {formatDate(receivable.due_date)} · {receivable.status}
+                    Vence {formatDate(receivable.due_date)} ·{" "}
+                    {receivable.status}
                   </div>
                 </div>
                 <div className="text-right">
@@ -265,7 +269,9 @@ export function WorkOrderFinanceHistory({
             </Field>
             <div className="self-end">
               <Button
-                disabled={!chargeAmount || !dueDate || createReceivable.isPending}
+                disabled={
+                  !chargeAmount || !dueDate || createReceivable.isPending
+                }
                 type="button"
                 onClick={() => createReceivable.mutate()}
               >
@@ -277,13 +283,16 @@ export function WorkOrderFinanceHistory({
 
         {!isClosed && hasAgreement && !policy ? (
           <p className="mt-4 text-sm text-[var(--text-muted)]">
-            A criacao de cobranca fica disponivel depois que o tratamento da OS for definido.
+            A criacao de cobranca fica disponivel depois que o tratamento da OS
+            for definido.
           </p>
         ) : null}
 
         {createReceivable.error ? (
           <div className="mt-3">
-            <Notice tone="danger">{errorMessage(createReceivable.error)}</Notice>
+            <Notice tone="danger">
+              {errorMessage(createReceivable.error)}
+            </Notice>
           </div>
         ) : null}
       </Panel>
@@ -302,7 +311,8 @@ export function WorkOrderFinanceHistory({
                 {event.status.name}
               </div>
               <div className="mt-1 text-xs text-[var(--text-muted)]">
-                {formatDateTime(event.changed_at)} · {event.changed_by?.username ?? "-"}
+                {formatDateTime(event.changed_at)} ·{" "}
+                {event.changed_by?.username ?? "-"}
               </div>
               {event.comment || event.description ? (
                 <p className="mt-1 text-sm text-[var(--text-muted)]">

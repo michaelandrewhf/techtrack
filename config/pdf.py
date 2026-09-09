@@ -351,7 +351,7 @@ class PdfDocument:
             if self.footer_left:
                 commands.append(self._text_command(self.footer_left, MARGIN_X, 31, size=7, color=MUTED))
             center_text = "Documento comercial · Nao constitui nota fiscal"
-            commands.append(self._text_command(center_text, 297, 31, size=6.8, color=MUTED, center=True))
+            commands.append(self._text_command(center_text, 297, 18, size=6.8, color=MUTED, center=True))
             revision = f" · {self.revision}" if self.revision else ""
             page_text = f"Pagina {index}/{page_count}{revision}"
             commands.append(self._text_command(page_text, 553, 31, size=7, color=MUTED, right=True))

@@ -115,7 +115,10 @@ describe("QuoteDetailPage", () => {
     const fetchMock = vi.fn(
       async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
-        if (url.endsWith("/api/v1/quotes/q1/approve/") && init?.method === "POST") {
+        if (
+          url.endsWith("/api/v1/quotes/q1/approve/") &&
+          init?.method === "POST"
+        ) {
           return json(quote("approved"));
         }
         if (url.endsWith("/api/v1/quotes/q1/")) {
